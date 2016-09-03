@@ -38,7 +38,7 @@
 */Release/
 
 #CDT
-*.project
-*.cproject
+#*.project
+#*.cproject
 
 *.log
