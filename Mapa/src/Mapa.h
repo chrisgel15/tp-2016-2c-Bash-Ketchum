@@ -15,6 +15,8 @@
 #include <commons/collections/queue.h>
 #include <pthread.h>
 #include <commons/string.h>
+#include "Interfaz_Grafica.h"
+#include <string.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
@@ -25,6 +27,7 @@ typedef struct{
 	char *nombre;
 	int fd;
 	char caracter; //Caracter que va a representar al Entrendor en el Mapa
+	t_posicion* posicion;
 } t_entrenador;
 
 /********* FUNCIONES DE INICIALIZACION *********/

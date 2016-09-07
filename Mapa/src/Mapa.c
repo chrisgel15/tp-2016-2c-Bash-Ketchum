@@ -12,9 +12,10 @@ int main(void) {
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
-	char *log_level = "INFO";
+	char *log_level = "TRACE";
 	mapa_log = CreacionLogWithLevel(log_nombre, programa_nombre, log_level);
-	log_info(mapa_log, "Se ha creador el Log para el Mapa.");
+	log_info(mapa_log, "Se ha creado el Log para el Mapa.");
+
 
 	//Inicializamos Estructuras
 	inicializar_estructuras();
@@ -32,6 +33,11 @@ int main(void) {
 
 	log_info(mapa_log, "A la espera de Entrenadores Pokémon.");
 
+	/**** Hilo para manejar el trazado del mapa ****/
+//	pthread_t trazado_mapa;
+//	pthread_create(&trazado_mapa, NULL, (void*)dibujar_mapa_vacio, NULL);
+	/***********************************************/
+
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
 		fd_sets_entrenadores->readFileDescriptorSet = fd_sets_entrenadores->masterSet;
@@ -40,7 +46,7 @@ int main(void) {
 						&(fd_sets_entrenadores->readFileDescriptorSet),
 						&(fd_sets_entrenadores->writeFileDescriptorSet),
 						NULL, NULL) == -1){
-			perror("Se ha producido un error al intentar atender las peticiones de los Entrenadores.");
+			/*perror*/log_error(mapa_log,"Se ha producido un error al intentar atender las peticiones de los Entrenadores.");
 			exit(1);
 		}
 
@@ -74,6 +80,8 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 
 void recibir_nuevo_entrenador(int fd){
 	t_entrenador *entrenador = malloc(sizeof(t_entrenador));
+	t_posicion* posicion = malloc(sizeof(t_posicion));
+	entrenador->posicion = posicion;
 	int *result = malloc(sizeof(int));
 	char *nombre = NULL;
 	char *caracter = NULL;
@@ -89,13 +97,27 @@ void recibir_nuevo_entrenador(int fd){
 	caracter = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, caracter, tamanio_texto, mapa_log);
 
+	//Cargo la estructura del Entrenador con los datos recibidos por Socket
+	//La posicion inicial es (0;0)
 	entrenador->fd = fd;
 	entrenador->nombre = nombre;
-	entrenador->caracter = (char) caracter;
+	entrenador->caracter =  *caracter;
+	entrenador->posicion->x = 0;
+	entrenador->posicion->y = 0;
 
 	list_add(entrenadores, entrenador);
+	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
+//	t_list* items = list_create();
+//	int filas, columnas;
+//	CrearPersonaje(items, entrenador->caracter, entrenador->posicion->x,
+//				entrenador->posicion->y);
+//	nivel_gui_inicializar();
+//	nivel_gui_get_area_nivel(&filas, &columnas);
+//	nivel_gui_dibujar(items, "Mapa Checpoint I");
+	/*****************************************************************/
 
-	printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
+	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
+	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 }
 
 void recibir_mensaje_entrenador(int fd){
@@ -111,7 +133,8 @@ void recibir_mensaje_entrenador(int fd){
 	texto = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, texto, tamanio_texto, mapa_log);
 
-	printf("Mensaje recibido del socket %d: %s", fd, texto);
+	//printf("Mensaje recibido del socket %d: %s", fd, texto);
+	log_info(mapa_log, "Mensaje recibido del socket %d: %s", fd, texto);
 
 	//Enviamos el mensaje a todos los Entrenadores
 	int i;
