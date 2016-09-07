@@ -86,8 +86,13 @@ void dibujar_mapa() {
 void dibujar_mapa_vacio(){
 	t_list* items = list_create();
 	int filas, columnas;
+	CrearCaja(items, 'C', RECURSO_POSX, RECURSO_POSY, RECURSO_QTY);
+	CrearCaja(items, 'P', 15, 20, 5);
 	nivel_gui_inicializar();
 	nivel_gui_get_area_nivel(&filas, &columnas);
 	nivel_gui_dibujar(items, "Mapa Checkpoint I");
+	//Termino el mapa despues de 10 segundos
+	sleep(10);
+	nivel_gui_terminar();
 }
 

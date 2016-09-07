@@ -14,6 +14,7 @@ int main(void) {
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
 	char *log_level = "TRACE";
 	mapa_log = CreacionLogWithLevel(log_nombre, programa_nombre, log_level);
+	mapa_log->is_active_console = false;
 	log_info(mapa_log, "Se ha creado el Log para el Mapa.");
 
 
@@ -34,8 +35,8 @@ int main(void) {
 	log_info(mapa_log, "A la espera de Entrenadores Pokémon.");
 
 	/**** Hilo para manejar el trazado del mapa ****/
-//	pthread_t trazado_mapa;
-//	pthread_create(&trazado_mapa, NULL, (void*)dibujar_mapa_vacio, NULL);
+	pthread_t trazado_mapa;
+	pthread_create(&trazado_mapa, NULL, (void*)dibujar_mapa_vacio, NULL);
 	/***********************************************/
 
 	//Espero conexiones y pedidos de Entrenadores
@@ -113,7 +114,7 @@ void recibir_nuevo_entrenador(int fd){
 //				entrenador->posicion->y);
 //	nivel_gui_inicializar();
 //	nivel_gui_get_area_nivel(&filas, &columnas);
-//	nivel_gui_dibujar(items, "Mapa Checpoint I");
+//	nivel_gui_dibujar(items, "Mapa Checkpoint I");
 	/*****************************************************************/
 
 	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
