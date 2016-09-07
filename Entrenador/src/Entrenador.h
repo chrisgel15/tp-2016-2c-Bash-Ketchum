@@ -12,6 +12,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 #include <pthread.h>
+#include <string.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"
