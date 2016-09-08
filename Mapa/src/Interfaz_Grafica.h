@@ -30,7 +30,8 @@ typedef struct{
 }t_posicion;
 
 void dibujar_mapa(void);
-void dibujar_mapa_vacio(void);
+void dibujar_mapa_vacio(t_list*);
+
 
 
 #endif /* INTERFAZ_GRAFICA_H_ */

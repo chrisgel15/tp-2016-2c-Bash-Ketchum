@@ -21,6 +21,8 @@
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
 #define programa_nombre "Mapa.c"
+#define POSICION_INICIAL_X 0
+#define POSICION_INICIAL_Y 0
 
 //Estructuras
 typedef struct{
@@ -29,6 +31,11 @@ typedef struct{
 	char caracter; //Caracter que va a representar al Entrendor en el Mapa
 	t_posicion* posicion;
 } t_entrenador;
+
+typedef struct{
+	t_list* items;
+	t_entrenador* entrenador;
+}t_datos_mapa;
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
@@ -40,5 +47,8 @@ void recibir_mensaje_entrenador(int fd);
 void despedir_entrenador(int fd_entrenador, int codigo_instruccion);
 
 t_entrenador *buscar_entrenador(int fd);
+
+void posicionar_entrenador_en_mapa(t_datos_mapa*);
+void mover_entrenador_hacia_recurso(t_datos_mapa*);
 
 #endif /* MAPA_H_ */

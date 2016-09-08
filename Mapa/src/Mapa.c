@@ -5,8 +5,16 @@
 t_queue *entrenadores_listos;
 t_list *entrenadores; //TODO: Ver si puede llegar a servir
 
+//lista de items a dibujar en el mapa
+t_list* items;
+t_datos_mapa* datos_mapa;
+
 //Log
 t_log *mapa_log;
+
+pthread_mutex_t mutex_desplaza_x;
+pthread_mutex_t mutex_desplaza_y;
+
 
 int main(void) {
 
@@ -34,10 +42,8 @@ int main(void) {
 
 	log_info(mapa_log, "A la espera de Entrenadores Pokémon.");
 
-	/**** Hilo para manejar el trazado del mapa ****/
-	pthread_t trazado_mapa;
-	pthread_create(&trazado_mapa, NULL, (void*)dibujar_mapa_vacio, NULL);
-	/***********************************************/
+
+	dibujar_mapa_vacio(items);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -61,6 +67,13 @@ int main(void) {
 void inicializar_estructuras(){
 	entrenadores_listos = queue_create();
 	entrenadores = list_create();
+	items = list_create();
+	datos_mapa = malloc(sizeof(t_datos_mapa));
+	datos_mapa->items = items;
+	datos_mapa->entrenador = NULL;
+	pthread_mutex_init(&mutex_desplaza_x,NULL);
+	pthread_mutex_init(&mutex_desplaza_y,NULL);
+
 }
 
 /********* FUNCIONES PARA RECIBIR PETICIONES DE LOS ENTRENADORES *********/
@@ -83,6 +96,7 @@ void recibir_nuevo_entrenador(int fd){
 	t_entrenador *entrenador = malloc(sizeof(t_entrenador));
 	t_posicion* posicion = malloc(sizeof(t_posicion));
 	entrenador->posicion = posicion;
+
 	int *result = malloc(sizeof(int));
 	char *nombre = NULL;
 	char *caracter = NULL;
@@ -103,18 +117,23 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->fd = fd;
 	entrenador->nombre = nombre;
 	entrenador->caracter =  *caracter;
-	entrenador->posicion->x = 0;
-	entrenador->posicion->y = 0;
+	entrenador->posicion->x = POSICION_INICIAL_X;
+	entrenador->posicion->y = POSICION_INICIAL_Y;
+
+	datos_mapa->entrenador = entrenador;
 
 	list_add(entrenadores, entrenador);
 	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
-//	t_list* items = list_create();
-//	int filas, columnas;
-//	CrearPersonaje(items, entrenador->caracter, entrenador->posicion->x,
-//				entrenador->posicion->y);
-//	nivel_gui_inicializar();
-//	nivel_gui_get_area_nivel(&filas, &columnas);
-//	nivel_gui_dibujar(items, "Mapa Checkpoint I");
+
+	posicionar_entrenador_en_mapa(datos_mapa);
+
+	/**** Hilo para manejar el trazado del mapa ****/
+		pthread_t trazado_mapa;
+		pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
+		/***********************************************/
+
+	//mover_entrenador_hacia_recurso(datos_mapa);
+
 	/*****************************************************************/
 
 	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
