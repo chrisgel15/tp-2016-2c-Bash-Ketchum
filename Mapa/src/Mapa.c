@@ -4,6 +4,7 @@
 //Estructuras para el Manejo de Entrenadores
 t_queue *entrenadores_listos;
 t_list *entrenadores; //TODO: Ver si puede llegar a servir
+t_list *pokenests;
 
 //lista de items a dibujar en el mapa
 t_list* items;
@@ -67,6 +68,7 @@ int main(void) {
 void inicializar_estructuras(){
 	entrenadores_listos = queue_create();
 	entrenadores = list_create();
+	pokenests= list_create();
 	items = list_create();
 	datos_mapa = malloc(sizeof(t_datos_mapa));
 	datos_mapa->items = items;
@@ -86,6 +88,18 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 		case ENVIAR_MENSAJE:
 			recibir_mensaje_entrenador(fd_entrenador);
 			break;
+		/*case UBICACION_POKENEST:
+			enviar_posicion_pokenest(id);
+			break;
+		case AVANZAR_HACIA_POKENEST:
+			mover_entrenador();
+			break;
+		case ATRAPAR_POKEMON:
+			conceder_pokemon();
+			break;
+		case OBJETIVO_CUMPLIDO();
+			conceder_medalla();
+			*/
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
 			break;
@@ -123,6 +137,7 @@ void recibir_nuevo_entrenador(int fd){
 	datos_mapa->entrenador = entrenador;
 
 	list_add(entrenadores, entrenador);
+
 	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
 
 	posicionar_entrenador_en_mapa(datos_mapa);
@@ -194,4 +209,12 @@ t_entrenador *buscar_entrenador(int fd){
 	}
 
 	return NULL;
+}
+
+void conceder_pokemon(){
+
+}
+
+void conceder_medalla(){
+
 }

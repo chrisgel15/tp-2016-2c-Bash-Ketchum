@@ -99,8 +99,8 @@ void dibujar_mapa_vacio(t_list* items){
 	//t_list* items = list_create();
 	int filas = 50;
 	int columnas = 50;;
-	CrearCaja(items, 'C', RECURSO_POSX, RECURSO_POSY, RECURSO_QTY);
-	CrearCaja(items, 'P', 15, 20, 5);
+	CrearPokenest(items, 'C', RECURSO_POSX, RECURSO_POSY, RECURSO_QTY);
+	CrearPokenest(items, 'P', 15, 20, 5);
 	nivel_gui_inicializar();
 	nivel_gui_get_area_nivel(&filas, &columnas);
 	nivel_gui_dibujar(items, "Mapa Checkpoint I");
@@ -109,11 +109,25 @@ void dibujar_mapa_vacio(t_list* items){
 //	nivel_gui_terminar();
 }
 
+
+void CrearPokenest(t_list* items, char id, int x , int y,int cant){
+	 CrearItem(items, id, x, y, POKENEST_ITEM_TYPE, cant);
+}
+
+void CrearEntrenador (t_list* items, char id, int x , int y){
+	CrearItem(items, id, x, y, ENTRENADOR_ITEM_TYPE,0);
+}
+
 void posicionar_entrenador_en_mapa(t_datos_mapa* datos){
-	CrearPersonaje(datos->items,datos->entrenador->caracter,
+	CrearEntrenador(datos->items,datos->entrenador->caracter,
 			datos->entrenador->posicion->x,datos->entrenador->posicion->y);
 	nivel_gui_dibujar(datos->items,"Mapa Checkpoint I");
 }
+
+void posicionar_pokenest_en_mapa(t_datos_mapa* datos){
+	nivel_gui_dibujar(datos->items,"Mapa Checkpoint I");
+}
+
 
 void mover_entrenador_hacia_recurso(t_datos_mapa* datos){
 	int distanciaH = TRUE;
@@ -155,3 +169,16 @@ void mover_eje_y(t_datos_mapa* datos, int dist) {
 	}
 }
 
+t_posicion* enviar_posicion_pokenest(char id ){
+	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	t_posicion * posicionPokenest= malloc (sizeof (t_posicion));
+	ITEM_NIVEL* _search_item_by_id(items, id);
+	posicionPokenest->x-=pokenest->posx;
+	posicionPokenest->y=pokenest->posy;
+	free(pokenest);
+	return posicionPokenest;
+
+}
+void mover_entrenador(){
+
+}

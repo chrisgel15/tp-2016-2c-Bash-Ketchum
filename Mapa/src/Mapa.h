@@ -37,6 +37,14 @@ typedef struct{
 	t_entrenador* entrenador;
 }t_datos_mapa;
 
+typedef struct{
+	char *nombre;
+	char caracter; //Caracter que va a representar al Entrendor en el Mapa
+	t_posicion* posicion;
+	int cantPokemons; //registrar recursos
+} t_pokenest;
+
+
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
 
@@ -50,5 +58,8 @@ t_entrenador *buscar_entrenador(int fd);
 
 void posicionar_entrenador_en_mapa(t_datos_mapa*);
 void mover_entrenador_hacia_recurso(t_datos_mapa*);
+
+void conceder_pokemon();
+void conceder_medalla();
 
 #endif /* MAPA_H_ */

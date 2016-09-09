@@ -25,6 +25,9 @@
 
 //Definiciones entre Entrenador y Mapa
 #define ENVIAR_MENSAJE 200
+#define UBICACION_POKENEST 201
+#define AVANZAR_HACIA_POKENEST 202
+
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 
