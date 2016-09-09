@@ -169,16 +169,7 @@ void mover_eje_y(t_datos_mapa* datos, int dist) {
 	}
 }
 
-t_posicion* enviar_posicion_pokenest(char id ){
-	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
-	t_posicion * posicionPokenest= malloc (sizeof (t_posicion));
-	ITEM_NIVEL* _search_item_by_id(items, id);
-	posicionPokenest->x-=pokenest->posx;
-	posicionPokenest->y=pokenest->posy;
-	free(pokenest);
-	return posicionPokenest;
 
-}
 void mover_entrenador(){
 
 }

@@ -59,7 +59,9 @@ t_entrenador *buscar_entrenador(int fd);
 void posicionar_entrenador_en_mapa(t_datos_mapa*);
 void mover_entrenador_hacia_recurso(t_datos_mapa*);
 
-void conceder_pokemon();
-void conceder_medalla();
 
+
+void entregar_pokemon(char id );
+void entregar_medalla();
+t_posicion* enviar_posicion_pokenest(char id);
 #endif /* MAPA_H_ */

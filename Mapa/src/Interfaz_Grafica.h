@@ -36,7 +36,7 @@ typedef struct{
 void dibujar_mapa(void);
 void dibujar_mapa_vacio(t_list*);
 
-t_posicion* enviar_posicion_pokenest(char id);
+
 void mover_entrenador(void);
 
 void CrearPokenest(t_list* items, char id, int x , int y,int cant);

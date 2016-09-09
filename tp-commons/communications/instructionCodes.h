@@ -27,7 +27,8 @@
 #define ENVIAR_MENSAJE 200
 #define UBICACION_POKENEST 201
 #define AVANZAR_HACIA_POKENEST 202
-
+#define ATRAPAR_POKEMON 203
+#define OBJETIVO_CUMPLIDO 204
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 

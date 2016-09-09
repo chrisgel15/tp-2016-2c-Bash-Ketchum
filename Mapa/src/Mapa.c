@@ -95,10 +95,10 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			mover_entrenador();
 			break;
 		case ATRAPAR_POKEMON:
-			conceder_pokemon();
+			entregar_pokemon(id);
 			break;
 		case OBJETIVO_CUMPLIDO();
-			conceder_medalla();
+			entregar_medalla();
 			*/
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
@@ -211,10 +211,27 @@ t_entrenador *buscar_entrenador(int fd){
 	return NULL;
 }
 
-void conceder_pokemon(){
+void entregar_pokemon(char id ){
+	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENEST
+
+	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	pokenest= _search_item_by_id(items, id);
+	pokenest->quantity=pokenest->quantity-1;
+	free(pokenest);
 
 }
 
-void conceder_medalla(){
+void entregar_medalla(){
+
+}
+
+t_posicion* enviar_posicion_pokenest(char id ){
+	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	t_posicion * posicionPokenest= malloc (sizeof (t_posicion));
+	pokenest= _search_item_by_id(items, id);
+	posicionPokenest->x-=pokenest->posx;
+	posicionPokenest->y=pokenest->posy;
+	free(pokenest);
+	return posicionPokenest;
 
 }
