@@ -110,10 +110,16 @@ void dibujar_mapa_vacio(t_list* items){
 }
 
 
+//TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
+//		CrearCaja y CrearPersonaje que implementan CrearItem.
+//		Debería ser así: CrearPkenest(itms,id,x,y,cantidad){
+//							CrearCaja(items,id,x,y,cantidad);
+//						 }
 void CrearPokenest(t_list* items, char id, int x , int y,int cant){
 	 CrearItem(items, id, x, y, POKENEST_ITEM_TYPE, cant);
 }
 
+//TODO: @Gi - Idem Pokenest
 void CrearEntrenador (t_list* items, char id, int x , int y){
 	CrearItem(items, id, x, y, ENTRENADOR_ITEM_TYPE,0);
 }
