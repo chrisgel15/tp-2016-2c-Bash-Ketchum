@@ -14,6 +14,7 @@
 #include <commons/log.h>
 #include <commons/collections/queue.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <commons/string.h>
 #include "Interfaz_Grafica.h"
 #include <string.h>
@@ -44,6 +45,8 @@ typedef struct{
 	int cantPokemons; //registrar recursos
 } t_pokenest;
 
+/********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
+void agregar_entrenador_a_listos(t_entrenador *entrenador);
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();

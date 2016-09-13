@@ -8,20 +8,20 @@ int socket_mapa;
 
 int main(int argc, char **argv) {
 
+	char *nombre_entrendor = NULL;
+
+	if (argv[1] == NULL){
+		perror("Ingrese el Nombre del Entrenador para volver a comenzar.");
+		exit(1);
+	}
+
+	nombre_entrendor = argv[1];
+
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
 	char *log_level = "INFO";
 	entrenador_log = CreacionLogWithLevel(log_nombre, programa_nombre, log_level);
 	log_info(entrenador_log, "Se ha creador el Log para el Entrenador.");
-
-	char *nombre_entrendor = NULL;
-
-	if (argv[1] == NULL){
-		perror("Ingrese un Nombre para volver a comenzar.");
-		exit(1);
-	}
-
-	nombre_entrendor = argv[1];
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 

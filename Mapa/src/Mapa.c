@@ -1,6 +1,12 @@
 
 #include "Mapa.h"
 
+//Mutexs de Estructura de Estados
+pthread_mutex_t mutex_cola_listos;
+
+//Semaforos para sincronizar Hilos
+sem_t sem_listos;
+
 //Estructuras para el Manejo de Entrenadores
 t_queue *entrenadores_listos;
 t_list *entrenadores; //TODO: Ver si puede llegar a servir
@@ -17,7 +23,16 @@ pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
 
 
-int main(void) {
+int main(int argc, char **argv) {
+
+	char *nombre_mapa = string_new();
+
+	if (argv[1] == NULL){
+		perror("Ingrese el Nombre del Mapa para volver a comenzar.");
+		exit(1);
+	}
+
+	string_append(&nombre_mapa, argv[1]);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -64,18 +79,37 @@ int main(void) {
 	return EXIT_SUCCESS;
 }
 
+/********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
+
+//Agrega un nuevo programa a la Cola de Listos
+void agregar_entrenador_a_listos(t_entrenador *entrenador) {
+	pthread_mutex_lock(&mutex_cola_listos);
+	queue_push(entrenadores_listos, (void *) entrenador);
+	sem_post(&sem_listos);
+	pthread_mutex_unlock(&mutex_cola_listos);
+}
+
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras(){
+
+	//Estructuras
 	entrenadores_listos = queue_create();
-	entrenadores = list_create();
+	entrenadores = list_create(); //TODO: Eliminar cuando se deje usar el chat
 	pokenests= list_create();
 	items = list_create();
+
 	datos_mapa = malloc(sizeof(t_datos_mapa));
 	datos_mapa->items = items;
 	datos_mapa->entrenador = NULL;
-	pthread_mutex_init(&mutex_desplaza_x,NULL);
-	pthread_mutex_init(&mutex_desplaza_y,NULL);
 
+	//Semaforos
+	pthread_mutex_init(&mutex_desplaza_x, NULL);
+	pthread_mutex_init(&mutex_desplaza_y, NULL);
+	pthread_mutex_init(&mutex_cola_listos, NULL);
+
+	sem_init(&sem_listos, 0, 0);
+
+	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
 
 /********* FUNCIONES PARA RECIBIR PETICIONES DE LOS ENTRENADORES *********/
@@ -136,7 +170,8 @@ void recibir_nuevo_entrenador(int fd){
 
 	datos_mapa->entrenador = entrenador;
 
-	list_add(entrenadores, entrenador);
+	list_add(entrenadores, entrenador); //TODO: Borrar cuando se saque el chat
+	agregar_entrenador_a_listos(entrenador);
 
 	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
 
