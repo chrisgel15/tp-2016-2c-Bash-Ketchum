@@ -23,6 +23,9 @@ int main(int argc, char **argv) {
 	entrenador_log = CreacionLogWithLevel(log_nombre, programa_nombre, log_level);
 	log_info(entrenador_log, "Se ha creador el Log para el Entrenador.");
 
+	//Manejo de System Calls
+	signal(SIGTERM, system_call_catch);
+
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
 	//Nos conectamos al Mapa TODO: A futuro, esto tiene que ir en una funcion separada
@@ -79,6 +82,16 @@ int main(int argc, char **argv) {
 
 	printf("Adios Entrenador Pokemon!. \n");
 	return EXIT_SUCCESS;
+}
+
+
+//Funcion encargada de Capturar las llamadas de Sistema
+void system_call_catch(int signal){
+
+	if (signal == SIGTERM){
+		log_info(entrenador_log, "Se ha enviado la señal SIGTERM. Se le sumará una vida al Entrenador.");
+		//TODO: Sumar vida
+	}
 }
 
 //Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor

@@ -45,6 +45,9 @@ int main(int argc, char **argv) {
 	//Inicializamos Estructuras
 	inicializar_estructuras();
 
+	//Manejo de System Calls
+	signal(SIGUSR2, system_call_catch);
+
 	//Creamos el Servidor de Entrenadores
 	char *puerto_entrenadores = "8000"; //TODO: Sacar cuando se levanten de la configuracion
 	int listener_entrenadores;
@@ -269,4 +272,14 @@ t_posicion* enviar_posicion_pokenest(char id ){
 	free(pokenest);
 	return posicionPokenest;
 
+}
+
+/********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
+void system_call_catch(int signal){
+
+	if (signal == SIGUSR2){
+		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
+		/*TODO: Actualizar Algoritmo de planificación, valor de quantum, tiempo de retardo entre turnos y tiempo de chequeo de interbloqueo
+		/Hacer esto cuando ya lo tengamos levantando desde el archivo de Configuración*/
+	}
 }

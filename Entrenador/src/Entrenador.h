@@ -13,11 +13,13 @@
 #include <commons/log.h>
 #include <pthread.h>
 #include <string.h>
+#include <signal.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"
 #define programa_nombre "Entrenador.c"
 
+void system_call_catch(int signal);
 
 //Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor
 void recibir_mensajes();
