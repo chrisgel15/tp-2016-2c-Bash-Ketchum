@@ -24,4 +24,8 @@ void system_call_catch(int signal);
 //Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor
 void recibir_mensajes();
 
+void solicitar_posicion_pokenest(t_config* ,char *,int );
+
+int conectar_mapa(char);
+
 #endif /* ENTRENADOR_H_ */
