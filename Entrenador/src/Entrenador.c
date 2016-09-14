@@ -3,19 +3,28 @@
 //Log
 t_log *entrenador_log;
 
+//Configs
+t_config * metadata;
+
 //Socket Mapa
 int socket_mapa;
 
 int main(int argc, char **argv) {
 
 	char *nombre_entrendor = NULL;
+	char * ruta_pokedex = NULL;
 
-	if (argv[1] == NULL){
-		perror("Ingrese el Nombre del Entrenador para volver a comenzar.");
+	if (argv[1] == NULL || argv[2] == NULL){
+		perror("Se necesita el nombre del entrenador y la ruta de la Pokedex!");
 		exit(1);
 	}
 
 	nombre_entrendor = argv[1];
+	ruta_pokedex = argv[2];
+
+	// Obtiene el archivo de metadata del entrenador.
+	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
+
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);

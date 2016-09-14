@@ -78,3 +78,12 @@ t_config* creacion_config() {
 	return myConfig;
 }
 
+t_config* creacion_config_with_path(char * path) {
+	char* configFilePath = path;
+	t_config* myConfig;
+	myConfig = config_create(configFilePath);
+	return myConfig;
+}
+
+
+
