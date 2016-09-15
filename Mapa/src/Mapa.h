@@ -65,7 +65,7 @@ void mover_entrenador_hacia_recurso(t_datos_mapa*);
 
 void entregar_pokemon(char id );
 void entregar_medalla();
-t_posicion* enviar_posicion_pokenest(char id);
+void enviar_posicion_pokenest(int fd);
 
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/

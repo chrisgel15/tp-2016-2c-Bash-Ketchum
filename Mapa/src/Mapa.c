@@ -10,6 +10,9 @@ sem_t sem_listos;
 //Estructuras para el Manejo de Entrenadores
 t_queue *entrenadores_listos;
 t_list *entrenadores; //TODO: Ver si puede llegar a servir
+t_queue *entrenadores_bloqueados;
+t_queue *entrenadores_ejecutando;
+
 t_list *pokenests;
 
 //lista de items a dibujar en el mapa
@@ -126,7 +129,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			recibir_mensaje_entrenador(fd_entrenador);
 			break;
 		/*case UBICACION_POKENEST:
-			enviar_posicion_pokenest(id);
+			enviar_posicion_pokenest(fd_entrenador);
 			break;
 		case AVANZAR_HACIA_POKENEST:
 			mover_entrenador();
@@ -263,14 +266,23 @@ void entregar_medalla(){
 
 }
 
-t_posicion* enviar_posicion_pokenest(char id ){
+void enviar_posicion_pokenest(int fd ){
+	int tamanio_texto;
+	int *result = malloc(sizeof(int));
+	char *nombre_pokenest = NULL;
+
+	//Recibo el mensaje
+	tamanio_texto = recibirInt(fd, result, mapa_log);
+	free(result);
+	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
+	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
+
 	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
-	t_posicion * posicionPokenest= malloc (sizeof (t_posicion));
-	pokenest= _search_item_by_id(items, id);
-	posicionPokenest->x-=pokenest->posx;
-	posicionPokenest->y=pokenest->posy;
+	pokenest = _search_item_by_id(items, nombre_pokenest);
+	enviarInt(fd,pokenest->posx);
+	enviarInt(fd,pokenest->posy);
 	free(pokenest);
-	return posicionPokenest;
+	free(nombre_pokenest);
 
 }
 
