@@ -22,9 +22,9 @@ int main(int argc, char **argv) {
 	nombre_entrendor = argv[1];
 	ruta_pokedex = argv[2];
 
+
 	// Obtiene el archivo de metadata del entrenador.
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
-
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
