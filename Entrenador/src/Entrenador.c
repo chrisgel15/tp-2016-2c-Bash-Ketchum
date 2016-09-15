@@ -9,6 +9,7 @@ t_config * metadata;
 //Socket Mapa
 int socket_mapa;
 
+//Hoja de Viaje
 char ** hojaDeViaje ;
 
 int main(int argc, char **argv) {
@@ -134,10 +135,14 @@ int  conectar_mapa(char mapa){
 }
 
 void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
+	int * result=malloc(sizeof(int));
 
 	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
 	enviarInt(socket_mapa,UBICACION_POKENEST);
+	enviarInt(socket_mapa,strlen(pokenests[posPokenest]));
 	enviarMensaje(socket_mapa, pokenests[posPokenest]);
+	recibirInt(socket_mapa,result,entrenador_log);
+	recibirInt(socket_mapa,result,entrenador_log);
 
 }
 
