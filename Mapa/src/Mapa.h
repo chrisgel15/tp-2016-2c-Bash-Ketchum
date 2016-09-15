@@ -14,9 +14,11 @@
 #include <commons/log.h>
 #include <commons/collections/queue.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <commons/string.h>
 #include "Interfaz_Grafica.h"
 #include <string.h>
+#include <signal.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
@@ -44,6 +46,8 @@ typedef struct{
 	int cantPokemons; //registrar recursos
 } t_pokenest;
 
+/********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
+void agregar_entrenador_a_listos(t_entrenador *entrenador);
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
@@ -59,9 +63,12 @@ t_entrenador *buscar_entrenador(int fd);
 void posicionar_entrenador_en_mapa(t_datos_mapa*);
 void mover_entrenador_hacia_recurso(t_datos_mapa*);
 
-
-
 void entregar_pokemon(char id );
 void entregar_medalla();
-t_posicion* enviar_posicion_pokenest(char id);
+void enviar_posicion_pokenest(int fd);
+
+
+/********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
+void system_call_catch(int signal);
+
 #endif /* MAPA_H_ */

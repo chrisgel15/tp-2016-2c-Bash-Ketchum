@@ -3,6 +3,7 @@
 #include <commons/config.h>
 #include <commons/log.h>
 
+
 typedef struct {
 	int socketNumber;
 	struct addrinfo *serverinfo;
@@ -30,3 +31,5 @@ t_log * CreacionLogWithLevel(char * logName, char * programName, char * logLevel
 t_log * CreacionLog(char * logName, char * programName);
 
 t_config* creacion_config();
+t_config* creacion_config_with_path(char *);
+

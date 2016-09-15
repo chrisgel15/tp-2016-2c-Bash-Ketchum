@@ -1,9 +1,18 @@
 
 #include "Mapa.h"
 
+//Mutexs de Estructura de Estados
+pthread_mutex_t mutex_cola_listos;
+
+//Semaforos para sincronizar Hilos
+sem_t sem_listos;
+
 //Estructuras para el Manejo de Entrenadores
 t_queue *entrenadores_listos;
 t_list *entrenadores; //TODO: Ver si puede llegar a servir
+t_queue *entrenadores_bloqueados;
+t_queue *entrenadores_ejecutando;
+
 t_list *pokenests;
 
 //lista de items a dibujar en el mapa
@@ -17,7 +26,16 @@ pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
 
 
-int main(void) {
+int main(int argc, char **argv) {
+
+	char *nombre_mapa = string_new();
+
+	if (argv[1] == NULL){
+		perror("Ingrese el Nombre del Mapa para volver a comenzar.");
+		exit(1);
+	}
+
+	string_append(&nombre_mapa, argv[1]);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -29,6 +47,9 @@ int main(void) {
 
 	//Inicializamos Estructuras
 	inicializar_estructuras();
+
+	//Manejo de System Calls
+	signal(SIGUSR2, system_call_catch);
 
 	//Creamos el Servidor de Entrenadores
 	char *puerto_entrenadores = "8000"; //TODO: Sacar cuando se levanten de la configuracion
@@ -64,18 +85,37 @@ int main(void) {
 	return EXIT_SUCCESS;
 }
 
+/********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
+
+//Agrega un nuevo programa a la Cola de Listos
+void agregar_entrenador_a_listos(t_entrenador *entrenador) {
+	pthread_mutex_lock(&mutex_cola_listos);
+	queue_push(entrenadores_listos, (void *) entrenador);
+	sem_post(&sem_listos);
+	pthread_mutex_unlock(&mutex_cola_listos);
+}
+
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras(){
+
+	//Estructuras
 	entrenadores_listos = queue_create();
-	entrenadores = list_create();
+	entrenadores = list_create(); //TODO: Eliminar cuando se deje usar el chat
 	pokenests= list_create();
 	items = list_create();
+
 	datos_mapa = malloc(sizeof(t_datos_mapa));
 	datos_mapa->items = items;
 	datos_mapa->entrenador = NULL;
-	pthread_mutex_init(&mutex_desplaza_x,NULL);
-	pthread_mutex_init(&mutex_desplaza_y,NULL);
 
+	//Semaforos
+	pthread_mutex_init(&mutex_desplaza_x, NULL);
+	pthread_mutex_init(&mutex_desplaza_y, NULL);
+	pthread_mutex_init(&mutex_cola_listos, NULL);
+
+	sem_init(&sem_listos, 0, 0);
+
+	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
 
 /********* FUNCIONES PARA RECIBIR PETICIONES DE LOS ENTRENADORES *********/
@@ -89,7 +129,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			recibir_mensaje_entrenador(fd_entrenador);
 			break;
 		/*case UBICACION_POKENEST:
-			enviar_posicion_pokenest(id);
+			enviar_posicion_pokenest(fd_entrenador);
 			break;
 		case AVANZAR_HACIA_POKENEST:
 			mover_entrenador();
@@ -136,7 +176,8 @@ void recibir_nuevo_entrenador(int fd){
 
 	datos_mapa->entrenador = entrenador;
 
-	list_add(entrenadores, entrenador);
+	list_add(entrenadores, entrenador); //TODO: Borrar cuando se saque el chat
+	agregar_entrenador_a_listos(entrenador);
 
 	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
 
@@ -225,13 +266,32 @@ void entregar_medalla(){
 
 }
 
-t_posicion* enviar_posicion_pokenest(char id ){
-	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
-	t_posicion * posicionPokenest= malloc (sizeof (t_posicion));
-	pokenest= _search_item_by_id(items, id);
-	posicionPokenest->x-=pokenest->posx;
-	posicionPokenest->y=pokenest->posy;
-	free(pokenest);
-	return posicionPokenest;
+void enviar_posicion_pokenest(int fd ){
+	int tamanio_texto;
+	int *result = malloc(sizeof(int));
+	char *nombre_pokenest = NULL;
 
+	//Recibo el mensaje
+	tamanio_texto = recibirInt(fd, result, mapa_log);
+	free(result);
+	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
+	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
+
+	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	pokenest = _search_item_by_id(items, nombre_pokenest);
+	enviarInt(fd,pokenest->posx);
+	enviarInt(fd,pokenest->posy);
+	free(pokenest);
+	free(nombre_pokenest);
+
+}
+
+/********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
+void system_call_catch(int signal){
+
+	if (signal == SIGUSR2){
+		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
+		/*TODO: Actualizar Algoritmo de planificación, valor de quantum, tiempo de retardo entre turnos y tiempo de chequeo de interbloqueo
+		/Hacer esto cuando ya lo tengamos levantando desde el archivo de Configuración*/
+	}
 }

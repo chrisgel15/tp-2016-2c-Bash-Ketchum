@@ -3,10 +3,36 @@
 //Log
 t_log *entrenador_log;
 
+//Configs
+t_config * metadata;
+
 //Socket Mapa
 int socket_mapa;
 
+//Hoja de Viaje
+char ** hojaDeViaje ;
+
 int main(int argc, char **argv) {
+	int i =0; // indice para recorrer la hojaDeViaje TODO @GI (mejorar la idea );
+
+	char *nombre_entrendor = NULL;
+	char * ruta_pokedex = NULL;
+
+	if (argv[1] == NULL || argv[2] == NULL){
+		perror("Se necesita el nombre del entrenador y la ruta de la Pokedex!");
+		exit(1);
+	}
+
+	nombre_entrendor = argv[1];
+	ruta_pokedex = argv[2];
+
+	// Obtiene el archivo de metadata del entrenador.
+	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
+
+	//Obtiene hoja de viaje del archivo metadata del entrenador
+	hojaDeViaje=get_entrenador_hoja_de_viaje(metadata);
+
+
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -14,27 +40,14 @@ int main(int argc, char **argv) {
 	entrenador_log = CreacionLogWithLevel(log_nombre, programa_nombre, log_level);
 	log_info(entrenador_log, "Se ha creador el Log para el Entrenador.");
 
-	char *nombre_entrendor = NULL;
-
-	if (argv[1] == NULL){
-		perror("Ingrese un Nombre para volver a comenzar.");
-		exit(1);
-	}
-
-	nombre_entrendor = argv[1];
+	//Manejo de System Calls
+	signal(SIGTERM, system_call_catch);
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	//Nos conectamos al Mapa TODO: A futuro, esto tiene que ir en una funcion separada
-	ltn_sock_addinfo *ltn_cliente_entrenador;
-	char *mapa_puerto = "8000"; //TODO: Borrar cuando se implemente el archivo de Configuracion
-	char *mapa_ip = "127.0.0.1";
 
-	//mapa_puerto = config_get_string_value(entrenador_log, MAPA_PUERTO_ESCUCHA);
-	//mapa_ip = lconfig_get_string_value(entrenador_log, MAPA_IP);
+	socket_mapa=conectar_mapa( hojaDeViaje[i]);
 
-	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
-	socket_mapa = doConnect(ltn_cliente_entrenador);
 
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
@@ -50,7 +63,8 @@ int main(int argc, char **argv) {
 
 	//Envio el caracter representante en el mapa
 	enviarInt(socket_mapa, 2);
-	enviarMensaje(socket_mapa, "@");
+	char * simbolo = get_entrenador_simbolo(metadata);
+	enviarMensaje(socket_mapa, simbolo);
 
 	//Creo el Hilo que va a esperar los mensajes del Servidor
 	pthread_t chat_entrenadores;
@@ -81,6 +95,16 @@ int main(int argc, char **argv) {
 	return EXIT_SUCCESS;
 }
 
+
+//Funcion encargada de Capturar las llamadas de Sistema
+void system_call_catch(int signal){
+
+	if (signal == SIGTERM){
+		log_info(entrenador_log, "Se ha enviado la señal SIGTERM. Se le sumará una vida al Entrenador.");
+		//TODO: Sumar vida
+	}
+}
+
 //Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor
 void recibir_mensajes(){
 	int tamanio_mensaje_recibido;
@@ -100,4 +124,29 @@ void recibir_mensajes(){
 		}
 	}
 }
+
+int  conectar_mapa(char mapa){
+		ltn_sock_addinfo *ltn_cliente_entrenador;
+		char *mapa_puerto = "8000"; //TODO: Borrar cuando se implemente el archivo de Configuracion
+		char *mapa_ip = "127.0.0.1";
+		ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
+		return doConnect(ltn_cliente_entrenador);
+
+}
+
+void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
+	int * result=malloc(sizeof(int));
+
+	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
+	enviarInt(socket_mapa,UBICACION_POKENEST);
+	enviarInt(socket_mapa,strlen(pokenests[posPokenest]));
+	enviarMensaje(socket_mapa, pokenests[posPokenest]);
+	recibirInt(socket_mapa,result,entrenador_log);
+	recibirInt(socket_mapa,result,entrenador_log);
+
+}
+
+
+
+
 
