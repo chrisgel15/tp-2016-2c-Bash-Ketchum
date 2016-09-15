@@ -30,14 +30,10 @@ int main(int argc, char **argv) {
 	// Obtiene el archivo de metadata del entrenador.
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
 
-<<<<<<< HEAD
-=======
+
 	//Obtiene hoja de viaje del archivo metadata del entrenador
 	hojaDeViaje=get_entrenador_hoja_de_viaje(metadata);
 
-
-
->>>>>>> 53c6e8b452dc8dcc6e9ab0810c2ce4d47198acba
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
 	char *log_level = "INFO";
