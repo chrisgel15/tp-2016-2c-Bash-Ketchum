@@ -48,6 +48,8 @@ typedef struct{
 
 /********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
 void agregar_entrenador_a_listos(t_entrenador *entrenador);
+void agregar_entrenador_a_bloqueados(t_entrenador *entrenador);
+
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
@@ -63,7 +65,7 @@ t_entrenador *buscar_entrenador(int fd);
 void posicionar_entrenador_en_mapa(t_datos_mapa*);
 void mover_entrenador_hacia_recurso(t_datos_mapa*);
 
-void entregar_pokemon(char id );
+void entregar_pokemon(int );
 void entregar_medalla();
 void enviar_posicion_pokenest(int fd);
 

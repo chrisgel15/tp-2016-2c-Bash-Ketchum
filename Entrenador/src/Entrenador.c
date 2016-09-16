@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
 
-	socket_mapa=conectar_mapa( hojaDeViaje[i]);
+	socket_mapa=conectar_mapa( ruta_pokedex,hojaDeViaje[i]);
 
 
 	if(socket_mapa == 0){
@@ -125,11 +125,18 @@ void recibir_mensajes(){
 	}
 }
 
-int  conectar_mapa(char mapa){
+int  conectar_mapa(char* ruta_pokedex,char *mapa){
 		ltn_sock_addinfo *ltn_cliente_entrenador;
-		char *mapa_puerto = "8000"; //TODO: Borrar cuando se implemente el archivo de Configuracion
-		char *mapa_ip = "127.0.0.1";
+		t_config * metadata_mapa = malloc(sizeof(t_config));
+		metadata_mapa=get_mapa_metadata(ruta_pokedex , mapa);
+		char *mapa_puerto =malloc(sizeof(char));
+		mapa_puerto=get_mapa_puerto(metadata_mapa);//TODO: Borrar cuando se implemente el archivo de Configuracion
+		char *mapa_ip = malloc(sizeof(char));
+		mapa_ip=string_itoa(get_mapa_ip( metadata_mapa));
 		ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
+		free(metadata_mapa);
+		free(mapa_puerto);
+		free(mapa_ip);
 		return doConnect(ltn_cliente_entrenador);
 
 }
@@ -147,6 +154,10 @@ void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 }
 
 
+void capturar_pokemon(char *pokemon){
+enviarInt(socket_mapa,strlen(pokemon));
+enviarMensaje (socket_mapa,pokemon);
 
+}
 
 

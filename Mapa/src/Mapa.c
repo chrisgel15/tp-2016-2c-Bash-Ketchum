@@ -3,6 +3,7 @@
 
 //Mutexs de Estructura de Estados
 pthread_mutex_t mutex_cola_listos;
+pthread_mutex_t mutex_cola_bloqueados;
 
 //Semaforos para sincronizar Hilos
 sem_t sem_listos;
@@ -95,6 +96,13 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	pthread_mutex_unlock(&mutex_cola_listos);
 }
 
+//Agrega un entrenador a la cola bloqueados
+void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
+	pthread_mutex_lock(&mutex_cola_bloqueados);
+	queue_push(entrenadores_bloqueados, (void *) entrenador);
+	pthread_mutex_unlock(&mutex_cola_bloqueados);
+}
+
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras(){
 
@@ -112,6 +120,7 @@ void inicializar_estructuras(){
 	pthread_mutex_init(&mutex_desplaza_x, NULL);
 	pthread_mutex_init(&mutex_desplaza_y, NULL);
 	pthread_mutex_init(&mutex_cola_listos, NULL);
+	pthread_mutex_init(&mutex_cola_bloqueados, NULL);
 
 	sem_init(&sem_listos, 0, 0);
 
@@ -135,7 +144,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			mover_entrenador();
 			break;
 		case ATRAPAR_POKEMON:
-			entregar_pokemon(id);
+			entregar_pokemon(fd_entrenador);
 			break;
 		case OBJETIVO_CUMPLIDO();
 			entregar_medalla();
@@ -252,13 +261,32 @@ t_entrenador *buscar_entrenador(int fd){
 	return NULL;
 }
 
-void entregar_pokemon(char id ){
-	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENEST
+void entregar_pokemon(int fd ){
 
+	t_entrenador* entrenador=malloc (sizeof(t_entrenador));
+	entrenador=buscar_entrenador(fd);
+
+	int tamanio_texto;
+	int *result = malloc(sizeof(int));
+	char *nombre_pokenest= NULL;
+
+	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
+	tamanio_texto = recibirInt(fd, result, mapa_log);
+	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
+	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
+	free(result);
+
+	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENESTs
 	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
-	pokenest= _search_item_by_id(items, id);
+	pokenest= _search_item_by_id(items, nombre_pokenest);
 	pokenest->quantity=pokenest->quantity-1;
+
+	//TODO ELIMINAR ENTRENADOR DE LA COLA DE LISTOS
+	agregar_entrenador_a_bloqueados(entrenador);
+
 	free(pokenest);
+
+
 
 }
 
@@ -271,7 +299,7 @@ void enviar_posicion_pokenest(int fd ){
 	int *result = malloc(sizeof(int));
 	char *nombre_pokenest = NULL;
 
-	//Recibo el mensaje
+	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	free(result);
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);

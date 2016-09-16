@@ -26,6 +26,7 @@ void recibir_mensajes();
 
 void solicitar_posicion_pokenest(t_config* ,char *,int );
 
-int conectar_mapa(char);
+int conectar_mapa(char*, char*);
 
+void capturar_pokemon(char*);
 #endif /* ENTRENADOR_H_ */
