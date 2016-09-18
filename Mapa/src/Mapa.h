@@ -48,8 +48,9 @@ typedef struct{
 
 /********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
 void agregar_entrenador_a_listos(t_entrenador *entrenador);
+t_entrenador *remover_entrenador_listo_por_RR();
+t_entrenador *remover_entrenador_listo_por_SRDF();
 void agregar_entrenador_a_bloqueados(t_entrenador *entrenador);
-
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
