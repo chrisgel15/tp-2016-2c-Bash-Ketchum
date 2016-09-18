@@ -15,6 +15,7 @@
 #include <string.h>
 #include <signal.h>
 #include <metadata/entrenador.h>
+#include "Gps.h"
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"
@@ -30,4 +31,7 @@ void solicitar_posicion_pokenest(t_config* ,char *,int );
 int conectar_mapa(char*, char*);
 
 void capturar_pokemon(char*);
+
+int avanzar_hacia_pokenest();
+
 #endif /* ENTRENADOR_H_ */
