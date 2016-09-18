@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
-	hojaDeViaje=get_entrenador_hoja_de_viaje(metadata);
+	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -44,7 +44,6 @@ int main(int argc, char **argv) {
 	signal(SIGTERM, system_call_catch);
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
-
 
 	socket_mapa=conectar_mapa( ruta_pokedex,hojaDeViaje[i]);
 
@@ -128,9 +127,9 @@ void recibir_mensajes(){
 int  conectar_mapa(char* ruta_pokedex,char *mapa){
 		ltn_sock_addinfo *ltn_cliente_entrenador;
 		t_config * metadata_mapa = malloc(sizeof(t_config));
-		metadata_mapa=get_mapa_metadata(ruta_pokedex , mapa);
+		metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
 		char *mapa_puerto =malloc(sizeof(char));
-		mapa_puerto=get_mapa_puerto(metadata_mapa);//TODO: Borrar cuando se implemente el archivo de Configuracion
+		mapa_puerto = get_mapa_puerto(metadata_mapa);//TODO: Borrar cuando se implemente el archivo de Configuracion
 		char *mapa_ip = malloc(sizeof(char));
 		mapa_ip=string_itoa(get_mapa_ip( metadata_mapa));
 		ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);

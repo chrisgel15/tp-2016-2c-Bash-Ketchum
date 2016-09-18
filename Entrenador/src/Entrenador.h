@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <signal.h>
+#include <metadata/entrenador.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"
