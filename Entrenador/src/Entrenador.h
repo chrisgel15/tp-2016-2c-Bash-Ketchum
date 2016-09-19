@@ -30,4 +30,8 @@ void solicitar_posicion_pokenest(t_config* ,char *,int );
 int conectar_mapa(char*, char*);
 
 void capturar_pokemon(char*);
+
+bool objetivoCumplido(int posHojaDeViaje, int posPokenest);
+
+void terminarObjetivo(int posHojaDeViaje);
 #endif /* ENTRENADOR_H_ */

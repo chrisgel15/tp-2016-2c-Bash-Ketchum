@@ -23,6 +23,9 @@ t_datos_mapa* datos_mapa;
 //Log
 t_log *mapa_log;
 
+//metadata
+t_config * metadata;
+
 pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
 
@@ -31,12 +34,14 @@ int main(int argc, char **argv) {
 
 	char *nombre_mapa = string_new();
 
-	if (argv[1] == NULL){
-		perror("Ingrese el Nombre del Mapa para volver a comenzar.");
+	if (argv[1] == NULL || argv[2] == NULL ){
+		perror("Asegurese de ingresar el nombre del Mapa y la ruta del pokedex");
 		exit(1);
 	}
 
 	string_append(&nombre_mapa, argv[1]);
+
+	metadata=get_mapa_metadata(argv[2] , nombre_mapa);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -146,8 +151,8 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 		case ATRAPAR_POKEMON:
 			entregar_pokemon(fd_entrenador);
 			break;
-		case OBJETIVO_CUMPLIDO();
-			entregar_medalla();
+		case OBJETIVO_CUMPLIDO:
+			entregar_medalla(fd_entrenador);
 			*/
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
@@ -290,7 +295,16 @@ void entregar_pokemon(int fd ){
 
 }
 
-void entregar_medalla(){
+void entregar_medalla(int fd,char* nombre_mapa){
+	char *ruta_medalla = string_new();
+	string_append(&ruta_medalla, "mapas/");
+	string_append(&ruta_medalla,nombre_mapa);
+	string_append(&ruta_medalla,"/medalla-");
+	string_append(&ruta_medalla,nombre_mapa);
+	string_append(&ruta_medalla,".jpg");
+	enviarInt(fd,strlen(ruta_medalla));
+	enviarMensaje(fd,ruta_medalla);
+	//TODO ELIMINAR ENTRENADOR DE LISTAS DE PLANIFICACION
 
 }
 

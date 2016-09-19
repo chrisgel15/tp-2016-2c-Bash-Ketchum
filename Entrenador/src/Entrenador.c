@@ -142,7 +142,6 @@ int  conectar_mapa(char* ruta_pokedex,char *mapa){
 
 void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 	int * result=malloc(sizeof(int));
-
 	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
 	enviarInt(socket_mapa,UBICACION_POKENEST);
 	enviarInt(socket_mapa,strlen(pokenests[posPokenest]));
@@ -157,6 +156,38 @@ void capturar_pokemon(char *pokemon){
 enviarInt(socket_mapa,strlen(pokemon));
 enviarMensaje (socket_mapa,pokemon);
 
+//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
+
 }
 
 
+bool objetivoCumplido(int posHojaDeViaje, int posPokenest){
+
+	char **pokenests= get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+	return (pokenests[posPokenest+1]==NULL);
+
+}
+
+
+void terminarObjetivo(int posHojaDeViaje){
+
+	int *result = malloc(sizeof(int));
+	char *ruta_medalla = NULL;
+	int tamanio_texto;
+
+	//Recibo la ruta de medalla
+	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
+	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
+	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
+
+	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
+
+	if (hojaDeViaje[posHojaDeViaje+1] == NULL){
+
+		printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
+		//TODO INFORMAR POR PANTALLA TIEMPOS Y CANTIDAD DE DEADLOCKS
+		return;
+
+	}
+
+}
