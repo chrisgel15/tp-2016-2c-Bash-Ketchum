@@ -12,11 +12,15 @@ int socket_mapa;
 //Hoja de Viaje
 char ** hojaDeViaje ;
 
+//Estructuras para el manejo de la posicion
+t_posicion_pokenest *posicion_pokenest;
+t_posicion_mapa *posicion_mapa;
+
 int main(int argc, char **argv) {
 	int i =0; // indice para recorrer la hojaDeViaje TODO @GI (mejorar la idea );
 
 	char *nombre_entrendor = NULL;
-	char * ruta_pokedex = NULL;
+	char *ruta_pokedex = NULL;
 
 	if (argv[1] == NULL || argv[2] == NULL){
 		perror("Se necesita el nombre del entrenador y la ruta de la Pokedex!");
@@ -25,11 +29,11 @@ int main(int argc, char **argv) {
 
 	nombre_entrendor = argv[1];
 	ruta_pokedex = argv[2];
-
+	posicion_pokenest = inicializar_posicion_entrenador();
+	posicion_mapa = inicializar_posicion_pokenest();
 
 	// Obtiene el archivo de metadata del entrenador.
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
-
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
 	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
@@ -45,8 +49,7 @@ int main(int argc, char **argv) {
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	socket_mapa=conectar_mapa( ruta_pokedex,hojaDeViaje[i]);
-
+	socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[i]);
 
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
@@ -124,40 +127,64 @@ void recibir_mensajes(){
 	}
 }
 
-int  conectar_mapa(char* ruta_pokedex,char *mapa){
-		ltn_sock_addinfo *ltn_cliente_entrenador;
-		t_config * metadata_mapa = malloc(sizeof(t_config));
-		metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
-		char *mapa_puerto =malloc(sizeof(char));
-		mapa_puerto = get_mapa_puerto(metadata_mapa);//TODO: Borrar cuando se implemente el archivo de Configuracion
-		char *mapa_ip = malloc(sizeof(char));
-		mapa_ip=string_itoa(get_mapa_ip( metadata_mapa));
-		ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
-		free(metadata_mapa);
-		free(mapa_puerto);
-		free(mapa_ip);
-		return doConnect(ltn_cliente_entrenador);
-
+int conectar_mapa(char* ruta_pokedex, char *mapa){
+	ltn_sock_addinfo *ltn_cliente_entrenador;
+	t_config * metadata_mapa = malloc(sizeof(t_config));
+	metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
+	char *mapa_puerto = malloc(sizeof(char));
+	mapa_puerto = get_mapa_puerto(metadata_mapa);//TODO: Borrar cuando se implemente el archivo de Configuracion
+	char *mapa_ip = malloc(sizeof(char));
+	mapa_ip=string_itoa(get_mapa_ip( metadata_mapa));
+	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
+	free(metadata_mapa);
+	free(mapa_puerto);
+	free(mapa_ip);
+	return doConnect(ltn_cliente_entrenador);
 }
 
 void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
-	int * result=malloc(sizeof(int));
+	int * result = malloc(sizeof(int));
+	int posicion_x, posicion_y;
 	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
 	enviarInt(socket_mapa,UBICACION_POKENEST);
 	enviarInt(socket_mapa,strlen(pokenests[posPokenest]));
 	enviarMensaje(socket_mapa, pokenests[posPokenest]);
-	recibirInt(socket_mapa,result,entrenador_log);
-	recibirInt(socket_mapa,result,entrenador_log);
+	posicion_x = recibirInt(socket_mapa, result, entrenador_log);
+	posicion_y = recibirInt(socket_mapa, result, entrenador_log);
 
+	//Actualizo la posicion del proximo pokenest
+	actualizar_posicion_pokenest(posicion_pokenest, posicion_x, posicion_y);
 }
 
 
 void capturar_pokemon(char *pokemon){
-enviarInt(socket_mapa,strlen(pokemon));
-enviarMensaje (socket_mapa,pokemon);
+	enviarInt(socket_mapa, strlen(pokemon));
+	enviarMensaje(socket_mapa, pokemon);
+	//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
+	
+}
 
-//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
 
+int avanzar_hacia_pokenest(){
+	int movimiento_x, movimiento_y;
+
+
+	enviarInt(socket_mapa, AVANZAR_HACIA_POKENEST);
+
+	//Me muevo en X
+	movimiento_x = moverse_en_mapa_eje_x(posicion_mapa, posicion_pokenest);
+	enviarInt(socket_mapa, movimiento_x);
+
+	//Me muevo en Y
+	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
+	enviarInt(socket_mapa, movimiento_y);
+
+	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
+	if(movimiento_x == 0 && movimiento_y == 0){
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 
