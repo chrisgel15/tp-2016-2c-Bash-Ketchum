@@ -73,8 +73,8 @@ int main(int argc, char **argv) {
 	pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
 
 	//Hilo para recorrer Hoja de Viaje
-	pthread_t entrenador_hojaDeViaje;
-	pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
+	//pthread_t entrenador_hojaDeViaje;
+	//pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
 
 
 	//Metodo para el Primer checkpoint
@@ -220,10 +220,9 @@ void terminarObjetivo(){
 
 
 void recorrer_hojaDeViaje(char * ruta_pokedex) {
-	int posHojaDeViaje =0; // indice para recorrer la hojaDeViaje TODO @GI (mejorar la idea );
+	int posHojaDeViaje =0; // indice para recorrer la hojaDeViaje
 	int posObjetivoPorMapa=0; // indice para recorrer los objetivos por mapa
 	int *result = malloc(sizeof(int));
-	char *ruta_medalla = NULL;
 	int turnoConcedido;
 	int estado;
 	char ** objetivosPorMapa;
@@ -234,9 +233,12 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 				perror("Ocurrio un error al intentarse conectar al Mapa.");
 				exit(1);
 			}
+
 			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
 			estado=UBICACION_POKENEST;
-			while(1){
+			posObjetivoPorMapa=0;
+
+			while(estado!=OBJETIVO_CUMPLIDO){
 				turnoConcedido=recibirInt(socket_mapa, result, entrenador_log);
 				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
 					switch(estado){
@@ -258,31 +260,21 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 							posObjetivoPorMapa++;
 							estado=UBICACION_POKENEST;
 						break;
-					case OBJETIVO_CUMPLIDO:
-
-						//TODO SALIR DEL WHILE(1);
-						break;
 					default:
 						log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");
 						break;
-					}
 				}
 			}
-
-
-		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
-
-					printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
-					terminarObjetivo();
-
-					return;
-
-				}
-				else
-					posHojaDeViaje++;
-
 		}
 
 
+		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
+				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
+				terminarObjetivo();
+				return;
+		}
+		else
+				posHojaDeViaje++;
+		}
 
-	}
+}
