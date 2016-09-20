@@ -29,6 +29,7 @@
 #define AVANZAR_HACIA_POKENEST 202
 #define ATRAPAR_POKEMON 203
 #define OBJETIVO_CUMPLIDO 204
+#define TURNO_CONCEDIDO  205
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 

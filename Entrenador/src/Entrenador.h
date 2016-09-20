@@ -36,7 +36,8 @@ int avanzar_hacia_pokenest();
 
 bool objetivoCumplido(int posHojaDeViaje, int posPokenest);
 
-void terminarObjetivo(int posHojaDeViaje);
+void terminarObjetivo();
 
+void recorrer_hojaDeViaje(char * ruta_pokedex);
 
 #endif /* ENTRENADOR_H_ */

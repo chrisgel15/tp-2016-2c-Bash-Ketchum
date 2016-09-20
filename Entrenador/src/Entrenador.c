@@ -17,7 +17,7 @@ t_posicion_pokenest *posicion_pokenest;
 t_posicion_mapa *posicion_mapa;
 
 int main(int argc, char **argv) {
-	int i =0; // indice para recorrer la hojaDeViaje TODO @GI (mejorar la idea );
+
 
 	char *nombre_entrendor = NULL;
 	char *ruta_pokedex = NULL;
@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[i]);
+	socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[0]);
 
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
@@ -71,6 +71,11 @@ int main(int argc, char **argv) {
 	//Creo el Hilo que va a esperar los mensajes del Servidor
 	pthread_t chat_entrenadores;
 	pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
+
+	//Hilo para recorrer Hoja de Viaje
+	pthread_t entrenador_hojaDeViaje;
+	pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
+
 
 	//Metodo para el Primer checkpoint
 	int seguir_enviando = 1;
@@ -196,7 +201,7 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest){
 }
 
 
-void terminarObjetivo(int posHojaDeViaje){
+void terminarObjetivo(){
 
 	int *result = malloc(sizeof(int));
 	char *ruta_medalla = NULL;
@@ -209,12 +214,75 @@ void terminarObjetivo(int posHojaDeViaje){
 
 	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
 
-	if (hojaDeViaje[posHojaDeViaje+1] == NULL){
-
-		printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
-		//TODO INFORMAR POR PANTALLA TIEMPOS Y CANTIDAD DE DEADLOCKS
-		return;
-
-	}
+	//TODO INFORMAR POR PANTALLA TIEMPOS Y CANTIDAD DE DEADLOCKS
 
 }
+
+
+void recorrer_hojaDeViaje(char * ruta_pokedex) {
+	int posHojaDeViaje =0; // indice para recorrer la hojaDeViaje TODO @GI (mejorar la idea );
+	int posObjetivoPorMapa=0; // indice para recorrer los objetivos por mapa
+	int *result = malloc(sizeof(int));
+	char *ruta_medalla = NULL;
+	int turnoConcedido;
+	int estado;
+	char ** objetivosPorMapa;
+
+	while (hojaDeViaje[posHojaDeViaje]!= NULL){
+		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje+1]);
+			if(socket_mapa == 0){
+				perror("Ocurrio un error al intentarse conectar al Mapa.");
+				exit(1);
+			}
+			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+			estado=UBICACION_POKENEST;
+			while(1){
+				turnoConcedido=recibirInt(socket_mapa, result, entrenador_log);
+				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
+					switch(estado){
+					case UBICACION_POKENEST:
+						solicitar_posicion_pokenest( metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
+						estado=AVANZAR_HACIA_POKENEST;
+						break;
+					case AVANZAR_HACIA_POKENEST:
+						if (avanzar_hacia_pokenest()==1)
+							estado=ATRAPAR_POKEMON;
+						else
+							estado=AVANZAR_HACIA_POKENEST;
+						break;
+					case ATRAPAR_POKEMON:
+						capturar_pokemon((char*)objetivosPorMapa[posObjetivoPorMapa]);
+						if (objetivoCumplido(posHojaDeViaje,posObjetivoPorMapa))
+							estado=OBJETIVO_CUMPLIDO;
+						else
+							posObjetivoPorMapa++;
+							estado=UBICACION_POKENEST;
+						break;
+					case OBJETIVO_CUMPLIDO:
+
+						//TODO SALIR DEL WHILE(1);
+						break;
+					default:
+						log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");
+						break;
+					}
+				}
+			}
+
+
+		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
+
+					printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
+					terminarObjetivo();
+
+					return;
+
+				}
+				else
+					posHojaDeViaje++;
+
+		}
+
+
+
+	}
