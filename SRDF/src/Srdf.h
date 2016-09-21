@@ -16,12 +16,16 @@
 #include <nivel.h>
 #include <tad_items.h>
 #include <unistd.h>
+#include <math.h>
+#include <stdbool.h>
 
 typedef struct{
 	char* nombre;
 	char id;
 	int posx;
 	int posy;
+	int pokenx;
+	int pokeny;
 }t_entrenador;
 
 

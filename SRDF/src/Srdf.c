@@ -16,7 +16,9 @@ void crearPokeNest(t_list*,char,int,int,int);
 void inicializar_colas(void);
 void inicializar_listas(void);
 t_entrenador* inicializar_info_entrenador(char*, char, int, int);
-//void srdf(t_queue);
+void srdf(t_list*);
+bool menor_distancia(t_entrenador*, t_entrenador*);
+double distancia_a_pokenest(t_entrenador*);
 
 
 t_list* cola_listos;
@@ -25,21 +27,21 @@ t_list* entrenadores;
 t_list* items;
 
 int main(void) {
-	int filas, columnas;
+	//int filas, columnas;
 	inicializar_colas();
 	inicializar_listas();
 
-	crearPokeNest(items,'P',10,10,5);
-	list_add(cola_listos,(void*)inicializar_info_entrenador("Ash", '@', 1, 1));
-	list_add(cola_listos,(void*)inicializar_info_entrenador("Gary", '#', 20, 20));
+	//crearPokeNest(items,'P',10,10,5);
+//	list_add(cola_listos,(void*)inicializar_info_entrenador("Ash", '@', 1, 1));
+//	list_add(cola_listos,(void*)inicializar_info_entrenador("Gary", '#', 20, 20));
 	//list_add_all(items,cola_listos);
-	crearEntrenador(items,'@',1,1);
-	CrearEnemigo(items,'#',20,20);
-	nivel_gui_inicializar();
-	nivel_gui_get_area_nivel(&filas, &columnas);
-	nivel_gui_dibujar(items, "Test SRDF");
-	sleep(5);
-	nivel_gui_terminar();
+//	crearEntrenador(items,'@',1,1);
+//	CrearEnemigo(items,'#',20,20);
+//	nivel_gui_inicializar();
+//	nivel_gui_get_area_nivel(&filas, &columnas);
+//	nivel_gui_dibujar(items, "Test SRDF");
+//	sleep(5);
+//	nivel_gui_terminar();
 	//srdf(cola_listos);
 
 
@@ -76,6 +78,24 @@ t_entrenador* inicializar_info_entrenador(char* nombre, char id, int x, int y){
 	return nuevo_entrenador;
 }
 
-//void srdf(t_queue entrenadores_listos){
-//
-//}
+void srdf(t_list* entrenadores_listos){
+
+	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
+	list_sort(entrenadores_listos, pf);
+}
+
+
+bool menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
+	int unaDistancia = distancia_a_pokenest(unEntrenador);
+	int otraDistancia = distancia_a_pokenest(otroEntrenador);
+	return (unaDistancia < otraDistancia);
+}
+
+double distancia_a_pokenest(t_entrenador* entrenador){
+	int deltaX = entrenador->pokenx - entrenador->posx;
+	int deltaY = entrenador->pokeny - entrenador->posy;
+
+	return sqrt(deltaX*deltaX + deltaY*deltaY);
+
+}
+
