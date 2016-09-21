@@ -2,14 +2,14 @@
 #include "Mapa.h"
 
 //Mutexs de Estructura de Estados
-pthread_mutex_t mutex_cola_listos;
+pthread_mutex_t mutex_entrenadores_listos;
+pthread_mutex_t mutex_cola_bloqueados;
 
 //Semaforos para sincronizar Hilos
 sem_t sem_listos;
 
 //Estructuras para el Manejo de Entrenadores
-t_queue *entrenadores_listos;
-t_list *entrenadores; //TODO: Ver si puede llegar a servir
+t_list *entrenadores_listos;
 t_queue *entrenadores_bloqueados;
 t_queue *entrenadores_ejecutando;
 
@@ -22,6 +22,9 @@ t_datos_mapa* datos_mapa;
 //Log
 t_log *mapa_log;
 
+//metadata
+t_config * metadata;
+
 pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
 
@@ -30,12 +33,14 @@ int main(int argc, char **argv) {
 
 	char *nombre_mapa = string_new();
 
-	if (argv[1] == NULL){
-		perror("Ingrese el Nombre del Mapa para volver a comenzar.");
+	if (argv[1] == NULL || argv[2] == NULL ){
+		perror("Asegurese de ingresar el nombre del Mapa y la ruta del pokedex");
 		exit(1);
 	}
 
 	string_append(&nombre_mapa, argv[1]);
+
+	metadata=get_mapa_metadata(argv[2] , nombre_mapa);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -64,7 +69,6 @@ int main(int argc, char **argv) {
 
 	log_info(mapa_log, "A la espera de Entrenadores Pokémon.");
 
-
 	dibujar_mapa_vacio(items);
 
 	//Espero conexiones y pedidos de Entrenadores
@@ -89,18 +93,39 @@ int main(int argc, char **argv) {
 
 //Agrega un nuevo programa a la Cola de Listos
 void agregar_entrenador_a_listos(t_entrenador *entrenador) {
-	pthread_mutex_lock(&mutex_cola_listos);
+	pthread_mutex_lock(&mutex_entrenadores_listos);
+	list_add(entrenadores_listos, entrenador);
 	queue_push(entrenadores_listos, (void *) entrenador);
 	sem_post(&sem_listos);
-	pthread_mutex_unlock(&mutex_cola_listos);
+	pthread_mutex_unlock(&mutex_entrenadores_listos);
+}
+
+//Remover entrenador segun Round Robin
+t_entrenador *remover_entrenador_listo_por_RR(){
+	t_entrenador *entrenador = NULL;
+	pthread_mutex_lock(&mutex_entrenadores_listos);
+	entrenador = (t_entrenador *) list_remove(entrenadores_listos, 0);
+	pthread_mutex_unlock(&mutex_entrenadores_listos);
+	return entrenador;
+}
+
+//Remover entrenador segun Algoritmo Shortest Remaining Distance First
+t_entrenador *remover_entrenador_listo_por_SRDF(){
+
+}
+
+//Agrega un entrenador a la cola bloqueados
+void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
+	pthread_mutex_lock(&mutex_cola_bloqueados);
+	queue_push(entrenadores_bloqueados, (void *) entrenador);
+	pthread_mutex_unlock(&mutex_cola_bloqueados);
 }
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras(){
 
 	//Estructuras
-	entrenadores_listos = queue_create();
-	entrenadores = list_create(); //TODO: Eliminar cuando se deje usar el chat
+	entrenadores_listos = list_create();
 	pokenests= list_create();
 	items = list_create();
 
@@ -111,7 +136,8 @@ void inicializar_estructuras(){
 	//Semaforos
 	pthread_mutex_init(&mutex_desplaza_x, NULL);
 	pthread_mutex_init(&mutex_desplaza_y, NULL);
-	pthread_mutex_init(&mutex_cola_listos, NULL);
+	pthread_mutex_init(&mutex_entrenadores_listos, NULL);
+	pthread_mutex_init(&mutex_cola_bloqueados, NULL);
 
 	sem_init(&sem_listos, 0, 0);
 
@@ -128,6 +154,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 		case ENVIAR_MENSAJE:
 			recibir_mensaje_entrenador(fd_entrenador);
 			break;
+		//Estos metodos solo van a ser pedidos cuando se esta atendiendo al entrenador, el Entrenador no va a mandar estos mensajes por si solo
 		/*case UBICACION_POKENEST:
 			enviar_posicion_pokenest(fd_entrenador);
 			break;
@@ -135,10 +162,10 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			mover_entrenador();
 			break;
 		case ATRAPAR_POKEMON:
-			entregar_pokemon(id);
+			entregar_pokemon(fd_entrenador);
 			break;
-		case OBJETIVO_CUMPLIDO();
-			entregar_medalla();
+		case OBJETIVO_CUMPLIDO:
+			entregar_medalla(fd_entrenador);
 			*/
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
@@ -176,7 +203,6 @@ void recibir_nuevo_entrenador(int fd){
 
 	datos_mapa->entrenador = entrenador;
 
-	list_add(entrenadores, entrenador); //TODO: Borrar cuando se saque el chat
 	agregar_entrenador_a_listos(entrenador);
 
 	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
@@ -202,7 +228,7 @@ void recibir_mensaje_entrenador(int fd){
 	char *texto = NULL;
 	char *texto_enviar = NULL;
 	t_entrenador *entrenador_origen = buscar_entrenador(fd);
-	int cantidad_entrenadores = list_size(entrenadores);
+	int cantidad_entrenadores = list_size(entrenadores_listos);
 
 	//Recibo el mensaje
 	tamanio_texto = recibirInt(fd, result, mapa_log);
@@ -215,7 +241,7 @@ void recibir_mensaje_entrenador(int fd){
 	//Enviamos el mensaje a todos los Entrenadores
 	int i;
 	for(i = 0; i < cantidad_entrenadores; i++){
-		t_entrenador *entrenador = (t_entrenador *)list_get(entrenadores, i);
+		t_entrenador *entrenador = (t_entrenador *)list_get(entrenadores_listos, i);
 
 		if(entrenador->fd != fd){
 			texto_enviar = string_new();
@@ -238,11 +264,11 @@ void despedir_entrenador(int fd_entrenador, int codigo_instruccion){
 }
 
 t_entrenador *buscar_entrenador(int fd){
-	int cantidad_entrenadores = list_size(entrenadores);
+	int cantidad_entrenadores = list_size(entrenadores_listos);
 	int i;
 
 	for(i = 0; i < cantidad_entrenadores; i++){
-		t_entrenador * entrenador = (t_entrenador *)list_get(entrenadores, i);
+		t_entrenador * entrenador = (t_entrenador *)list_get(entrenadores_listos, i);
 
 		if(entrenador->fd == fd){
 			return entrenador;
@@ -252,17 +278,45 @@ t_entrenador *buscar_entrenador(int fd){
 	return NULL;
 }
 
-void entregar_pokemon(char id ){
-	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENEST
+void entregar_pokemon(int fd ){
 
+	t_entrenador* entrenador=malloc (sizeof(t_entrenador));
+	entrenador=buscar_entrenador(fd);
+
+	int tamanio_texto;
+	int *result = malloc(sizeof(int));
+	char *nombre_pokenest= NULL;
+
+	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
+	tamanio_texto = recibirInt(fd, result, mapa_log);
+	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
+	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
+	free(result);
+
+	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENESTs
 	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
-	pokenest= _search_item_by_id(items, id);
+	pokenest= _search_item_by_id(items, nombre_pokenest);
 	pokenest->quantity=pokenest->quantity-1;
+
+	//TODO ELIMINAR ENTRENADOR DE LA COLA DE LISTOS
+	agregar_entrenador_a_bloqueados(entrenador);
+
 	free(pokenest);
+
+
 
 }
 
-void entregar_medalla(){
+void entregar_medalla(int fd,char* nombre_mapa){
+	char *ruta_medalla = string_new();
+	string_append(&ruta_medalla, "mapas/");
+	string_append(&ruta_medalla,nombre_mapa);
+	string_append(&ruta_medalla,"/medalla-");
+	string_append(&ruta_medalla,nombre_mapa);
+	string_append(&ruta_medalla,".jpg");
+	enviarInt(fd,strlen(ruta_medalla));
+	enviarMensaje(fd,ruta_medalla);
+	//TODO ELIMINAR ENTRENADOR DE LISTAS DE PLANIFICACION
 
 }
 
@@ -271,7 +325,7 @@ void enviar_posicion_pokenest(int fd ){
 	int *result = malloc(sizeof(int));
 	char *nombre_pokenest = NULL;
 
-	//Recibo el mensaje
+	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	free(result);
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);

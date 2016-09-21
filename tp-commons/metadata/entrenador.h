@@ -8,7 +8,8 @@
 #ifndef METADATA_ENTRENADOR_H_
 #define METADATA_ENTRENADOR_H_
 
-#include "../communications/ltnCommons.h"
+//#include "../communications/ltnCommons.h" //Chris: Lo comente porque estaba tirando conflicto de tipos por tener doble referencia desde el Proyecto del Entrenador a este .h
+#include <commons/config.h>
 
 #define ENTRENADOR_FOLDER "Entrenadores"
 #define SIMBOLO_ENTRENADOR "simbolo"
