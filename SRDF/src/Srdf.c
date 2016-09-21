@@ -11,9 +11,9 @@
 
 #include "Srdf.h"
 
-void crearEntrenador(t_list*,char,int,int);
-void crearPokeNest(t_list*,char,int,int,int);
-void inicializar_colas(void);
+
+
+
 void inicializar_listas(void);
 t_entrenador* inicializar_info_entrenador(char*, char, int, int);
 bool menor_distancia(t_entrenador*, t_entrenador*);
@@ -22,32 +22,31 @@ void set_datos(void);
 
 
 t_list* cola_listos;
-t_queue* cola_ejecucion;
-t_list* entrenadores;
-t_list* items;
+
+
+
 
 int main(void) {
-	//int filas, columnas;
+
 	t_entrenador* aux = malloc(sizeof(t_entrenador));
-	inicializar_colas();
 	inicializar_listas();
 	set_datos();
 	int elementos_cola = list_size(cola_listos);
 	int i = 0;
-	int j = 0;
 	for(i; i < elementos_cola; i++){
 		aux = list_get(cola_listos,i);
 		printf("Entrenadores antes de ordenar %c\n", aux->id);
 	}
+
 	srdf(cola_listos);
+
+	int j = 0;
 	for (j; j < elementos_cola; j++) {
 		aux = list_get(cola_listos, j);
 		printf("Entrenadores despues de ordenar %c\n", aux->id);
 	}
 
-
-
-
+	free(aux);
 	return EXIT_SUCCESS;
 }
 
@@ -67,23 +66,9 @@ void set_datos(void){
 }
 
 
-void crearEntrenador(t_list* items, char id, int x, int y){
-	CrearPersonaje(items,id,x,y);
-}
-
-void crearPokeNest(t_list* items, char id, int x, int y, int cantidad){
-	CrearCaja(items,id,x,y,cantidad);
-}
-
-void inicializar_colas(void){
-	cola_ejecucion = queue_create();
-
-}
 
 void inicializar_listas(void){
 	cola_listos = list_create();
-	entrenadores = list_create();
-	items = list_create();
 }
 
 t_entrenador* inicializar_info_entrenador(char* nombre, char id, int x, int y){
@@ -97,7 +82,6 @@ t_entrenador* inicializar_info_entrenador(char* nombre, char id, int x, int y){
 }
 
 void srdf(t_list* entrenadores_listos){
-
 	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
 	list_sort(entrenadores_listos, pf);
 }
