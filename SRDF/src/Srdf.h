@@ -28,5 +28,7 @@ typedef struct{
 	int pokeny;
 }t_entrenador;
 
+void srdf(t_list*);
+
 
 #endif /* SRDF_H_ */

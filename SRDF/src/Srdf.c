@@ -16,9 +16,9 @@ void crearPokeNest(t_list*,char,int,int,int);
 void inicializar_colas(void);
 void inicializar_listas(void);
 t_entrenador* inicializar_info_entrenador(char*, char, int, int);
-void srdf(t_list*);
 bool menor_distancia(t_entrenador*, t_entrenador*);
 double distancia_a_pokenest(t_entrenador*);
+void set_datos(void);
 
 
 t_list* cola_listos;
@@ -28,24 +28,42 @@ t_list* items;
 
 int main(void) {
 	//int filas, columnas;
+	t_entrenador* aux = malloc(sizeof(t_entrenador));
 	inicializar_colas();
 	inicializar_listas();
+	set_datos();
+	int elementos_cola = list_size(cola_listos);
+	int i = 0;
+	int j = 0;
+	for(i; i < elementos_cola; i++){
+		aux = list_get(cola_listos,i);
+		printf("Entrenadores antes de ordenar %c\n", aux->id);
+	}
+	srdf(cola_listos);
+	for (j; j < elementos_cola; j++) {
+		aux = list_get(cola_listos, j);
+		printf("Entrenadores despues de ordenar %c\n", aux->id);
+	}
 
-	//crearPokeNest(items,'P',10,10,5);
-//	list_add(cola_listos,(void*)inicializar_info_entrenador("Ash", '@', 1, 1));
-//	list_add(cola_listos,(void*)inicializar_info_entrenador("Gary", '#', 20, 20));
-	//list_add_all(items,cola_listos);
-//	crearEntrenador(items,'@',1,1);
-//	CrearEnemigo(items,'#',20,20);
-//	nivel_gui_inicializar();
-//	nivel_gui_get_area_nivel(&filas, &columnas);
-//	nivel_gui_dibujar(items, "Test SRDF");
-//	sleep(5);
-//	nivel_gui_terminar();
-	//srdf(cola_listos);
+
 
 
 	return EXIT_SUCCESS;
+}
+
+void set_datos(void){
+	t_entrenador* entrenador1 = inicializar_info_entrenador("Ash",'@',0,0);
+	t_entrenador* entrenador2 = inicializar_info_entrenador("Gary",'#',19,18);
+	t_entrenador* entrenador3 = inicializar_info_entrenador("Brook",'$',15,17);
+	entrenador1 -> pokenx = 20;
+	entrenador1 -> pokeny = 20;
+	entrenador2 -> pokenx = 20;
+	entrenador2 -> pokeny = 20;
+	entrenador3 -> pokenx = 20;
+	entrenador3 -> pokeny = 20;
+	list_add(cola_listos,(void*)entrenador1);
+	list_add(cola_listos,(void*)entrenador2);
+	list_add(cola_listos,(void*)entrenador3);
 }
 
 
