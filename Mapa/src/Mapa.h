@@ -74,4 +74,9 @@ void enviar_posicion_pokenest(int fd);
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
 void system_call_catch(int signal);
 
+
+void administrar_turnos();
+/*** Funcion para obtener el algoritmo despues de ser actualizado por la señal ***/
+char* algoritmo_actual();
+
 #endif /* MAPA_H_ */

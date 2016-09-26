@@ -28,6 +28,7 @@ int get_mapa_quantum(t_config * metadata);
 int get_mapa_retardo(t_config * metadata);
 char * get_mapa_ip(t_config * metadata);
 int get_mapa_puerto(t_config * metadata);
+char ** get_lista_de_pokenest(t_config * metadata);
 
 
 #endif /* METADATA_MAPA_H_ */

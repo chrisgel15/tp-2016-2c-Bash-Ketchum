@@ -41,4 +41,6 @@ void mover_entrenador(void);
 
 void CrearPokenest(t_list* items, char id, int x , int y,int cant);
 
+void cargar_pokenests_en_items(t_list* items,char* ruta_pokedex,char* nombre_mapa, char** pokenests);
+
 #endif /* INTERFAZ_GRAFICA_H_ */

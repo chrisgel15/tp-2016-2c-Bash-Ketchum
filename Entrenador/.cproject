@@ -40,6 +40,7 @@
 								</option>
 								<option id="gnu.c.link.option.paths.507225961" name="Library search path (-L)" superClass="gnu.c.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/tp-commons/Debug}&quot;"/>
+									<listOptionValue builtIn="false" value="/home/utnso/so-commons-library/src/commons"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.linker.input.439264636" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

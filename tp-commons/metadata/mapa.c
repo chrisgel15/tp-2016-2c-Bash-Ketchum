@@ -49,6 +49,12 @@ int get_mapa_puerto(t_config * metadata)
 	return config_get_int_value(metadata, PUERTO);
 }
 
+char ** get_lista_de_pokenest(t_config * metadata)
+{
+//	TODO return ARREGLO CON LOS NOMBRES DE TODOS LOS POKENEST DEL MAPA
+}
+
+
 
 
 

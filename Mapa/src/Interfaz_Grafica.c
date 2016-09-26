@@ -179,3 +179,26 @@ void mover_eje_y(t_datos_mapa* datos, int dist) {
 void mover_entrenador(){
 
 }
+
+/***** FUNCION:  OBTENER DATOS DE POKENEST Y AGREGARLO A LA LISTA ITEMS PARA DIBUJAR EN EL MAPA *****/
+void cargar_pokenests_en_items(t_list* items,char* ruta_pokedex,char* nombre_mapa, char** pokenests){
+	int i=0;
+	t_config* metadata_pokenest;
+	t_posicion* posicion;
+	ITEM_NIVEL* pokenest;
+
+	while (pokenests[i]!=NULL){
+		metadata_pokenest = get_pokenest_metadata( ruta_pokedex , nombre_mapa, pokenests[i]);
+		pokenest = malloc(sizeof(ITEM_NIVEL));
+		posicion = get_posicion_pokemon(metadata_pokenest);
+		pokenest->posx = posicion->x;
+		pokenest->posy = posicion->y;
+		pokenest->item_type=POKENEST_ITEM_TYPE;
+		pokenest->id = get_identificador_pokemon(metadata_pokenest);
+		pokenest->quantity=2;//TODO OBTENER LA CANTIDAD DE LA CANTIDAD DE ARCHIVOS .DATA
+		CrearPokenest(items, pokenest->id, pokenest->posx , pokenest->posy, pokenest->quantity);
+
+
+	}
+
+}

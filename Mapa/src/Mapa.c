@@ -1,6 +1,6 @@
 
 #include "Mapa.h"
-
+#include "Planificador.h"
 //Mutexs de Estructura de Estados
 pthread_mutex_t mutex_entrenadores_listos;
 pthread_mutex_t mutex_cola_bloqueados;
@@ -13,7 +13,9 @@ t_list *entrenadores_listos;
 t_queue *entrenadores_bloqueados;
 t_queue *entrenadores_ejecutando;
 
-t_list *pokenests;
+//t_list *pokenests;
+//Lista de nombres de pokenests
+char ** pokenests;
 
 //lista de items a dibujar en el mapa
 t_list* items;
@@ -24,6 +26,9 @@ t_log *mapa_log;
 
 //metadata
 t_config * metadata;
+
+//Algoritmo
+char* algoritmo;
 
 pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
@@ -40,7 +45,7 @@ int main(int argc, char **argv) {
 
 	string_append(&nombre_mapa, argv[1]);
 
-	metadata=get_mapa_metadata(argv[2] , nombre_mapa);
+	metadata = get_mapa_metadata(argv[2] , nombre_mapa);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -57,11 +62,12 @@ int main(int argc, char **argv) {
 	signal(SIGUSR2, system_call_catch);
 
 	//Creamos el Servidor de Entrenadores
-	char *puerto_entrenadores = "8000"; //TODO: Sacar cuando se levanten de la configuracion
+	//char *puerto_entrenadores = "8000"; //TODO: Sacar cuando se levanten de la configuracion
+	int puerto_entrenadores= get_mapa_puerto(metadata);
 	int listener_entrenadores;
 	ltn_sock_addinfo* ltn_entrenadores;
 
-	ltn_entrenadores = createSocket(puerto_entrenadores);
+	ltn_entrenadores = createSocket(string_itoa(puerto_entrenadores));
 	listener_entrenadores = doBind(ltn_entrenadores);
 	listener_entrenadores = doListen(listener_entrenadores, 100);
 
@@ -69,7 +75,19 @@ int main(int argc, char **argv) {
 
 	log_info(mapa_log, "A la espera de Entrenadores Pokémon.");
 
+	//Algoritmo
+	algoritmo = get_mapa_algoritmo(metadata);
+
+	//Lista de nombres de pokenests
+	//pokenests=get_lista_de_pokenest(metadata);
+	//cargar_pokenests_en _items(items, argv[2], nombre_mapa, pokenests);
+
 	dibujar_mapa_vacio(items);
+
+
+	//Hilo planificador
+	//pthread_t planificador;
+	//pthread_create(&planificador, NULL, (void *) administrar_turnos(), NULL);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -126,7 +144,6 @@ void inicializar_estructuras(){
 
 	//Estructuras
 	entrenadores_listos = list_create();
-	pokenests= list_create();
 	items = list_create();
 
 	datos_mapa = malloc(sizeof(t_datos_mapa));
@@ -155,7 +172,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			recibir_mensaje_entrenador(fd_entrenador);
 			break;
 		//Estos metodos solo van a ser pedidos cuando se esta atendiendo al entrenador, el Entrenador no va a mandar estos mensajes por si solo
-		/*case UBICACION_POKENEST:
+		case UBICACION_POKENEST:
 			enviar_posicion_pokenest(fd_entrenador);
 			break;
 		case AVANZAR_HACIA_POKENEST:
@@ -166,7 +183,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			break;
 		case OBJETIVO_CUMPLIDO:
 			entregar_medalla(fd_entrenador);
-			*/
+			break;
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
 			break;
@@ -294,7 +311,7 @@ void entregar_pokemon(int fd ){
 	free(result);
 
 	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENESTs
-	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
 	pokenest= _search_item_by_id(items, nombre_pokenest);
 	pokenest->quantity=pokenest->quantity-1;
 
@@ -331,7 +348,7 @@ void enviar_posicion_pokenest(int fd ){
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
 
-	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
 	pokenest = _search_item_by_id(items, nombre_pokenest);
 	enviarInt(fd,pokenest->posx);
 	enviarInt(fd,pokenest->posy);
@@ -349,3 +366,28 @@ void system_call_catch(int signal){
 		/Hacer esto cuando ya lo tengamos levantando desde el archivo de Configuración*/
 	}
 }
+
+
+
+void administrar_turnos() {
+	t_entrenador* entrenador;
+	//TODO COMPLETAR, FALTA QUANTUM, SEMAFOROS RETARDO
+	while (1){
+	if (algoritmo_actual()=="RR"){
+		entrenador=remover_entrenador_listo_por_RR();
+		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+	}
+	if (algoritmo_actual()=="SRDF"){
+		entrenador=remover_entrenador_listo_por_SRDF();
+		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+	}
+	}
+
+}
+
+
+char* algoritmo_actual() {
+		return algoritmo;
+	}
+
+
