@@ -207,6 +207,8 @@ void terminarObjetivo(){
 	char *ruta_medalla = NULL;
 	int tamanio_texto;
 
+	enviarInt(socket_mapa,OBJETIVO_CUMPLIDO);
+
 	//Recibo la ruta de medalla
 	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
 	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
@@ -254,11 +256,15 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 						break;
 					case ATRAPAR_POKEMON:
 						capturar_pokemon((char*)objetivosPorMapa[posObjetivoPorMapa]);
-						if (objetivoCumplido(posHojaDeViaje,posObjetivoPorMapa))
+						if (objetivoCumplido(posHojaDeViaje,posObjetivoPorMapa)){
 							estado=OBJETIVO_CUMPLIDO;
-						else
+
+						}
+						else{
 							posObjetivoPorMapa++;
 							estado=UBICACION_POKENEST;
+							enviarInt(socket_mapa,OBJETIVO_NO_CUMPLIDO);
+						}
 						break;
 					default:
 						log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");

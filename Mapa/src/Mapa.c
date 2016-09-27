@@ -7,6 +7,7 @@ pthread_mutex_t mutex_cola_bloqueados;
 
 //Semaforos para sincronizar Hilos
 sem_t sem_listos;
+sem_t sem_bloqueados;
 
 //Estructuras para el Manejo de Entrenadores
 t_list *entrenadores_listos;
@@ -29,6 +30,9 @@ t_config * metadata;
 
 //Algoritmo
 char* algoritmo;
+
+//Quantum
+int mapa_quantum;
 
 pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
@@ -78,6 +82,9 @@ int main(int argc, char **argv) {
 	//Algoritmo
 	algoritmo = get_mapa_algoritmo(metadata);
 
+	//Quantum
+	mapa_quantum = get_mapa_quantum(metadata);
+
 	//Lista de nombres de pokenests
 	//pokenests=get_lista_de_pokenest(metadata);
 	//cargar_pokenests_en _items(items, argv[2], nombre_mapa, pokenests);
@@ -85,9 +92,9 @@ int main(int argc, char **argv) {
 	dibujar_mapa_vacio(items);
 
 
-	//Hilo planificador
+	//Hilo planificador //TODO PREGUNTAR SI VA DENTRO DE LA FUNCION RECIBIR_NUEVO_ENTRENADOR() PARA CREAR UN HILO PARA CADA ENTRENADOR
 	//pthread_t planificador;
-	//pthread_create(&planificador, NULL, (void *) administrar_turnos(), NULL);
+	//pthread_create(&planificador, NULL, (void *) administrar_turnos(), nombre_mapa);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -116,14 +123,17 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	queue_push(entrenadores_listos, (void *) entrenador);
 	sem_post(&sem_listos);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
+	log_info(mapa_log, "Se agrega un entrenador a la cola de listos");
 }
 
 //Remover entrenador segun Round Robin
 t_entrenador *remover_entrenador_listo_por_RR(){
 	t_entrenador *entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
+	sem_wait(&sem_listos);
 	entrenador = (t_entrenador *) list_remove(entrenadores_listos, 0);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
+	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
 	return entrenador;
 }
 
@@ -136,7 +146,9 @@ t_entrenador *remover_entrenador_listo_por_SRDF(){
 void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
 	queue_push(entrenadores_bloqueados, (void *) entrenador);
+	sem_wait(&sem_bloqueados);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
+	log_info(mapa_log, "Se agrega un entrenador a la lista de bloqueados");
 }
 
 /********* FUNCIONES DE INICIALIZACION *********/
@@ -144,6 +156,7 @@ void inicializar_estructuras(){
 
 	//Estructuras
 	entrenadores_listos = list_create();
+	entrenadores_bloqueados = list_create();
 	items = list_create();
 
 	datos_mapa = malloc(sizeof(t_datos_mapa));
@@ -157,6 +170,7 @@ void inicializar_estructuras(){
 	pthread_mutex_init(&mutex_cola_bloqueados, NULL);
 
 	sem_init(&sem_listos, 0, 0);
+	sem_init(&sem_bloqueados,0,0);
 
 	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
@@ -170,19 +184,6 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			break;
 		case ENVIAR_MENSAJE:
 			recibir_mensaje_entrenador(fd_entrenador);
-			break;
-		//Estos metodos solo van a ser pedidos cuando se esta atendiendo al entrenador, el Entrenador no va a mandar estos mensajes por si solo
-		case UBICACION_POKENEST:
-			enviar_posicion_pokenest(fd_entrenador);
-			break;
-		case AVANZAR_HACIA_POKENEST:
-			mover_entrenador();
-			break;
-		case ATRAPAR_POKEMON:
-			entregar_pokemon(fd_entrenador);
-			break;
-		case OBJETIVO_CUMPLIDO:
-			entregar_medalla(fd_entrenador);
 			break;
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
@@ -234,6 +235,11 @@ void recibir_nuevo_entrenador(int fd){
 	//mover_entrenador_hacia_recurso(datos_mapa);
 
 	/*****************************************************************/
+
+	/**** Hilo para atender codigos de instruccion ****/
+		//Hilo planificador
+		//pthread_t entrenador_Hoja_De_Viaje;
+		//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador(), NULL);
 
 	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
@@ -368,11 +374,15 @@ void system_call_catch(int signal){
 }
 
 
-
 void administrar_turnos() {
 	t_entrenador* entrenador;
 	//TODO COMPLETAR, FALTA QUANTUM, SEMAFOROS RETARDO
 	while (1){
+
+		//TODO CREAR DIFERENTES COLAS DE BLOQUEADOS SEGUN NOMBRE DE POKENEST
+		//VERIFICAR  HAY_POKEMONS_DISPONIBLES(POKEMON);
+		//LIBERAR RECURSO DE LA COLA DE BLOKEADOS CORESPONDIENTE AL NOMBRE DE POKENEST Y PASARLA A LISTO
+
 	if (algoritmo_actual()=="RR"){
 		entrenador=remover_entrenador_listo_por_RR();
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
@@ -381,13 +391,56 @@ void administrar_turnos() {
 		entrenador=remover_entrenador_listo_por_SRDF();
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 	}
-	}
+
 
 }
 
+}
+
+void atender_Viaje_Entrenador(char* nombre_mapa){
+
+	t_entrenador* entrenador;
+		int turnos=0;
+		int i = quantum_actual();
+		int instruccion;
+		int result;
+		int estado;
+
+	while(1){
+	while (turnos < i && estado!=ATRAPAR_POKEMON){
+		instruccion = recibirInt(entrenador->fd, result, mapa_log);
+
+		switch(instruccion){
+			case UBICACION_POKENEST:
+				enviar_posicion_pokenest(entrenador->fd);
+				break;
+			case AVANZAR_HACIA_POKENEST:
+				mover_entrenador(entrenador->fd,mapa_log, datos_mapa);
+				break;
+			case ATRAPAR_POKEMON:
+				entregar_pokemon(entrenador->fd);
+				agregar_entrenador_a_bloqueados(entrenador);
+				estado=ATRAPAR_POKEMON;
+				break;
+			case OBJETIVO_CUMPLIDO:
+				entregar_medalla(entrenador->fd, nombre_mapa);
+				turnos--;
+				break;
+			default:
+				log_error(mapa_log, "Se ha producido un error al tratar de atender instruccion del Entrenador.");
+				break;
+		}
+		turnos++;
+	}
+
+	}
+
+}
 
 char* algoritmo_actual() {
 		return algoritmo;
 	}
 
-
+int quantum_actual() {
+		return mapa_quantum;
+	}

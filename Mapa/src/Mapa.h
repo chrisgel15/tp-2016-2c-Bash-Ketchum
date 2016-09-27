@@ -76,7 +76,11 @@ void system_call_catch(int signal);
 
 
 void administrar_turnos();
+void atender_Viaje_Entrenador(char*);
 /*** Funcion para obtener el algoritmo despues de ser actualizado por la señal ***/
 char* algoritmo_actual();
+
+/*** Funcion para obtener el quantum despues de ser actualizado por la señal ***/
+int quantum_actual();
 
 #endif /* MAPA_H_ */

@@ -176,9 +176,20 @@ void mover_eje_y(t_datos_mapa* datos, int dist) {
 }
 
 
-void mover_entrenador(){
+void mover_entrenador(int fd_entrenador, t_log* mapa_log,t_datos_mapa* datos){
+	t_entrenador* entrenador=malloc(sizeof(t_entrenador));
+	int *result = malloc(sizeof(int));
+	int posx, posy;
+
+	entrenador=buscar_entrenador(fd_entrenador);
+	datos->entrenador=entrenador;
+	posx = recibirInt(fd_entrenador, result, mapa_log);
+	posy = recibirInt(fd_entrenador, result, mapa_log);
+	mover_eje_x(datos,posx);
+	mover_eje_y(datos, posy);
 
 }
+
 
 /***** FUNCION:  OBTENER DATOS DE POKENEST Y AGREGARLO A LA LISTA ITEMS PARA DIBUJAR EN EL MAPA *****/
 void cargar_pokenests_en_items(t_list* items,char* ruta_pokedex,char* nombre_mapa, char** pokenests){
