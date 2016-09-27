@@ -376,7 +376,7 @@ void system_call_catch(int signal){
 
 void administrar_turnos() {
 	t_entrenador* entrenador;
-	//TODO COMPLETAR, FALTA QUANTUM, SEMAFOROS RETARDO
+
 	while (1){
 
 		//TODO CREAR DIFERENTES COLAS DE BLOQUEADOS SEGUN NOMBRE DE POKENEST
