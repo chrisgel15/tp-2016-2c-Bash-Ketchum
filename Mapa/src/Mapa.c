@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 	dibujar_mapa_vacio(items);
 
 
-	//Hilo planificador //TODO PREGUNTAR SI VA DENTRO DE LA FUNCION RECIBIR_NUEVO_ENTRENADOR() PARA CREAR UN HILO PARA CADA ENTRENADOR
+	//Hilo planificador
 	//pthread_t planificador;
 	//pthread_create(&planificador, NULL, (void *) administrar_turnos(), nombre_mapa);
 
