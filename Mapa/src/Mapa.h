@@ -32,6 +32,7 @@ typedef struct{
 	int fd;
 	char caracter; //Caracter que va a representar al Entrendor en el Mapa
 	t_posicion* posicion;
+	char *pokemon_bloqueado;
 } t_entrenador;
 
 typedef struct{

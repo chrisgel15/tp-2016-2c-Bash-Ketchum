@@ -31,6 +31,7 @@
 #define OBJETIVO_CUMPLIDO 204
 #define TURNO_CONCEDIDO  205
 #define OBJETIVO_NO_CUMPLIDO 206
+#define POKEMON_CONCEDIDO 207
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 

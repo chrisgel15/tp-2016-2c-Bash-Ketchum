@@ -165,6 +165,13 @@ void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 void capturar_pokemon(char *pokemon){
 	enviarInt(socket_mapa, strlen(pokemon));
 	enviarMensaje(socket_mapa, pokemon);
+	int *result = malloc(sizeof(int));
+
+
+	while (result!=POKEMON_CONCEDIDO){
+		result=recibirInt(socket_mapa, result, entrenador_log);
+	}
+
 	//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
 	
 }
@@ -228,6 +235,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 	int turnoConcedido;
 	int estado;
 	char ** objetivosPorMapa;
+	int ESPERANDO_POKEMON=1; //No es un codigo de cominicacion por eso lo defino aca
 
 	while (hojaDeViaje[posHojaDeViaje]!= NULL){
 		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje+1]);
@@ -258,12 +266,10 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 						capturar_pokemon((char*)objetivosPorMapa[posObjetivoPorMapa]);
 						if (objetivoCumplido(posHojaDeViaje,posObjetivoPorMapa)){
 							estado=OBJETIVO_CUMPLIDO;
-
 						}
 						else{
 							posObjetivoPorMapa++;
 							estado=UBICACION_POKENEST;
-							enviarInt(socket_mapa,OBJETIVO_NO_CUMPLIDO);
 						}
 						break;
 					default:
@@ -272,7 +278,6 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 				}
 			}
 		}
-
 
 		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
