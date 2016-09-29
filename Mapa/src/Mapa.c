@@ -1,6 +1,6 @@
 
 #include "Mapa.h"
-#include "Planificador.h"
+
 //Mutexs de Estructura de Estados
 pthread_mutex_t mutex_entrenadores_listos;
 pthread_mutex_t mutex_cola_bloqueados;
@@ -95,8 +95,8 @@ int main(int argc, char **argv) {
 
 
 	//Hilo planificador
-	//pthread_t planificador;
-	//pthread_create(&planificador, NULL, (void *) administrar_turnos(), nombre_mapa);
+	pthread_t planificador;
+	pthread_create(&planificador, NULL, (void *) administrar_turnos, nombre_mapa);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -240,8 +240,8 @@ void recibir_nuevo_entrenador(int fd){
 	posicionar_entrenador_en_mapa(datos_mapa);
 
 	/**** Hilo para manejar el trazado del mapa ****/
-		pthread_t trazado_mapa;
-		pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
+	pthread_t trazado_mapa;
+	pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
 		/***********************************************/
 
 	//mover_entrenador_hacia_recurso(datos_mapa);
@@ -250,8 +250,8 @@ void recibir_nuevo_entrenador(int fd){
 
 	/**** Hilo para atender codigos de instruccion ****/
 		//Hilo planificador
-		//pthread_t entrenador_Hoja_De_Viaje;
-		//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador(), NULL);
+	//pthread_t entrenador_Hoja_De_Viaje;
+	//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, NULL);
 
 	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);

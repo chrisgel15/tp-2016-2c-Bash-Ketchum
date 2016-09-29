@@ -29,14 +29,15 @@ int main(int argc, char **argv) {
 
 	nombre_entrendor = argv[1];
 	ruta_pokedex = argv[2];
-	posicion_pokenest = inicializar_posicion_entrenador();
-	posicion_mapa = inicializar_posicion_pokenest();
+
+	posicion_pokenest =  inicializar_posicion_pokenest();
+	posicion_mapa =inicializar_posicion_entrenador();
 
 	// Obtiene el archivo de metadata del entrenador.
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
-	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
+	//hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -49,15 +50,16 @@ int main(int argc, char **argv) {
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[0]);
-
+	char* mapa="Inti";
+	//hojaDeViaje[0]=mapa;
+	socket_mapa = conectar_mapa(ruta_pokedex,mapa);
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
 		exit(1);
 	}
-
 	//Handshake con el Mapa
 	enviarInt(socket_mapa, SOY_ENTRENADOR);
+
 	int size_nombre = (int) strlen(nombre_entrendor);
 	//Envio el nombre del Entrenador
 	enviarInt(socket_mapa, size_nombre);
@@ -69,12 +71,12 @@ int main(int argc, char **argv) {
 	enviarMensaje(socket_mapa, simbolo);
 
 	//Creo el Hilo que va a esperar los mensajes del Servidor
-	pthread_t chat_entrenadores;
-	pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
+	//pthread_t chat_entrenadores;
+	//pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
 
 	//Hilo para recorrer Hoja de Viaje
-	//pthread_t entrenador_hojaDeViaje;
-	//pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
+	pthread_t entrenador_hojaDeViaje;
+	pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
 
 
 	//Metodo para el Primer checkpoint
@@ -136,15 +138,16 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 	ltn_sock_addinfo *ltn_cliente_entrenador;
 	t_config * metadata_mapa = malloc(sizeof(t_config));
 	metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
-	char *mapa_puerto = malloc(sizeof(char));
-	mapa_puerto = get_mapa_puerto(metadata_mapa);//TODO: Borrar cuando se implemente el archivo de Configuracion
-	char *mapa_ip = malloc(sizeof(char));
-	mapa_ip=string_itoa(get_mapa_ip( metadata_mapa));
+	//char *mapa_puerto = malloc(sizeof(char));
+	char *mapa_puerto = string_itoa(get_mapa_puerto(metadata_mapa));
+	//char *mapa_ip = malloc(sizeof(char));
+	char *mapa_ip = get_mapa_ip( metadata_mapa);
 	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
 	free(metadata_mapa);
 	free(mapa_puerto);
 	free(mapa_ip);
-	return doConnect(ltn_cliente_entrenador);
+	int socket_mapa = doConnect(ltn_cliente_entrenador);
+	return socket_mapa;
 }
 
 void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
@@ -236,9 +239,11 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 	int estado;
 	char ** objetivosPorMapa;
 	int ESPERANDO_POKEMON=1; //No es un codigo de cominicacion por eso lo defino aca
+	hojaDeViaje[0]="Inti";
 
+	printf("recorriendo hoja de Viaje");
 	while (hojaDeViaje[posHojaDeViaje]!= NULL){
-		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje+1]);
+		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[0]);
 			if(socket_mapa == 0){
 				perror("Ocurrio un error al intentarse conectar al Mapa.");
 				exit(1);
