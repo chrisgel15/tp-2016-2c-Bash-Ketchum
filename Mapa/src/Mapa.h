@@ -32,7 +32,7 @@ typedef struct{
 	int fd;
 	char caracter; //Caracter que va a representar al Entrendor en el Mapa
 	t_posicion* posicion;
-	char *pokemon_bloqueado;
+	char pokemon_bloqueado;
 } t_entrenador;
 
 typedef struct{
@@ -77,7 +77,7 @@ void system_call_catch(int signal);
 
 
 void administrar_turnos();
-void atender_Viaje_Entrenador(char*);
+void atender_Viaje_Entrenador(t_entrenador*);
 /*** Funcion para obtener el algoritmo despues de ser actualizado por la señal ***/
 char* algoritmo_actual();
 

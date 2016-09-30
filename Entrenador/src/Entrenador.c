@@ -153,15 +153,19 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 	int * result = malloc(sizeof(int));
 	int posicion_x, posicion_y;
-	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
+	char * pokemon =malloc(sizeof(char));
+	pokemon="P"; //para probar el envio de solicitud
+	//char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
 	enviarInt(socket_mapa,UBICACION_POKENEST);
-	enviarInt(socket_mapa,strlen(pokenests[posPokenest]));
-	enviarMensaje(socket_mapa, pokenests[posPokenest]);
-	posicion_x = recibirInt(socket_mapa, result, entrenador_log);
-	posicion_y = recibirInt(socket_mapa, result, entrenador_log);
+	log_info(entrenador_log,"solicito ubicacion pokenest");
+	enviarInt(socket_mapa,/*strlen(pokenests[posPokenest])*/2);
+	enviarMensaje(socket_mapa,pokemon /*pokenests[posPokenest]*/);
+	//posicion_x = recibirInt(socket_mapa, result, entrenador_log);
+	//posicion_y = recibirInt(socket_mapa, result, entrenador_log);
 
 	//Actualizo la posicion del proximo pokenest
-	actualizar_posicion_pokenest(posicion_pokenest, posicion_x, posicion_y);
+	//actualizar_posicion_pokenest(posicion_pokenest, posicion_x, posicion_y);
+	free(pokemon);
 }
 
 
@@ -238,18 +242,17 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 	int turnoConcedido;
 	int estado;
 	char ** objetivosPorMapa;
-	int ESPERANDO_POKEMON=1; //No es un codigo de cominicacion por eso lo defino aca
-	hojaDeViaje[0]="Inti";
+	//hojaDeViaje[0]="Inti";
+	char* mapa1="Inti";
 
-	printf("recorriendo hoja de Viaje");
-	while (hojaDeViaje[posHojaDeViaje]!= NULL){
-		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[0]);
-			if(socket_mapa == 0){
-				perror("Ocurrio un error al intentarse conectar al Mapa.");
-				exit(1);
-			}
+	//while (hojaDeViaje[posHojaDeViaje]!= NULL){
+		//socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[0]);
+			//if(socket_mapa == 0){
+				//perror("Ocurrio un error al intentarse conectar al Mapa.");
+				//exit(1);
+		//	}
 
-			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+			//objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
 			estado=UBICACION_POKENEST;
 			posObjetivoPorMapa=0;
 
@@ -258,7 +261,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
 					switch(estado){
 					case UBICACION_POKENEST:
-						solicitar_posicion_pokenest( metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
+						solicitar_posicion_pokenest( metadata,mapa1,posHojaDeViaje);
 						estado=AVANZAR_HACIA_POKENEST;
 						break;
 					case AVANZAR_HACIA_POKENEST:
@@ -282,7 +285,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 						break;
 				}
 			}
-		}
+		//}
 
 		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
@@ -292,5 +295,4 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 		else
 				posHojaDeViaje++;
 		}
-
 }

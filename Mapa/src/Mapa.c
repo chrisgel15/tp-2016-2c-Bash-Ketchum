@@ -34,6 +34,9 @@ char* algoritmo;
 //Quantum
 int mapa_quantum;
 
+//Nombre de Mapa
+char *nombre_mapa ;
+
 pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
 
@@ -42,7 +45,7 @@ pthread_mutex_t mutex_recursos_pokenest;
 
 int main(int argc, char **argv) {
 
-	char *nombre_mapa = string_new();
+	nombre_mapa= string_new();
 
 	if (argv[1] == NULL || argv[2] == NULL ){
 		perror("Asegurese de ingresar el nombre del Mapa y la ruta del pokedex");
@@ -122,10 +125,11 @@ int main(int argc, char **argv) {
 void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	list_add(entrenadores_listos, entrenador);
-	queue_push(entrenadores_listos, (void *) entrenador);
+	//queue_push(entrenadores_listos, (void *) entrenador);// Lo comente porque al agregar de nuevo el entrenador a la misma cola prdia el valo fd
 	sem_post(&sem_listos);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se agrega un entrenador a la cola de listos");
+	log_info(mapa_log,string_itoa(entrenador->fd));
 }
 
 //Remover entrenador segun Round Robin
@@ -157,7 +161,7 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 void remover_entrenador_de_bloqueados(int i){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
 	list_remove(entrenadores_bloqueados,i);
-	//sem_wait(&sem_bloqueados);
+	sem_wait(&sem_bloqueados);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
 	log_info(mapa_log, "Se remueve un entrenador de la lista de bloqueados");
 }
@@ -171,6 +175,7 @@ void inicializar_estructuras(){
 	items = list_create();
 
 	datos_mapa = malloc(sizeof(t_datos_mapa));
+	algoritmo=malloc(sizeof(char)*4);
 	datos_mapa->items = items;
 	datos_mapa->entrenador = NULL;
 
@@ -198,7 +203,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			recibir_mensaje_entrenador(fd_entrenador);
 			break;
 		default:
-			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador.");
+			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador");
 			break;
 	}
 }
@@ -240,8 +245,8 @@ void recibir_nuevo_entrenador(int fd){
 	posicionar_entrenador_en_mapa(datos_mapa);
 
 	/**** Hilo para manejar el trazado del mapa ****/
-	pthread_t trazado_mapa;
-	pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
+	//pthread_t trazado_mapa;
+	//pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
 		/***********************************************/
 
 	//mover_entrenador_hacia_recurso(datos_mapa);
@@ -250,8 +255,8 @@ void recibir_nuevo_entrenador(int fd){
 
 	/**** Hilo para atender codigos de instruccion ****/
 		//Hilo planificador
-	//pthread_t entrenador_Hoja_De_Viaje;
-	//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, NULL);
+	pthread_t entrenador_Hoja_De_Viaje;
+	pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, entrenador);
 
 	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
@@ -321,18 +326,19 @@ void entregar_pokemon(int fd ){
 	int tamanio_texto;
 	int *result = malloc(sizeof(int));
 	char *nombre_pokenest= NULL;
+	char nombre;
 
 	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
 	free(result);
-
+	nombre=*nombre_pokenest;
 	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENESTs
 	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
 
-	pokenest= _search_item_by_id(items, nombre_pokenest);
-	entrenador->pokemon_bloqueado=nombre_pokenest;
+	pokenest= _search_item_by_id(items, nombre);
+	entrenador->pokemon_bloqueado=pokenest->id;
 	//pokenest->quantity=pokenest->quantity-1;
 
 	//TODO ELIMINAR ENTRENADOR DE LA COLA DE LISTOS
@@ -361,15 +367,15 @@ void enviar_posicion_pokenest(int fd ){
 	int tamanio_texto;
 	int *result = malloc(sizeof(int));
 	char *nombre_pokenest = NULL;
-
+	char nombre;
 	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	free(result);
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
-
+	nombre = *nombre_pokenest;
 	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
-	pokenest = _search_item_by_id(items, nombre_pokenest);
+	pokenest = _search_item_by_id(items, nombre);
 	enviarInt(fd,pokenest->posx);
 	enviarInt(fd,pokenest->posy);
 	free(pokenest);
@@ -393,8 +399,9 @@ void administrar_turnos() {
 	ITEM_NIVEL * pokenest;
 	int cantidad_bloqueados;
 	int i;
-	while (1){
+	char* algoritmo=malloc(sizeof(char)*4);
 
+	while (1){
 
 		 cantidad_bloqueados= list_size(entrenadores_bloqueados);
 
@@ -412,34 +419,40 @@ void administrar_turnos() {
 
 			}
 
+			algoritmo=algoritmo_actual();
 
-	if (algoritmo_actual()=="RR"){
+	//if (algoritmo=="RR"){
+		//pthread_mutex_lock(&mutex_entrenadores_listos);
+		if (list_size(entrenadores_listos)>0){
 		entrenador=remover_entrenador_listo_por_RR();
-		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-	}
-	if (algoritmo_actual()=="SRDF"){
-		entrenador=remover_entrenador_listo_por_SRDF();
-		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-	}
-
+		int bytes = enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+			}
+		//pthread_mutex_unlock(&mutex_entrenadores_listos);
+	//}else {
+//	if (algoritmo=="SRDF"){
+	//	entrenador=remover_entrenador_listo_por_SRDF();
+		//enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+//	}
+	//}
 
 }
 
 }
 
-void atender_Viaje_Entrenador(char* nombre_mapa){
+void atender_Viaje_Entrenador(t_entrenador* entrenador){
 
-	t_entrenador* entrenador;
+	;
 		int turnos=0;
 		int i = quantum_actual();
 		int instruccion;
-		int result;
-		int estado;
+		int *result=malloc(sizeof(int));
+		int estado=NULL;
 
 	while(1){
 	while (turnos < i && estado!=ATRAPAR_POKEMON){
+		log_info(mapa_log,"Esperando solicitud ");
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
-
+		// Recibe mensaje en el main y por aca , la funcion atender_entrenador deberia ser el hilo despues de conectarse
 		switch(instruccion){
 			case UBICACION_POKENEST:
 				enviar_posicion_pokenest(entrenador->fd);
