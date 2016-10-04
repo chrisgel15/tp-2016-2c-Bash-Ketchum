@@ -65,11 +65,12 @@ int main(int argc, char **argv) {
 	enviarInt(socket_mapa, size_nombre);
 	enviarMensaje(socket_mapa, nombre_entrendor);
 
+
 	//Envio el caracter representante en el mapa
 	enviarInt(socket_mapa, 2);
 	char * simbolo = get_entrenador_simbolo(metadata);
 	enviarMensaje(socket_mapa, simbolo);
-
+	ingresar_a_nuevo_mapa(posicion_mapa);//Para probar lo pongo aca, pero despues iria dentro de recorrer_HojaDeViaje despues de conectarse a un mapa
 	//Creo el Hilo que va a esperar los mensajes del Servidor
 	//pthread_t chat_entrenadores;
 	//pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
@@ -93,6 +94,7 @@ int main(int argc, char **argv) {
 			seguir_enviando = 0;
 		} else {
 			//Envio el Mensaje
+		log_info(entrenador_log,"Entra a enviar msj en main ");
 			enviarInt(socket_mapa, ENVIAR_MENSAJE);
 			tamanio_mensaje = 2000;
 			enviarInt(socket_mapa, tamanio_mensaje);
@@ -153,31 +155,34 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 	int * result = malloc(sizeof(int));
 	int posicion_x, posicion_y;
-	char * pokemon =malloc(sizeof(char));
-	pokemon="P"; //para probar el envio de solicitud
+	int num=2;
+	char * pokemon = "P"; //para probar el envio de solicitud
 	//char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
 	enviarInt(socket_mapa,UBICACION_POKENEST);
-	log_info(entrenador_log,"solicito ubicacion pokenest");
-	enviarInt(socket_mapa,/*strlen(pokenests[posPokenest])*/2);
+	enviarInt(socket_mapa,/*strlen(pokenests[posPokenest])*/num);
 	enviarMensaje(socket_mapa,pokemon /*pokenests[posPokenest]*/);
-	//posicion_x = recibirInt(socket_mapa, result, entrenador_log);
-	//posicion_y = recibirInt(socket_mapa, result, entrenador_log);
+	posicion_x = recibirInt(socket_mapa, result, entrenador_log);
+	posicion_y = recibirInt(socket_mapa, result, entrenador_log);
 
 	//Actualizo la posicion del proximo pokenest
-	//actualizar_posicion_pokenest(posicion_pokenest, posicion_x, posicion_y);
-	free(pokemon);
+	actualizar_posicion_pokenest(posicion_pokenest, posicion_x, posicion_y);
+	//free(pokemon);
 }
 
 
-void capturar_pokemon(char *pokemon){
-	enviarInt(socket_mapa, strlen(pokemon));
+void capturar_pokemon(char *nombre_pokemon){
+	log_info(entrenador_log,"capturar pokemon");
+	char* pokemon ="P" ;//esto es para probar TODO sacar cuando lo tome por configuracion
+	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, pokemon);
 	int *result = malloc(sizeof(int));
 
 
-	while (result!=POKEMON_CONCEDIDO){
-		result=recibirInt(socket_mapa, result, entrenador_log);
-	}
+
+	//while (result!=POKEMON_CONCEDIDO){
+		int codigo = recibirInt(socket_mapa, result, entrenador_log);
+		log_info(entrenador_log, string_itoa(codigo));
+	//}
 
 	//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
 	
@@ -256,7 +261,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 			estado=UBICACION_POKENEST;
 			posObjetivoPorMapa=0;
 
-			while(estado!=OBJETIVO_CUMPLIDO){
+		while(estado!=OBJETIVO_CUMPLIDO){
 				turnoConcedido=recibirInt(socket_mapa, result, entrenador_log);
 				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
 					switch(estado){
@@ -271,7 +276,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 							estado=AVANZAR_HACIA_POKENEST;
 						break;
 					case ATRAPAR_POKEMON:
-						capturar_pokemon((char*)objetivosPorMapa[posObjetivoPorMapa]);
+						capturar_pokemon("P"/*(char*)objetivosPorMapa[posObjetivoPorMapa]*/);
 						if (objetivoCumplido(posHojaDeViaje,posObjetivoPorMapa)){
 							estado=OBJETIVO_CUMPLIDO;
 						}
@@ -285,14 +290,13 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 						break;
 				}
 			}
-		//}
-
+		}
 		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
 				terminarObjetivo();
 				return;
 		}
-		else
+		else {
 				posHojaDeViaje++;
 		}
 }

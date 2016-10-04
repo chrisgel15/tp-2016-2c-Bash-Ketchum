@@ -37,7 +37,7 @@ void dibujar_mapa(void);
 void dibujar_mapa_vacio(t_list*);
 
 
-//void mover_entrenador(int fd_entrenador, t_log* mapa_log,t_datos_mapa* datos);
+//void mover_entrenador(t_entrenador *, t_log* mapa_log,t_datos_mapa* datos);
 
 void CrearPokenest(t_list* items, char id, int x , int y,int cant);
 
