@@ -45,6 +45,15 @@ pthread_mutex_t mutex_desplaza_y;
 //SEMAFORO PARA CONTROLAR LA CANTIDAD DE RECURSOS DE POKENEST TODO DEBERIA HABER UNO POR CADA POKENEST?
 pthread_mutex_t mutex_recursos_pokenest;
 
+
+//****************************************************
+// Prototipos de funciones internas
+
+bool menor_distancia(t_entrenador*, t_entrenador*);
+double distancia_a_pokenest(t_entrenador*);
+void srdf(t_list*);
+//****************************************************
+
 int main(int argc, char **argv) {
 
 	nombre_mapa= string_new();
@@ -147,6 +156,14 @@ t_entrenador *remover_entrenador_listo_por_RR(){
 
 //Remover entrenador segun Algoritmo Shortest Remaining Distance First
 t_entrenador *remover_entrenador_listo_por_SRDF(){
+	t_entrenador* entrenador = NULL;
+	pthread_mutex_lock(&mutex_entrenadores_listos);
+	sem_wait(&sem_listos);
+	srdf(entrenadores_listos);
+	entrenador = (t_entrenador*)list_remove(entrenadores_listos,0);
+	pthread_mutex_unlock(&mutex_entrenadores_listos);
+	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
+	return entrenador;
 
 }
 
@@ -527,4 +544,24 @@ int quantum_actual() {
 		return mapa_quantum;
 	}
 
+
+
+bool menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
+	int unaDistancia = distancia_a_pokenest(unEntrenador);
+	int otraDistancia = distancia_a_pokenest(otroEntrenador);
+	return (unaDistancia < otraDistancia);
+}
+
+double distancia_a_pokenest(t_entrenador* entrenador){
+	int deltaX = entrenador->pokenx - entrenador->posicion->x;
+	int deltaY = entrenador->pokeny - entrenador->posicion->y;
+
+	return sqrt(deltaX*deltaX + deltaY*deltaY);
+
+}
+
+void srdf(t_list* entrenadores_listos){
+	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
+	list_sort(entrenadores_listos, pf);
+}
 
