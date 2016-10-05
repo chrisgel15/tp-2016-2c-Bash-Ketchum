@@ -159,7 +159,7 @@ t_entrenador *remover_entrenador_listo_por_SRDF(){
 	t_entrenador* entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	sem_wait(&sem_listos);
-	srdf(entrenadores_listos);
+//	srdf(entrenadores_listos);
 	entrenador = (t_entrenador*)list_remove(entrenadores_listos,0);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
@@ -370,7 +370,6 @@ void entregar_pokemon(t_entrenador* entrenador){
 
 	//t_entrenador* entrenador=malloc (sizeof(t_entrenador));
 	//entrenador=buscar_entrenador(fd);
-
 	int tamanio_texto;
 	int *result = malloc(sizeof(int));
 	char *nombre_pokenest= NULL;
@@ -380,18 +379,14 @@ void entregar_pokemon(t_entrenador* entrenador){
 	tamanio_texto = recibirInt(entrenador->fd, result, mapa_log);
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(entrenador->fd, nombre_pokenest, tamanio_texto, mapa_log);
-	log_info(mapa_log,nombre_pokenest);
-	//nombre=*nombre_pokenest;
-	//TODO @GI INCORPORAR SEMAFOROS PARA LAS POKENESTs
-	//ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
-
-	//pokenest= _search_item_by_id(items, nombre);
-	//entrenador->pokemon_bloqueado=pokenest->id;
-	//pokenest->quantity=pokenest->quantity-1;
-
-	//TODO ELIMINAR ENTRENADOR DE LA COLA DE LISTOS
-	//agregar_entrenador_a_bloqueados(entrenador);
-
+	nombre=*nombre_pokenest;
+	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
+	pokenest= _search_item_by_id(items, nombre);
+	pthread_mutex_lock(&mutex_recursos_pokenest);
+	entrenador->pokemon_bloqueado=pokenest->id;
+	pokenest->quantity=pokenest->quantity-1;
+	pthread_mutex_unlock(&mutex_recursos_pokenest);
+	agregar_entrenador_a_bloqueados(entrenador);
 	//free(pokenest);
 
 
@@ -420,7 +415,6 @@ void enviar_posicion_pokenest(int fd ){
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
-	log_info(mapa_log, nombre_pokenest);
 
 	nombre = *nombre_pokenest;
 	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
@@ -446,7 +440,7 @@ void system_call_catch(int signal){
 
 void administrar_turnos() {
 	t_entrenador* entrenador;
-	ITEM_NIVEL * pokenest;
+	ITEM_NIVEL * pokenest=malloc(sizeof(ITEM_NIVEL));
 	int cantidad_bloqueados;
 	int i;
 	char* algoritmo=malloc(sizeof(char)*4);
@@ -456,7 +450,7 @@ void administrar_turnos() {
 		 cantidad_bloqueados= list_size(entrenadores_bloqueados);
 
 			for(i = 0; i < cantidad_bloqueados; i++){
-			entrenador = (t_entrenador *)list_get(entrenadores_listos, i);
+			entrenador = (t_entrenador *)list_get(entrenadores_bloqueados, i);
 			pokenest = _search_item_by_id(items, entrenador->pokemon_bloqueado);
 			pthread_mutex_lock(&mutex_recursos_pokenest);
 				if(pokenest->quantity > 0){
@@ -521,8 +515,9 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador){
 				break;
 		}
 		turnos++;
-		if (turnos<i)
+		if (turnos<i && estado!=ATRAPAR_POKEMON ){
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+		}
 	}
 		if (turnos>=i && estado!=ATRAPAR_POKEMON){
 			agregar_entrenador_a_listos(entrenador);

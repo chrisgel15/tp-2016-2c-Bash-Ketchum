@@ -20,6 +20,7 @@
 #include <string.h>
 #include <signal.h>
 
+
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
 #define programa_nombre "Mapa.c"

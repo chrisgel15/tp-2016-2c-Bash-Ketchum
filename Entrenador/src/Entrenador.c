@@ -171,18 +171,13 @@ void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 
 
 void capturar_pokemon(char *nombre_pokemon){
-	log_info(entrenador_log,"capturar pokemon");
 	char* pokemon ="P" ;//esto es para probar TODO sacar cuando lo tome por configuracion
+	int *result = malloc(sizeof(int));
+	int codigo;
+	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, pokemon);
-	int *result = malloc(sizeof(int));
-
-
-
-	//while (result!=POKEMON_CONCEDIDO){
-		int codigo = recibirInt(socket_mapa, result, entrenador_log);
-		log_info(entrenador_log, string_itoa(codigo));
-	//}
+	codigo = recibirInt(socket_mapa, result, entrenador_log);
 
 	//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
 	
@@ -214,9 +209,9 @@ int avanzar_hacia_pokenest(){
 
 bool objetivoCumplido(int posHojaDeViaje, int posPokenest){
 
-	char **pokenests= get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
-	return (pokenests[posPokenest+1]==NULL);
-
+	/*char **pokenests= get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+	return (pokenests[posPokenest+1]==NULL);*/ //TODO VER FUNCION GET_ENTRENADOR_OBJETIVOS_POR_VIAJE Y CHAR**
+	return true;
 }
 
 
@@ -277,7 +272,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 						break;
 					case ATRAPAR_POKEMON:
 						capturar_pokemon("P"/*(char*)objetivosPorMapa[posObjetivoPorMapa]*/);
-						if (objetivoCumplido(posHojaDeViaje,posObjetivoPorMapa)){
+						if (objetivoCumplido(0,0/*posHojaDeViaje,posObjetivoPorMapa*/)){
 							estado=OBJETIVO_CUMPLIDO;
 						}
 						else{
@@ -291,12 +286,12 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 				}
 			}
 		}
-		if (hojaDeViaje[posHojaDeViaje+1] == NULL){
+		/*if (hojaDeViaje[posHojaDeViaje+1] == NULL){*/
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
 				terminarObjetivo();
 				return;
-		}
+		/*}
 		else {
 				posHojaDeViaje++;
-		}
+		}*/ //TODO  REVISAR ARREGLO DE HOJA DE VIAJE Y PUNTEROS
 }
