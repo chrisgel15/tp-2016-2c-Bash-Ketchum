@@ -274,7 +274,6 @@ void recibir_nuevo_entrenador(int fd){
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	caracter = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, caracter, tamanio_texto, mapa_log);
-	log_info(mapa_log,caracter);
 
 	//Cargo la estructura del Entrenador con los datos recibidos por Socket
 	//La posicion inicial es (0;0)
@@ -301,7 +300,6 @@ void recibir_nuevo_entrenador(int fd){
 
 	/*****************************************************************/
 
-	/**** Hilo para atender codigos de instruccion ****/
 	//Hilo Hoja de viaje
 	pthread_t entrenador_Hoja_De_Viaje;
 	pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, entrenador);
@@ -372,16 +370,17 @@ void entregar_pokemon(t_entrenador* entrenador){
 	//entrenador=buscar_entrenador(fd);
 	int tamanio_texto;
 	int *result = malloc(sizeof(int));
+	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
 	char *nombre_pokenest= NULL;
 	char nombre;
+	int i;
 
 	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
 	tamanio_texto = recibirInt(entrenador->fd, result, mapa_log);
 	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(entrenador->fd, nombre_pokenest, tamanio_texto, mapa_log);
-	nombre=*nombre_pokenest;
-	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
-	pokenest= _search_item_by_id(items, nombre);
+	nombre = *nombre_pokenest;
+	pokenest = _search_item_by_id(items, nombre);
 	pthread_mutex_lock(&mutex_recursos_pokenest);
 	entrenador->pokemon_bloqueado=pokenest->id;
 	pokenest->quantity=pokenest->quantity-1;
@@ -494,7 +493,6 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador){
 	while(1){
 	while (turnos < i && estado!=ATRAPAR_POKEMON){
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
-		log_info(mapa_log, string_itoa(instruccion));
 		switch(instruccion){
 			case UBICACION_POKENEST:
 				enviar_posicion_pokenest(entrenador->fd);
@@ -508,6 +506,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador){
 				break;
 			case OBJETIVO_CUMPLIDO:
 				entregar_medalla(entrenador->fd, nombre_mapa);
+				estado=OBJETIVO_CUMPLIDO;
 				turnos=i;
 				break;
 			default:
@@ -519,11 +518,11 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador){
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 		}
 	}
-		if (turnos>=i && estado!=ATRAPAR_POKEMON){
+		if (turnos>=i && estado!=ATRAPAR_POKEMON && estado!=OBJETIVO_CUMPLIDO){
 			agregar_entrenador_a_listos(entrenador);
 		}
 		else{
-			if (estado==ATRAPAR_POKEMON){
+			if (estado==ATRAPAR_POKEMON || estado==OBJETIVO_CUMPLIDO){
 				estado=NULL;
 			}
 		}
@@ -540,7 +539,7 @@ int quantum_actual() {
 	}
 
 
-
+/*
 bool menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
 	int unaDistancia = distancia_a_pokenest(unEntrenador);
 	int otraDistancia = distancia_a_pokenest(otroEntrenador);
@@ -558,5 +557,5 @@ double distancia_a_pokenest(t_entrenador* entrenador){
 void srdf(t_list* entrenadores_listos){
 	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
 	list_sort(entrenadores_listos, pf);
-}
+}*/
 

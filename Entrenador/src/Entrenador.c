@@ -37,8 +37,7 @@ int main(int argc, char **argv) {
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
-	//hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
-
+	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
 	char *log_level = "INFO";
@@ -50,16 +49,15 @@ int main(int argc, char **argv) {
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	char* mapa="Inti";
+	//char* mapa="Inti";
 	//hojaDeViaje[0]=mapa;
-	socket_mapa = conectar_mapa(ruta_pokedex,mapa);
+	socket_mapa = conectar_mapa(ruta_pokedex,hojaDeViaje[0]);
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
 		exit(1);
 	}
 	//Handshake con el Mapa
 	enviarInt(socket_mapa, SOY_ENTRENADOR);
-
 	int size_nombre = (int) strlen(nombre_entrendor);
 	//Envio el nombre del Entrenador
 	enviarInt(socket_mapa, size_nombre);
@@ -145,9 +143,10 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 	//char *mapa_ip = malloc(sizeof(char));
 	char *mapa_ip = get_mapa_ip( metadata_mapa);
 	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
-	free(metadata_mapa);
-	free(mapa_puerto);
-	free(mapa_ip);
+	//TODO REVISAR FREE
+	//free(metadata_mapa);
+	//free(mapa_puerto);
+	//free(mapa_ip);
 	int socket_mapa = doConnect(ltn_cliente_entrenador);
 	return socket_mapa;
 }
@@ -156,11 +155,10 @@ void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 	int * result = malloc(sizeof(int));
 	int posicion_x, posicion_y;
 	int num=2;
-	char * pokemon = "P"; //para probar el envio de solicitud
-	//char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
+	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
 	enviarInt(socket_mapa,UBICACION_POKENEST);
 	enviarInt(socket_mapa,/*strlen(pokenests[posPokenest])*/num);
-	enviarMensaje(socket_mapa,pokemon /*pokenests[posPokenest]*/);
+	enviarMensaje(socket_mapa,/*pokemon*/pokenests[posPokenest]);
 	posicion_x = recibirInt(socket_mapa, result, entrenador_log);
 	posicion_y = recibirInt(socket_mapa, result, entrenador_log);
 
@@ -171,12 +169,11 @@ void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
 
 
 void capturar_pokemon(char *nombre_pokemon){
-	char* pokemon ="P" ;//esto es para probar TODO sacar cuando lo tome por configuracion
 	int *result = malloc(sizeof(int));
 	int codigo;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
-	enviarMensaje(socket_mapa, pokemon);
+	enviarMensaje(socket_mapa, nombre_pokemon);
 	codigo = recibirInt(socket_mapa, result, entrenador_log);
 
 	//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
@@ -209,9 +206,8 @@ int avanzar_hacia_pokenest(){
 
 bool objetivoCumplido(int posHojaDeViaje, int posPokenest){
 
-	/*char **pokenests= get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
-	return (pokenests[posPokenest+1]==NULL);*/ //TODO VER FUNCION GET_ENTRENADOR_OBJETIVOS_POR_VIAJE Y CHAR**
-	return true;
+	char **pokenests= get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+	return (pokenests[posPokenest+1]==NULL);
 }
 
 
@@ -221,13 +217,13 @@ void terminarObjetivo(){
 	char *ruta_medalla = NULL;
 	int tamanio_texto;
 
+	recibirInt(socket_mapa, result, entrenador_log);//Espero TURNO_CONCEDIDO
 	enviarInt(socket_mapa,OBJETIVO_CUMPLIDO);
 
 	//Recibo la ruta de medalla
 	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
 	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
-
 	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
 
 	//TODO INFORMAR POR PANTALLA TIEMPOS Y CANTIDAD DE DEADLOCKS
@@ -242,26 +238,17 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 	int turnoConcedido;
 	int estado;
 	char ** objetivosPorMapa;
-	//hojaDeViaje[0]="Inti";
-	char* mapa1="Inti";
 
-	//while (hojaDeViaje[posHojaDeViaje]!= NULL){
-		//socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[0]);
-			//if(socket_mapa == 0){
-				//perror("Ocurrio un error al intentarse conectar al Mapa.");
-				//exit(1);
-		//	}
-
-			//objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+	while (hojaDeViaje[posHojaDeViaje]!= NULL){
 			estado=UBICACION_POKENEST;
 			posObjetivoPorMapa=0;
-
+			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
 		while(estado!=OBJETIVO_CUMPLIDO){
 				turnoConcedido=recibirInt(socket_mapa, result, entrenador_log);
 				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
 					switch(estado){
 					case UBICACION_POKENEST:
-						solicitar_posicion_pokenest( metadata,mapa1,posHojaDeViaje);
+						solicitar_posicion_pokenest( metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
 						estado=AVANZAR_HACIA_POKENEST;
 						break;
 					case AVANZAR_HACIA_POKENEST:
@@ -271,8 +258,8 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 							estado=AVANZAR_HACIA_POKENEST;
 						break;
 					case ATRAPAR_POKEMON:
-						capturar_pokemon("P"/*(char*)objetivosPorMapa[posObjetivoPorMapa]*/);
-						if (objetivoCumplido(0,0/*posHojaDeViaje,posObjetivoPorMapa*/)){
+						capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa]);
+						if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
 							estado=OBJETIVO_CUMPLIDO;
 						}
 						else{
@@ -286,12 +273,19 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 				}
 			}
 		}
-		/*if (hojaDeViaje[posHojaDeViaje+1] == NULL){*/
+		posHojaDeViaje++;
+		if (hojaDeViaje[posHojaDeViaje] == NULL){
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
 				terminarObjetivo();
-				return;
-		/*}
-		else {
-				posHojaDeViaje++;
-		}*/ //TODO  REVISAR ARREGLO DE HOJA DE VIAJE Y PUNTEROS
+				//TODO DESCONECTARSE
+		}
+		else{
+		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);
+			if(socket_mapa == 0){
+			perror("Ocurrio un error al intentarse conectar al Mapa.");
+			exit(1);
+			}
+			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+		}
+	}
 }
