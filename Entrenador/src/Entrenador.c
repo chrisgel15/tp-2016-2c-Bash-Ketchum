@@ -12,6 +12,9 @@ int socket_mapa;
 //Hoja de Viaje
 char ** hojaDeViaje ;
 
+//Nombre del entrenador
+char *nombre_entrendor;
+
 //Estructuras para el manejo de la posicion
 t_posicion_pokenest *posicion_pokenest;
 t_posicion_mapa *posicion_mapa;
@@ -19,7 +22,7 @@ t_posicion_mapa *posicion_mapa;
 int main(int argc, char **argv) {
 
 
-	char *nombre_entrendor = NULL;
+	nombre_entrendor = NULL;
 	char *ruta_pokedex = NULL;
 
 	if (argv[1] == NULL || argv[2] == NULL){
@@ -49,26 +52,14 @@ int main(int argc, char **argv) {
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	//char* mapa="Inti";
-	//hojaDeViaje[0]=mapa;
 	socket_mapa = conectar_mapa(ruta_pokedex,hojaDeViaje[0]);
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
 		exit(1);
 	}
-	//Handshake con el Mapa
-	enviarInt(socket_mapa, SOY_ENTRENADOR);
-	int size_nombre = (int) strlen(nombre_entrendor);
-	//Envio el nombre del Entrenador
-	enviarInt(socket_mapa, size_nombre);
-	enviarMensaje(socket_mapa, nombre_entrendor);
 
+	handshake(nombre_entrendor);
 
-	//Envio el caracter representante en el mapa
-	enviarInt(socket_mapa, 2);
-	char * simbolo = get_entrenador_simbolo(metadata);
-	enviarMensaje(socket_mapa, simbolo);
-	ingresar_a_nuevo_mapa(posicion_mapa);//Para probar lo pongo aca, pero despues iria dentro de recorrer_HojaDeViaje despues de conectarse a un mapa
 	//Creo el Hilo que va a esperar los mensajes del Servidor
 	//pthread_t chat_entrenadores;
 	//pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
@@ -138,9 +129,7 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 	ltn_sock_addinfo *ltn_cliente_entrenador;
 	t_config * metadata_mapa = malloc(sizeof(t_config));
 	metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
-	//char *mapa_puerto = malloc(sizeof(char));
 	char *mapa_puerto = string_itoa(get_mapa_puerto(metadata_mapa));
-	//char *mapa_ip = malloc(sizeof(char));
 	char *mapa_ip = get_mapa_ip( metadata_mapa);
 	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
 	//TODO REVISAR FREE
@@ -285,7 +274,23 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 			perror("Ocurrio un error al intentarse conectar al Mapa.");
 			exit(1);
 			}
-			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+			handshake();
 		}
 	}
+}
+
+
+void handshake(){
+
+		enviarInt(socket_mapa, SOY_ENTRENADOR);
+		int size_nombre = (int) strlen(nombre_entrendor);
+		//Envio el nombre del Entrenador
+		enviarInt(socket_mapa, size_nombre);
+		enviarMensaje(socket_mapa, nombre_entrendor);
+
+		//Envio el caracter representante en el mapa
+		enviarInt(socket_mapa, 2);
+		char * simbolo = get_entrenador_simbolo(metadata);
+		enviarMensaje(socket_mapa, simbolo);
+		ingresar_a_nuevo_mapa(posicion_mapa);
 }

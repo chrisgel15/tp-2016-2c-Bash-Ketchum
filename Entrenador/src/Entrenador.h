@@ -40,4 +40,5 @@ void terminarObjetivo();
 
 void recorrer_hojaDeViaje(char * ruta_pokedex);
 
+void handshake();
 #endif /* ENTRENADOR_H_ */
