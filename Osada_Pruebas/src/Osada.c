@@ -20,6 +20,7 @@
 #include <commons/bitarray.h>
 #include <commons/log.h>
 #include <commons/string.h>
+#include <commons/temporal.h>
 #include <communications/ltnCommons.h>
 
 #include "Osada.h"
@@ -40,6 +41,7 @@ bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 bool FindDirectoryByName(char * path, int * directoryId);
 void SetAttrByDirectoryId(int directoryId, struct stat *stbuf);
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler);
+int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf);
 
 struct stat osadaStat;
 int* pmap_osada;
@@ -84,7 +86,6 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 	return res;
 }
 
-
 static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
 	(void) offset;
 	(void) fi;
@@ -112,11 +113,22 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	return 0;
 }
 
+static int osada_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
+{
+	int * directoryId = malloc(sizeof(char)*4);
+	*directoryId = -1;
+
+	FindDirectoryByName(path , directoryId);
+
+	return ReadBytesFromOffset(offset, size, *directoryId, buf);
+}
+
 static struct fuse_operations osada_oper = {
 		.getattr = osada_getattr,
-		.readdir = osada_readdir
+		.readdir = osada_readdir,
+		.read = osada_read
 //		.open = hello_open,
-//		.read = hello_read,
+
 };
 
 /** keys for FUSE_OPT_ options */
@@ -126,8 +138,6 @@ enum {
 };
 
 static struct fuse_opt fuse_options[] = {
-		// Este es un parametro definido por nosotros
-	//	CUSTOM_FUSE_OPT_KEY("--welcome-msg %s", welcome_msg, 0),
 
 		// Estos son parametros por defecto que ya tiene FUSE
 		FUSE_OPT_KEY("-V", KEY_VERSION),
@@ -142,29 +152,14 @@ int main(int argc, char *argv[]) {
 
 	osada_log = CreacionLogWithLevel("osada-log", "osada-program", "TRACE");
 
-	fd_osadaDisk= open("/home/utnso/osadaDisks/basic.bin",O_RDWR);
+	fd_osadaDisk= open("/home/utnso/osadaDisks/challenge.bin",O_RDWR);
 	fstat(fd_osadaDisk,&osadaStat);
 	pmap_osada= mmap(0, osadaStat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_osadaDisk, 0);
 
 	UbicarPunteros();
-//	ImprimirHeader();
+	//ImprimirHeader();
 //	ImprimirBitMap();
 //	ImprimirTablaDeArchivos();
-
-	// Test...
-	char * testStr = "/Vermilion City/Pokemons/001.txt";
-	char * str = string_new();
-	string_append(&str, testStr);
-	char ** arr = string_split(str, "/");
-
-	int * directoryId = malloc(sizeof(char)*4);
-	*directoryId = -1;
-
-	//bool exists = FindDirectoryByName(arr, directoryId);
-
-	FindDirectoryByName("/.Trash", directoryId);
-
-	// Test...
 
 	// FUSE
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -179,13 +174,6 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 
-		// Si se paso el parametro --welcome-msg
-		// el campo welcome_msg deberia tener el
-		// valor pasado
-//		if( runtime_options.welcome_msg != NULL ){
-//			printf("%s\n", runtime_options.welcome_msg);
-//		}
-
 		// Esta es la funcion principal de FUSE, es la que se encarga
 		// de realizar el montaje, comuniscarse con el kernel, delegar todo
 		// en varios threads
@@ -194,6 +182,8 @@ int main(int argc, char *argv[]) {
 	// FUSE
 
 }
+
+
 
 char * TipoDeArchivo (int tipo)
 {
@@ -204,7 +194,6 @@ char * TipoDeArchivo (int tipo)
 	case 2: return "Directorio";
 	}
 }
-
 int TamanioEnBloques(int tamanioBytes)
 {
 	float resto = tamanioBytes % OSADA_BLOCK_SIZE;
@@ -216,78 +205,70 @@ int TamanioEnBloques(int tamanioBytes)
 
 	return tam;
 }
-
-void ImprimirBloquesDeTablaAsignacion(int * tabla_asignaciones, int file_size, int first_block)
+int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf)
 {
-	int tamanioEnBloques = TamanioEnBloques(file_size);
-	int * coleccion = malloc(sizeof(int)*tamanioEnBloques);
+	char * aux_buf = malloc(sizeof(char)*bytes_to_read);
+	char * indice_aux_buf = aux_buf;
 
-	log_info(osada_log , "%d", first_block);
-	int i = 1;
-	int proxima_posicion = first_block;
+	// Ubico un puntero a la tabla de archivos para averiguar el primer bloque.
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=directoryId;
 
-	while(i < tamanioEnBloques)
+	int * indice_tabla_asignaciones = tabla_asignaciones;
+	char * indice_tabla_datos = tabla_datos;
+
+	int bloque_actual = indice_tabla_archivos->first_block;
+
+
+// Para no leer mas que el tamaño del archivo...
+	if (bytes_to_read > (indice_tabla_archivos->file_size-offset_from))
+		bytes_to_read = (indice_tabla_archivos->file_size-offset_from);
+
+	int bytes_remaining = bytes_to_read;
+
+	// Ubico el bloque donde comenzar a leer.
+	while(offset_from > OSADA_BLOCK_SIZE)
 	{
-		log_info(osada_log , "%d", *(tabla_asignaciones+proxima_posicion));
-		*(coleccion+i) = *(tabla_asignaciones+proxima_posicion);
-		proxima_posicion = *(tabla_asignaciones+proxima_posicion);
-		i++;
+		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+		offset_from -= OSADA_BLOCK_SIZE;
 	}
 
-	free(coleccion);
+	// Ubico el indice de los datos en el byte a comenzar a leer.
+	indice_tabla_datos += bloque_actual*OSADA_BLOCK_SIZE;
+	indice_tabla_datos += offset_from;
 
-}
+	int bytes_a_leer = 0;
 
-void GenerarArchivo(char * indice_datos, int tamanio_en_bytes, int primer_bloque, char * nombre_archivo)
-{
-	char * path = string_new();
-	string_append(&path,"/home/utnso/archivosChallenge/");
-	string_append(&path,nombre_archivo);
-
-	char * archivo = malloc(sizeof(char)*tamanio_en_bytes);
-	int tamanio_en_bloques = TamanioEnBloques(tamanio_en_bytes);
-	int k = 0;
-	int bloque_actual = primer_bloque;
-
-	FILE *fp;
-	fp = fopen( path , "w" );
-	while( k < tamanio_en_bloques)
+	while (bytes_remaining > 0)
 	{
-		int bytes_restantes = (tamanio_en_bytes - k*64);
-		int cantidad_bytes = bytes_restantes >= 64 ? 64 : bytes_restantes;
-		fwrite((void *)(indice_datos + OSADA_BLOCK_SIZE*bloque_actual)  , cantidad_bytes , 1, fp );
-		k++;
-		bloque_actual = (int)*(tabla_asignaciones + bloque_actual);
+		if (bytes_remaining > OSADA_BLOCK_SIZE)
+			bytes_a_leer = OSADA_BLOCK_SIZE - offset_from;
+		else
+			bytes_a_leer = bytes_remaining;
+
+		memcpy((void *)indice_aux_buf,indice_tabla_datos,(bytes_a_leer));
+		indice_aux_buf += bytes_a_leer;
+		indice_tabla_datos += bytes_a_leer;
+		offset_from += bytes_a_leer;
+		bytes_remaining -= bytes_a_leer;
+
+		// Si llegue al final de un bloque, muevo el puntero de la tabla de asignaciones...
+		if (offset_from == (OSADA_BLOCK_SIZE))
+		{
+			bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+			indice_tabla_datos = tabla_datos;
+			indice_tabla_datos += bloque_actual*OSADA_BLOCK_SIZE;
+			offset_from = 0;
+		}
+
+
 	}
 
-   free(archivo);
+	memcpy(buf,((char*)aux_buf),bytes_to_read);
 
-   fclose(fp);
-
+	return bytes_to_read;
 }
 
-void ImprimirHeader()
-{
-
-	log_info(osada_log, "El filesystem es: %s", header->magic_number);
-	log_info(osada_log, "La version del FS es: %d", header->version);
-
-	// total amount of blocks
-	log_info(osada_log,"El tamanio en bloques del FS es: %d", header->fs_blocks); // "T / BLOCK_SIZE"
-
-	// bitmap size in blocks
-	log_info(osada_log,"El tamanio en bloques del bitmap del FS es: %d",header->bitmap_blocks);
-
-	// allocations table's first block number
-	log_info(osada_log,"El primer bloque de la tabla de asignacion del FS es: %d",header->allocations_table_offset);
-
-	// amount of data blocks
-	log_info(osada_log,"La cantidad del bloques para datos del FS es: %d",header->data_blocks);
-
-	log_info(osada_log,"El tamanio de la tabla de asignacion es (CALCULADO): %d",tamanio_tabla_asignaciones_bloques);
-
-
-}
 
 void UbicarPunteros()
 {
@@ -320,55 +301,17 @@ void UbicarPunteros()
 
 }
 
-void ImprimirBitMap()
-{
-	//	int i = 0;
-	//
-	//	while(i < indice_bitmap->size)
-	//	{
-	//
-	//		log_info(osada_log,"%d%d%d%d%d%d%d%d"
-	//				,(int)bitarray_test_bit(indice_bitmap, i)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+1)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+2)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+3)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+4)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+5)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+6)
-	//				,(int)bitarray_test_bit(indice_bitmap, i+7));
-	//		i+=8;
-	//	}
-
-}
-
-void ImprimirTablaDeArchivos()
-{
-	int j = 0;
-
-	//Indices para recorrer sin modificar los originales...
-	osada_file * indice_tabla_archivos = tabla_archivos;
-	char * indice_datos = tabla_datos;
-
-	for (j = 0 ; j < OSADA_TABLA_ARCHIVOS_SIZE ; j++)
-	{
-		if ((int)indice_tabla_archivos->state != 0)
-		{
-			log_info(osada_log, " ---- Archivo %d ---- ", j);
-			log_info(osada_log, "Estado: %s", TipoDeArchivo((int)indice_tabla_archivos->state));
-			log_info(osada_log, "Nombre: %s", indice_tabla_archivos->fname);
-			log_info(osada_log, "Tamanio: %d bytes - %d bloques", indice_tabla_archivos->file_size, TamanioEnBloques(indice_tabla_archivos->file_size));
-			log_info(osada_log, "Directorio Padre: %04x hexa - %d decimal", indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
-			log_info(osada_log, "Primer Bloque: %04x hexa - %d decimal", indice_tabla_archivos->first_block, indice_tabla_archivos->first_block);
-		//	ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
-			log_info(osada_log, "Fecha Ultima Modificacion: %d\n", indice_tabla_archivos->lastmod);
-			GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
-		}
-		indice_tabla_archivos++;
-	}
-
-}
 
 // Enviar el path sin la barra del principio...
+bool FindDirectoryByName(char * path, int * directoryId)
+{
+
+	char * str = string_new();
+	string_append(&str, path);
+	char ** arr = string_split(str, "/");
+	log_trace(osada_log, arr[0]);
+	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+}
 bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 {
 	bool exists = false;
@@ -398,15 +341,6 @@ bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 
 }
 
-bool FindDirectoryByName(char * path, int * directoryId)
-{
-
-	char * str = string_new();
-	string_append(&str, path);
-	char ** arr = string_split(str, "/");
-	log_trace(osada_log, arr[0]);
-	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
-}
 
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler)
 {
@@ -441,5 +375,121 @@ void SetAttrByDirectoryId(int directoryId, struct stat *stbuf)
 }
 
 
+// Metodos para Test
+void ImprimirHeader()
+{
+
+	log_info(osada_log, "El filesystem es: %s", header->magic_number);
+	log_info(osada_log, "La version del FS es: %d", header->version);
+
+	// total amount of blocks
+	log_info(osada_log,"El tamanio en bloques del FS es: %d", header->fs_blocks); // "T / BLOCK_SIZE"
+
+	// bitmap size in blocks
+	log_info(osada_log,"El tamanio en bloques del bitmap del FS es: %d",header->bitmap_blocks);
+
+	// allocations table's first block number
+	log_info(osada_log,"El primer bloque de la tabla de asignacion del FS es: %d",header->allocations_table_offset);
+
+	// amount of data blocks
+	log_info(osada_log,"La cantidad del bloques para datos del FS es: %d",header->data_blocks);
+
+	log_info(osada_log,"El tamanio de la tabla de asignacion es (CALCULADO): %d",tamanio_tabla_asignaciones_bloques);
 
 
+}
+void ImprimirBloquesDeTablaAsignacion(int * tabla_asignaciones, int file_size, int first_block)
+{
+	int tamanioEnBloques = TamanioEnBloques(file_size);
+	int * coleccion = malloc(sizeof(int)*tamanioEnBloques);
+
+	log_info(osada_log , "%d", first_block);
+	int i = 1;
+	int proxima_posicion = first_block;
+
+	while(i < tamanioEnBloques)
+	{
+		log_info(osada_log , "%d", *(tabla_asignaciones+proxima_posicion));
+		*(coleccion+i) = *(tabla_asignaciones+proxima_posicion);
+		proxima_posicion = *(tabla_asignaciones+proxima_posicion);
+		i++;
+	}
+
+	free(coleccion);
+
+}
+void GenerarArchivo(char * indice_datos, int tamanio_en_bytes, int primer_bloque, char * nombre_archivo)
+{
+	char * path = string_new();
+	string_append(&path,"/home/utnso/archivosChallenge/");
+	string_append(&path,nombre_archivo);
+	string_append(&path,"-");
+	string_append(&path,temporal_get_string_time());
+
+	char * archivo = malloc(sizeof(char)*tamanio_en_bytes);
+	int tamanio_en_bloques = TamanioEnBloques(tamanio_en_bytes);
+	int k = 0;
+	int bloque_actual = primer_bloque;
+
+	FILE *fp;
+	fp = fopen( path , "w" );
+	while( k < tamanio_en_bloques)
+	{
+		int bytes_restantes = (tamanio_en_bytes - k*64);
+		int cantidad_bytes = bytes_restantes >= 64 ? 64 : bytes_restantes;
+		fwrite((void *)(indice_datos + OSADA_BLOCK_SIZE*bloque_actual)  , cantidad_bytes , 1, fp );
+		k++;
+		bloque_actual = (int)*(tabla_asignaciones + bloque_actual);
+	}
+
+   free(archivo);
+
+   fclose(fp);
+
+}
+void ImprimirBitMap()
+{
+	//	int i = 0;
+	//
+	//	while(i < indice_bitmap->size)
+	//	{
+	//
+	//		log_info(osada_log,"%d%d%d%d%d%d%d%d"
+	//				,(int)bitarray_test_bit(indice_bitmap, i)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+1)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+2)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+3)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+4)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+5)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+6)
+	//				,(int)bitarray_test_bit(indice_bitmap, i+7));
+	//		i+=8;
+	//	}
+
+}
+void ImprimirTablaDeArchivos()
+{
+	int j = 0;
+
+	//Indices para recorrer sin modificar los originales...
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	char * indice_datos = tabla_datos;
+
+	for (j = 0 ; j < OSADA_TABLA_ARCHIVOS_SIZE ; j++)
+	{
+		if ((int)indice_tabla_archivos->state != 0)
+		{
+			log_info(osada_log, " ---- Archivo %d ---- ", j);
+			log_info(osada_log, "Estado: %s", TipoDeArchivo((int)indice_tabla_archivos->state));
+			log_info(osada_log, "Nombre: %s", indice_tabla_archivos->fname);
+			log_info(osada_log, "Tamanio: %d bytes - %d bloques", indice_tabla_archivos->file_size, TamanioEnBloques(indice_tabla_archivos->file_size));
+			log_info(osada_log, "Directorio Padre: %04x hexa - %d decimal", indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
+			log_info(osada_log, "Primer Bloque: %04x hexa - %d decimal", indice_tabla_archivos->first_block, indice_tabla_archivos->first_block);
+		//	ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
+			log_info(osada_log, "Fecha Ultima Modificacion: %d\n", indice_tabla_archivos->lastmod);
+			GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
+		}
+		indice_tabla_archivos++;
+	}
+
+}
