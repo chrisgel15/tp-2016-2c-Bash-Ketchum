@@ -36,6 +36,12 @@ char* algoritmo;
 //Quantum
 int mapa_quantum;
 
+//Retardo
+int retardo;
+
+//Interbloqueo
+int interbloqueo;
+
 //Nombre de Mapa
 char *nombre_mapa ;
 
@@ -100,6 +106,12 @@ int main(int argc, char **argv) {
 
 	//Quantum
 	mapa_quantum = get_mapa_quantum(metadata);
+
+	//Retardo
+	retardo = get_mapa_retardo(metadata);
+
+	//Interbloqueo
+	interbloqueo = get_mapa_tiempo_deadlock(metadata);
 
 	//Lista de nombres de pokenests
 	//pokenests=get_lista_de_pokenest(metadata);
@@ -433,6 +445,11 @@ void system_call_catch(int signal){
 		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
 		/*TODO: Actualizar Algoritmo de planificación, valor de quantum, tiempo de retardo entre turnos y tiempo de chequeo de interbloqueo
 		/Hacer esto cuando ya lo tengamos levantando desde el archivo de Configuración*/
+		set_algoritmoActual();
+		set_quantum();
+		set_retardo();
+		set_interbloqueo();
+
 	}
 }
 
@@ -469,6 +486,7 @@ void administrar_turnos() {
 		if (list_size(entrenadores_listos)>0){
 		entrenador=remover_entrenador_listo_por_RR();
 		//agregar_entrenador_a_ejecutando(entrenador);
+		sleep(retardo);
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 			}
 		//pthread_mutex_unlock(&mutex_entrenadores_listos);
@@ -485,13 +503,13 @@ void administrar_turnos() {
 
 void atender_Viaje_Entrenador(t_entrenador* entrenador){
 		int turnos=0;
-		int i = quantum_actual();
+		//int i = quantum_actual();
 		int instruccion;
 		int *result=malloc(sizeof(int));
 		int estado=NULL;
 
 	while(1){
-	while (turnos < i && estado!=ATRAPAR_POKEMON){
+	while (turnos < mapa_quantum && estado!=ATRAPAR_POKEMON){
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
 		switch(instruccion){
 			case UBICACION_POKENEST:
@@ -507,18 +525,18 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador){
 			case OBJETIVO_CUMPLIDO:
 				entregar_medalla(entrenador->fd, nombre_mapa);
 				estado=OBJETIVO_CUMPLIDO;
-				turnos=i;
+				turnos= mapa_quantum;
 				break;
 			default:
 				log_error(mapa_log, "Se ha producido un error al tratar de atender instruccion del Entrenador.");
 				break;
 		}
 		turnos++;
-		if (turnos<i && estado!=ATRAPAR_POKEMON ){
+		if (turnos<mapa_quantum && estado!=ATRAPAR_POKEMON ){
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 		}
 	}
-		if (turnos>=i && estado!=ATRAPAR_POKEMON && estado!=OBJETIVO_CUMPLIDO){
+		if (turnos>=mapa_quantum && estado!=ATRAPAR_POKEMON && estado!=OBJETIVO_CUMPLIDO){
 			agregar_entrenador_a_listos(entrenador);
 		}
 		else{
@@ -558,4 +576,19 @@ void srdf(t_list* entrenadores_listos){
 	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
 	list_sort(entrenadores_listos, pf);
 }*/
+
+/* Actualizacion de valores desde el Archivo de comfiguracion */
+void set_algoritmoActual(){
+	algoritmo = get_mapa_algoritmo(metadata);
+}
+void set_quantum(){
+	mapa_quantum = get_mapa_quantum(metadata);
+}
+
+void set_retardo(){
+	retardo = get_mapa_retardo(metadata);
+}
+void set_interbloqueo(){
+	interbloqueo = get_mapa_tiempo_deadlock(metadata);
+}
 

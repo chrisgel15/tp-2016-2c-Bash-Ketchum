@@ -90,4 +90,10 @@ char* algoritmo_actual();
 /*** Funcion para obtener el quantum despues de ser actualizado por la señal ***/
 int quantum_actual();
 
+/* Actualizacion de valores desde el Archivo de comfiguracion */
+void set_algoritmoActual();
+void set_quantum();
+void set_retardo();
+void set_interbloqueo();
+
 #endif /* MAPA_H_ */
