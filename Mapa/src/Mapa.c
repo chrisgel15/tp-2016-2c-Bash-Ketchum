@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
 
 	//Hilo planificador
 	pthread_t planificador;
-	pthread_create(&planificador, NULL, (void *) administrar_turnos, nombre_mapa);
+	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -453,13 +453,13 @@ void system_call_catch(int signal){
 
 void administrar_turnos() {
 	t_entrenador* entrenador;
-	ITEM_NIVEL * pokenest= malloc(sizeof(ITEM_NIVEL));
+	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
 	int cantidad_bloqueados;
 	int i;
 	//char* algoritmo = malloc(sizeof(char)*4);
 	char * algoritmo = string_new();
 	char *round_robin = string_new();
-	string_append(round_robin, "RR");
+	string_append(&round_robin, "RR");
 	bool es_algoritmo_rr = FALSE;
 
 	while (1){
@@ -483,7 +483,8 @@ void administrar_turnos() {
 
 		sem_wait(&sem_listos);
 		//algoritmo = algoritmo_actual();
-		string_append(algoritmo, algoritmo_actual());
+
+		string_append(&algoritmo, algoritmo_actual());
 
 		//Si es verdadero, se extrae por algoritmo de Round Robin
 		if(string_equals_ignore_case(algoritmo, round_robin)){
