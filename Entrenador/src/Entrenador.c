@@ -236,30 +236,30 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 				turnoConcedido=recibirInt(socket_mapa, result, entrenador_log);
 				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
 					switch(estado){
-					case UBICACION_POKENEST:
-						solicitar_posicion_pokenest( metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
-						estado=AVANZAR_HACIA_POKENEST;
-						break;
-					case AVANZAR_HACIA_POKENEST:
-						if (avanzar_hacia_pokenest()==1)
-							estado=ATRAPAR_POKEMON;
-						else
+						case UBICACION_POKENEST:
+							solicitar_posicion_pokenest( metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
 							estado=AVANZAR_HACIA_POKENEST;
-						break;
-					case ATRAPAR_POKEMON:
-						capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa]);
-						if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
-							estado=OBJETIVO_CUMPLIDO;
-						}
-						else{
-							posObjetivoPorMapa++;
-							estado=UBICACION_POKENEST;
-						}
-						break;
-					default:
-						log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");
-						break;
-				}
+							break;
+						case AVANZAR_HACIA_POKENEST:
+							if (avanzar_hacia_pokenest()==1)
+								estado=ATRAPAR_POKEMON;
+							else
+								estado=AVANZAR_HACIA_POKENEST;
+							break;
+						case ATRAPAR_POKEMON:
+							capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa]);
+							if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
+								estado=OBJETIVO_CUMPLIDO;
+							}
+							else{
+								posObjetivoPorMapa++;
+								estado=UBICACION_POKENEST;
+							}
+							break;
+						default:
+							log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");
+							break;
+					}
 			}
 		}
 		posHojaDeViaje++;
@@ -271,8 +271,8 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 		else{
 		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);
 			if(socket_mapa == 0){
-			perror("Ocurrio un error al intentarse conectar al Mapa.");
-			exit(1);
+				perror("Ocurrio un error al intentarse conectar al Mapa.");
+				exit(1);
 			}
 			handshake();
 		}

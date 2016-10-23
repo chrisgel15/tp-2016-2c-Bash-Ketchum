@@ -19,6 +19,7 @@
 #include "Interfaz_Grafica.h"
 #include <string.h>
 #include <signal.h>
+#include <stdbool.h>
 
 
 //Varibles para el Log del Programa
@@ -74,7 +75,7 @@ void posicionar_entrenador_en_mapa(t_datos_mapa*);
 void mover_entrenador_hacia_recurso(t_datos_mapa*);
 
 void entregar_pokemon(t_entrenador*);
-void entregar_medalla();
+void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa);
 void enviar_posicion_pokenest(int fd);
 
 
@@ -83,7 +84,7 @@ void system_call_catch(int signal);
 
 
 void administrar_turnos();
-void atender_Viaje_Entrenador(t_entrenador*);
+void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr);
 /*** Funcion para obtener el algoritmo despues de ser actualizado por la señal ***/
 char* algoritmo_actual();
 
