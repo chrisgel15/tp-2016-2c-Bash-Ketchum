@@ -525,7 +525,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	int *result = malloc(sizeof(int));
 
 
-	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado){
+	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
 		//Envio al Entrenador el aviso que le toca realizar una accion
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
@@ -543,7 +543,6 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				break;
 			case OBJETIVO_CUMPLIDO:
 				entregar_medalla(entrenador, nombre_mapa);
-				turnos = mapa_quantum;
 				finalizo = TRUE;
 				break;
 			default:
