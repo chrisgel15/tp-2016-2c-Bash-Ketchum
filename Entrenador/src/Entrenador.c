@@ -6,6 +6,8 @@ t_log *entrenador_log;
 //Configs
 t_config * metadata;
 
+t_entrenador entrenador;
+
 //Socket Mapa
 int socket_mapa;
 
@@ -18,6 +20,11 @@ char *nombre_entrendor;
 //Estructuras para el manejo de la posicion
 t_posicion_pokenest *posicion_pokenest;
 t_posicion_mapa *posicion_mapa;
+
+
+// Funciones utilitarias //
+t_entrenador init_datos_entrenador(void);
+
 
 int main(int argc, char **argv) {
 
@@ -38,6 +45,7 @@ int main(int argc, char **argv) {
 
 	// Obtiene el archivo de metadata del entrenador.
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
+	entrenador = init_datos_entrenador();
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
 	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
@@ -49,6 +57,7 @@ int main(int argc, char **argv) {
 
 	//Manejo de System Calls
 	signal(SIGTERM, system_call_catch);
+	signal(SIGUSR1, system_call_catch);
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
@@ -98,11 +107,37 @@ int main(int argc, char **argv) {
 
 //Funcion encargada de Capturar las llamadas de Sistema
 void system_call_catch(int signal){
+	int vidas_restantes = get_entrenador_vidas(metadata);
+	char c;
+	switch(signal){
+	case SIGTERM:
+		log_info(entrenador_log, "Se ha enviado la señal SIGTERM. Se le restará una vida al Entrenador.");
+		vidas_restantes --;
+		if(!vidas_restantes){
+			printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
+			printf("La cantidad de reintentos hasta el momento es %d", count_reintento);
+		}
 
-	if (signal == SIGTERM){
-		log_info(entrenador_log, "Se ha enviado la señal SIGTERM. Se le sumará una vida al Entrenador.");
-		//TODO: Sumar vida
+		switch(c = getchar()){
+		case 'y' || 'Y':
+			break;
+		case 'n' || 'N':
+			break;
+		default:
+			break;
+		}
+		break;
+	case SIGUSR1:
+		log_info(entrenador_log, "Se ha enviado la señal SIGUSR1. Se le sumará una vida al Entrenador.");
+		break;
+	case SIGKILL:
+		break;
+	default:
+		break;
 	}
+
+
+
 }
 
 //Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor
@@ -293,4 +328,10 @@ void handshake(){
 		char * simbolo = get_entrenador_simbolo(metadata);
 		enviarMensaje(socket_mapa, simbolo);
 		ingresar_a_nuevo_mapa(posicion_mapa);
+}
+
+t_entrenador init_datos_entrenador(){
+	t_entrenador* entrenador = malloc(sizeof(t_entrenador));
+	entrenador->vidas = get_entrenador_vidas(metadata);
+	return entrenador;
 }

@@ -21,6 +21,12 @@
 #define log_nombre "entrenador.log"
 #define programa_nombre "Entrenador.c"
 
+typedef struct{
+	char* nombre;
+	int vidas;
+	int reintentos;
+}t_entrenador;
+
 void system_call_catch(int signal);
 
 //Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor
