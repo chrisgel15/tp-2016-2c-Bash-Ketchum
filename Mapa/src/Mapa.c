@@ -122,22 +122,22 @@ int main(int argc, char **argv) {
 
 	//Hilo planificador
 	pthread_t planificador;
-	pthread_create(&planificador, NULL, (void *) administrar_turnos, nombre_mapa);
+	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
-	/*	fd_sets_entrenadores->readFileDescriptorSet = fd_sets_entrenadores->masterSet;
+		fd_sets_entrenadores->readFileDescriptorSet = fd_sets_entrenadores->masterSet;
 
 		if (select(fd_sets_entrenadores->maxFileDescriptorNumber + 1,
 						&(fd_sets_entrenadores->readFileDescriptorSet),
 						&(fd_sets_entrenadores->writeFileDescriptorSet),
 						NULL, NULL) == -1){
-			/*perror log_error(mapa_log,"Se ha producido un error al intentar atender las peticiones de los Entrenadores.");
+			log_error(mapa_log,"Se ha producido un error al intentar atender las peticiones de los Entrenadores.");
 			exit(1);
 		}
-		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);*/
-		 int entrenador_fd = doAccept(listener_entrenadores);
-		 atender_entrenador(entrenador_fd,0);
+		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);
+		 //int entrenador_fd = doAccept(listener_entrenadores);
+		 //atender_entrenador(entrenador_fd,0);
 	}
 
 	return EXIT_SUCCESS;
@@ -149,7 +149,6 @@ int main(int argc, char **argv) {
 void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	list_add(entrenadores_listos, entrenador);
-	//queue_push(entrenadores_listos, (void *) entrenador);// Lo comente porque al agregar de nuevo el entrenador a la misma cola prdia el valo fd
 	sem_post(&sem_listos);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se agrega un entrenador a la cola de listos");
@@ -159,7 +158,7 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 t_entrenador *remover_entrenador_listo_por_RR(){
 	t_entrenador *entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
-	sem_wait(&sem_listos);
+	//sem_wait(&sem_listos);
 	entrenador = (t_entrenador *) list_remove(entrenadores_listos, 0);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
@@ -170,8 +169,8 @@ t_entrenador *remover_entrenador_listo_por_RR(){
 t_entrenador *remover_entrenador_listo_por_SRDF(){
 	t_entrenador* entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
-	sem_wait(&sem_listos);
-//	srdf(entrenadores_listos);
+	//sem_wait(&sem_listos);
+	srdf(entrenadores_listos);
 	entrenador = (t_entrenador*)list_remove(entrenadores_listos,0);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
@@ -399,22 +398,20 @@ void entregar_pokemon(t_entrenador* entrenador){
 	pthread_mutex_unlock(&mutex_recursos_pokenest);
 	agregar_entrenador_a_bloqueados(entrenador);
 	//free(pokenest);
-
-
-
 }
 
-void entregar_medalla(int fd,char* nombre_mapa){
+void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 	char *ruta_medalla = string_new();
 	string_append(&ruta_medalla, "mapas/");
 	string_append(&ruta_medalla,nombre_mapa);
 	string_append(&ruta_medalla,"/medalla-");
 	string_append(&ruta_medalla,nombre_mapa);
 	string_append(&ruta_medalla,".jpg");
-	enviarInt(fd,strlen(ruta_medalla));
-	enviarMensaje(fd,ruta_medalla);
-	//TODO ELIMINAR ENTRENADOR DE LISTAS DE PLANIFICACION
+	enviarInt(entrenador->fd,strlen(ruta_medalla));
+	enviarMensaje(entrenador->fd,ruta_medalla);
+	//TODO Liberar recursos del Entrenador
 
+	free(entrenador);
 }
 
 void enviar_posicion_pokenest(int fd ){
@@ -456,14 +453,19 @@ void system_call_catch(int signal){
 
 void administrar_turnos() {
 	t_entrenador* entrenador;
-	ITEM_NIVEL * pokenest=malloc(sizeof(ITEM_NIVEL));
+	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
 	int cantidad_bloqueados;
 	int i;
-	char* algoritmo=malloc(sizeof(char)*4);
+	//char* algoritmo = malloc(sizeof(char)*4);
+	char * algoritmo = string_new();
+	char *round_robin = string_new();
+	string_append(&round_robin, "RR");
+	bool es_algoritmo_rr = FALSE;
 
 	while (1){
 
-		 cantidad_bloqueados= list_size(entrenadores_bloqueados);
+		//Ver esto de bloqueados tal vez en otro hilo
+		 /*cantidad_bloqueados= list_size(entrenadores_bloqueados);
 
 			for(i = 0; i < cantidad_bloqueados; i++){
 			entrenador = (t_entrenador *)list_get(entrenadores_bloqueados, i);
@@ -477,87 +479,110 @@ void administrar_turnos() {
 				}
 			pthread_mutex_unlock(&mutex_recursos_pokenest);
 
-			}
+			}*/
 
-			algoritmo=algoritmo_actual();
+		sem_wait(&sem_listos);
+		//algoritmo = algoritmo_actual();
 
-	//if (algoritmo=="RR"){
-		//pthread_mutex_lock(&mutex_entrenadores_listos);
-		if (list_size(entrenadores_listos)>0){
-		entrenador=remover_entrenador_listo_por_RR();
-		//agregar_entrenador_a_ejecutando(entrenador);
+		string_append(&algoritmo, algoritmo_actual());
+
+		//Si es verdadero, se extrae por algoritmo de Round Robin
+		if(string_equals_ignore_case(algoritmo, round_robin)){
+			entrenador = remover_entrenador_listo_por_RR();
+			es_algoritmo_rr = TRUE;
+		} else {
+			entrenador = remover_entrenador_listo_por_SRDF();
+			es_algoritmo_rr = FALSE;
+		}
+
+		atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
+
 		sleep(retardo);
-		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+
+		/*if (algoritmo=="RR"){
+			pthread_mutex_lock(&mutex_entrenadores_listos);
+			if (list_size(entrenadores_listos)>0){
+				entrenador=remover_entrenador_listo_por_RR();
+				agregar_entrenador_a_ejecutando(entrenador);
+				sleep(retardo);
+				enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+				}
+			pthread_mutex_unlock(&mutex_entrenadores_listos);
+		} else {
+			if (algoritmo=="SRDF"){
+				entrenador=remover_entrenador_listo_por_SRDF();
+				enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 			}
-		//pthread_mutex_unlock(&mutex_entrenadores_listos);
-	//}else {
-//	if (algoritmo=="SRDF"){
-	//	entrenador=remover_entrenador_listo_por_SRDF();
-		//enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-//	}
-	//}
+		}*/
+	}
 
 }
 
-}
+void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
+	int turnos = 0;
+	bool bloqueado = FALSE; //Flag utilizado para saber si un Entrenador se Bloqueo
+	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
+	int instruccion;
+	int *result = malloc(sizeof(int));
 
-void atender_Viaje_Entrenador(t_entrenador* entrenador){
-		int turnos=0;
-		//int i = quantum_actual();
-		int instruccion;
-		int *result=malloc(sizeof(int));
-		int estado=NULL;
 
-	while(1){
-	while (turnos < mapa_quantum && estado!=ATRAPAR_POKEMON){
+	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
+		//Envio al Entrenador el aviso que le toca realizar una accion
+		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
+
 		switch(instruccion){
 			case UBICACION_POKENEST:
 				enviar_posicion_pokenest(entrenador->fd);
 				break;
 			case AVANZAR_HACIA_POKENEST:
-				mover_entrenador(entrenador,mapa_log, datos_mapa);
+				mover_entrenador(entrenador, mapa_log, datos_mapa);
 				break;
 			case ATRAPAR_POKEMON:
 				entregar_pokemon(entrenador);
-				estado=ATRAPAR_POKEMON;
+				bloqueado = TRUE;
 				break;
 			case OBJETIVO_CUMPLIDO:
-				entregar_medalla(entrenador->fd, nombre_mapa);
-				estado=OBJETIVO_CUMPLIDO;
-				turnos= mapa_quantum;
+				entregar_medalla(entrenador, nombre_mapa);
+				finalizo = TRUE;
 				break;
 			default:
 				log_error(mapa_log, "Se ha producido un error al tratar de atender instruccion del Entrenador.");
 				break;
 		}
+
 		turnos++;
-		if (turnos<mapa_quantum && estado!=ATRAPAR_POKEMON ){
-		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-		}
 	}
-		if (turnos>=mapa_quantum && estado!=ATRAPAR_POKEMON && estado!=OBJETIVO_CUMPLIDO){
+
+	//Finalizo el Turno del Entrenador
+	if(!bloqueado){
+		if(!finalizo){
 			agregar_entrenador_a_listos(entrenador);
 		}
-		else{
-			if (estado==ATRAPAR_POKEMON || estado==OBJETIVO_CUMPLIDO){
-				estado=NULL;
-			}
-		}
-		turnos=0;
+	} else {
+		agregar_entrenador_a_bloqueados(entrenador);
 	}
+
+	/*if (turnos>=mapa_quantum && estado!=ATRAPAR_POKEMON && estado!=OBJETIVO_CUMPLIDO){
+		agregar_entrenador_a_listos(entrenador);
+	} else{
+		if (estado==ATRAPAR_POKEMON || estado==OBJETIVO_CUMPLIDO){
+			estado=NULL;
+		}
+	}*/
+
 }
 
 char* algoritmo_actual() {
-		return algoritmo;
-	}
+	return algoritmo;
+}
 
 int quantum_actual() {
-		return mapa_quantum;
-	}
+	return mapa_quantum;
+}
 
 
-/*
+
 bool menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
 	int unaDistancia = distancia_a_pokenest(unEntrenador);
 	int otraDistancia = distancia_a_pokenest(otroEntrenador);
@@ -575,7 +600,7 @@ double distancia_a_pokenest(t_entrenador* entrenador){
 void srdf(t_list* entrenadores_listos){
 	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
 	list_sort(entrenadores_listos, pf);
-}*/
+}
 
 /* Actualizacion de valores desde el Archivo de comfiguracion */
 void set_algoritmoActual(){
