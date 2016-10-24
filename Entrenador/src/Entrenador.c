@@ -6,7 +6,7 @@ t_log *entrenador_log;
 //Configs
 t_config * metadata;
 
-t_entrenador entrenador;
+t_entrenador *entrenador;
 
 //Socket Mapa
 int socket_mapa;
@@ -23,8 +23,10 @@ t_posicion_mapa *posicion_mapa;
 
 
 // Funciones utilitarias //
-t_entrenador init_datos_entrenador(void);
+t_entrenador *init_datos_entrenador(void);
 
+//Cantidad de reintentos
+int count_reintento = 0;
 
 int main(int argc, char **argv) {
 
@@ -119,12 +121,14 @@ void system_call_catch(int signal){
 		}
 
 		switch(c = getchar()){
-		case 'y' || 'Y':
-			break;
-		case 'n' || 'N':
-			break;
-		default:
-			break;
+			case 'y':
+			case 'Y':
+				break;
+			case 'n':
+			case 'N':
+				break;
+			default:
+				break;
 		}
 		break;
 	case SIGUSR1:
@@ -330,7 +334,7 @@ void handshake(){
 		ingresar_a_nuevo_mapa(posicion_mapa);
 }
 
-t_entrenador init_datos_entrenador(){
+t_entrenador *init_datos_entrenador(){
 	t_entrenador* entrenador = malloc(sizeof(t_entrenador));
 	entrenador->vidas = get_entrenador_vidas(metadata);
 	return entrenador;

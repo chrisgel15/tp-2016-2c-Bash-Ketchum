@@ -20,6 +20,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdbool.h>
+#include "Estructuras.h"
 
 
 //Varibles para el Log del Programa
@@ -27,29 +28,6 @@
 #define programa_nombre "Mapa.c"
 #define POSICION_INICIAL_X 0
 #define POSICION_INICIAL_Y 0
-
-//Estructuras
-typedef struct{
-	char *nombre;
-	int fd;
-	char caracter; //Caracter que va a representar al Entrendor en el Mapa
-	t_posicion* posicion;
-	char pokemon_bloqueado;
-	int pokenx;		//posicion de la pokenest en el eje x
-	int pokeny;		//posicion de la pokenest en el eje y
-} t_entrenador;
-
-typedef struct{
-	t_list* items;
-	t_entrenador* entrenador;
-}t_datos_mapa;
-
-typedef struct{
-	char *nombre;
-	char caracter; //Caracter que va a representar al Entrendor en el Mapa
-	t_posicion* posicion;
-	int cantPokemons; //registrar recursos
-} t_pokenest;
 
 /********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
 void agregar_entrenador_a_listos(t_entrenador *entrenador);

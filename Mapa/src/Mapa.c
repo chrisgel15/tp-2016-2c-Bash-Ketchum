@@ -43,7 +43,10 @@ int retardo;
 int interbloqueo;
 
 //Nombre de Mapa
-char *nombre_mapa ;
+char *nombre_mapa;
+
+//Ids de Entrenadores
+int entrenador_id = 0;
 
 pthread_mutex_t mutex_desplaza_x;
 pthread_mutex_t mutex_desplaza_y;
@@ -288,6 +291,7 @@ void recibir_nuevo_entrenador(int fd){
 
 	//Cargo la estructura del Entrenador con los datos recibidos por Socket
 	//La posicion inicial es (0;0)
+	entrenador->id = entrenador_id + 1;
 	entrenador->fd = fd;
 	entrenador->nombre = nombre;
 	entrenador->caracter =  *caracter;

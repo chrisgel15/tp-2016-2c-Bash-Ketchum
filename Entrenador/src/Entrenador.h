@@ -25,7 +25,7 @@ typedef struct{
 	char* nombre;
 	int vidas;
 	int reintentos;
-}t_entrenador;
+} t_entrenador;
 
 void system_call_catch(int signal);
 
