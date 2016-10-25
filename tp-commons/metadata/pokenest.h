@@ -19,11 +19,15 @@
 #define POSICION_PKM "Posicion"
 #define SEPARADOR ";"
 #define IDENTIFICADOR "Identificador"
+#define NIVEL "Nivel"
 
 
 typedef struct {
 	char * posicion_x;
 	char * posicion_y;
 } t_posicion_pokemon;
+
+char *get_pokenest_path_dir(char * ruta_pokedex , char * nombre_mapa);
+t_config *get_pokemon_information(char *ruta_pokenest_pokemon, char *nombre_archivo);
 
 #endif /* METADATA_POKENEST_H_ */

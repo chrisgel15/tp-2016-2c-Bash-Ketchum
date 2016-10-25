@@ -17,6 +17,7 @@
 #include <commons/config.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include "Estructuras.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -26,16 +27,8 @@
 #define ENTRENADOR_ITEM_TYPE 1
 #define POKENEST_ITEM_TYPE 2
 
-
-
-typedef struct{
-	int x;
-	int y;
-}t_posicion;
-
 void dibujar_mapa(void);
 void dibujar_mapa_vacio(t_list*);
-
 
 //void mover_entrenador(t_entrenador *, t_log* mapa_log,t_datos_mapa* datos);
 

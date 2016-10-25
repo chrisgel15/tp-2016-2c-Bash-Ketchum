@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <stdbool.h>
 #include "Estructuras.h"
+#include "Pokenest.h"
 
 
 //Varibles para el Log del Programa

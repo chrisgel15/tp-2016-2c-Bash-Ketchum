@@ -19,6 +19,7 @@ t_list *entrenadores_ejecutando;
 //t_list *pokenests;
 //Lista de nombres de pokenests
 char ** pokenests;
+t_list *lista_pokenests;
 
 //lista de items a dibujar en el mapa
 t_list* items;
@@ -75,6 +76,7 @@ int main(int argc, char **argv) {
 	string_append(&nombre_mapa, argv[1]);
 
 	metadata = get_mapa_metadata(argv[2] , nombre_mapa);
+	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa); //Obtengo un listado de todos los Pokenests con sus respectivos Pokemons
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -91,7 +93,6 @@ int main(int argc, char **argv) {
 	signal(SIGUSR2, system_call_catch);
 
 	//Creamos el Servidor de Entrenadores
-	//char *puerto_entrenadores = "8000"; //TODO: Sacar cuando se levanten de la configuracion
 	int puerto_entrenadores= get_mapa_puerto(metadata);
 	int listener_entrenadores;
 	ltn_sock_addinfo* ltn_entrenadores;
@@ -139,8 +140,6 @@ int main(int argc, char **argv) {
 			exit(1);
 		}
 		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);
-		 //int entrenador_fd = doAccept(listener_entrenadores);
-		 //atender_entrenador(entrenador_fd,0);
 	}
 
 	return EXIT_SUCCESS;
