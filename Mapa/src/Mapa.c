@@ -123,10 +123,14 @@ int main(int argc, char **argv) {
 
 	dibujar_mapa_vacio(items);
 
+	//Hilo Hoja de viaje
+	pthread_t lista_de_bloqueados;
+	pthread_create(&lista_de_bloqueados, NULL, (void *) administrar_bloqueados,NULL);
 
 	//Hilo planificador
 	pthread_t planificador;
 	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
+
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -193,7 +197,7 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 void remover_entrenador_de_bloqueados(int i){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
 	list_remove(entrenadores_bloqueados,i);
-	sem_wait(&sem_bloqueados);
+	//sem_wait(&sem_bloqueados);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
 	log_info(mapa_log, "Se remueve un entrenador de la lista de bloqueados");
 }
@@ -315,8 +319,8 @@ void recibir_nuevo_entrenador(int fd){
 	/*****************************************************************/
 
 	//Hilo Hoja de viaje
-	pthread_t entrenador_Hoja_De_Viaje;
-	pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, entrenador);
+	//pthread_t entrenador_Hoja_De_Viaje;
+	//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, entrenador);
 
 	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
@@ -467,23 +471,6 @@ void administrar_turnos() {
 
 	while (1){
 
-		//Ver esto de bloqueados tal vez en otro hilo
-		 /*cantidad_bloqueados= list_size(entrenadores_bloqueados);
-
-			for(i = 0; i < cantidad_bloqueados; i++){
-			entrenador = (t_entrenador *)list_get(entrenadores_bloqueados, i);
-			pokenest = _search_item_by_id(items, entrenador->pokemon_bloqueado);
-			pthread_mutex_lock(&mutex_recursos_pokenest);
-				if(pokenest->quantity > 0){
-					pokenest->quantity--;
-				remover_entrenador_de_bloqueados(i);
-				enviarInt(entrenador->fd,POKEMON_CONCEDIDO);
-				agregar_entrenador_a_listos(entrenador);
-				}
-			pthread_mutex_unlock(&mutex_recursos_pokenest);
-
-			}*/
-
 		sem_wait(&sem_listos);
 		//algoritmo = algoritmo_actual();
 
@@ -620,3 +607,24 @@ void set_interbloqueo(){
 	interbloqueo = get_mapa_tiempo_deadlock(metadata);
 }
 
+
+void administrar_bloqueados(){
+	t_entrenador* entrenador;
+	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
+	//Ver esto de bloqueados tal vez en otro hilo
+	while(1){
+		sem_wait(&sem_bloqueados);
+		entrenador = (t_entrenador *)list_get(entrenadores_bloqueados, 0);
+		pokenest = _search_item_by_id(items, entrenador->pokemon_bloqueado);
+		pthread_mutex_lock(&mutex_recursos_pokenest);
+			if(pokenest->quantity > 0){
+				pokenest->quantity--;
+			remover_entrenador_de_bloqueados(0);
+			enviarInt(entrenador->fd,POKEMON_CONCEDIDO);
+			agregar_entrenador_a_listos(entrenador);
+			}
+		pthread_mutex_unlock(&mutex_recursos_pokenest);
+
+		}
+
+}

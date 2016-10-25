@@ -64,6 +64,7 @@ void system_call_catch(int signal);
 
 void administrar_turnos();
 void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr);
+void administrar_bloqueados();
 /*** Funcion para obtener el algoritmo despues de ser actualizado por la señal ***/
 char* algoritmo_actual();
 
