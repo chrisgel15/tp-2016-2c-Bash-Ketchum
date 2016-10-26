@@ -10,8 +10,8 @@
 
 int distancia_A_RecursoH(int);
 int distancia_A_RecursoY(int);
-void mover_eje_x(t_datos_mapa*,int);
-void mover_eje_y(t_datos_mapa*,int);
+void mover_eje_x(t_datos_mapa*,int,char*);
+void mover_eje_y(t_datos_mapa*,int,char*);
 
 int distancia_A_RecursoH(int posx){
 	int dist = RECURSO_POSX - posx;
@@ -138,18 +138,18 @@ void CrearEntrenador (t_list* items, char id, int x , int y){
 	CrearItem(items, id, x, y, ENTRENADOR_ITEM_TYPE,0);
 }
 
-void posicionar_entrenador_en_mapa(t_datos_mapa* datos){
+void posicionar_entrenador_en_mapa(t_datos_mapa* datos, char * nombre_mapa){
 	CrearEntrenador(datos->items,datos->entrenador->caracter,
 			datos->entrenador->posicion->x,datos->entrenador->posicion->y);
-	nivel_gui_dibujar(datos->items,"Mapa Checkpoint I");
+	nivel_gui_dibujar(datos->items,nombre_mapa);
 }
 
-void posicionar_pokenest_en_mapa(t_datos_mapa* datos){
-	nivel_gui_dibujar(datos->items,"Mapa Checkpoint I");
+void posicionar_pokenest_en_mapa(t_datos_mapa* datos, char * nombre_mapa){
+	nivel_gui_dibujar(datos->items,nombre_mapa);
 }
 
 
-void mover_entrenador_hacia_recurso(t_datos_mapa* datos){
+void mover_entrenador_hacia_recurso(t_datos_mapa* datos,char* nombre_mapa){
 	int distanciaH = TRUE;
 	int distanciaY = TRUE;
 
@@ -159,38 +159,38 @@ void mover_entrenador_hacia_recurso(t_datos_mapa* datos){
 			distanciaH = distancia_A_RecursoH(datos->entrenador->posicion->x);
 		pthread_mutex_unlock(&mutex_desplaza_x);
 
-		mover_eje_x(datos,distanciaH);
+		mover_eje_x(datos,distanciaH,nombre_mapa);
 
 		pthread_mutex_lock(&mutex_desplaza_y);
 			distanciaY = distancia_A_RecursoY(datos->entrenador->posicion->y);
 		pthread_mutex_unlock(&mutex_desplaza_y);
 
-		mover_eje_y(datos,distanciaY);
+		mover_eje_y(datos,distanciaY,nombre_mapa);
 	}
 }
 
-void mover_eje_x(t_datos_mapa* datos, int dist) {
+void mover_eje_x(t_datos_mapa* datos, int dist,char * nombre_mapa) {
 	if (dist > 0) {
 		datos->entrenador->posicion->x++;
 		MoverPersonaje(datos->items, datos->entrenador->caracter,
 				datos->entrenador->posicion->x, datos->entrenador->posicion->y);
 		sleep(1);
-		nivel_gui_dibujar(datos->items, "Mapa Checkpoint I");
+		nivel_gui_dibujar(datos->items, nombre_mapa);
 	}
 }
 
-void mover_eje_y(t_datos_mapa* datos, int dist) {
+void mover_eje_y(t_datos_mapa* datos, int dist,char* nombre_mapa) {
 	if (dist > 0) {
 		datos->entrenador->posicion->y++;
 		MoverPersonaje(datos->items, datos->entrenador->caracter,
 				datos->entrenador->posicion->x, datos->entrenador->posicion->y);
 		sleep(1);
-		nivel_gui_dibujar(datos->items, "Mapa Checkpoint I");
+		nivel_gui_dibujar(datos->items, nombre_mapa);
 	}
 }
 
 
-void mover_entrenador(t_entrenador *entrenador, t_log* mapa_log,t_datos_mapa* datos){
+void mover_entrenador(t_entrenador *entrenador, t_log* mapa_log,t_datos_mapa* datos,char* nombre_mapa){
 
 	//t_entrenador* entrenador=malloc(sizeof(t_entrenador));
 	int *result = malloc(sizeof(int));
@@ -199,8 +199,8 @@ void mover_entrenador(t_entrenador *entrenador, t_log* mapa_log,t_datos_mapa* da
 	datos->entrenador=entrenador;
 	posx = recibirInt(entrenador->fd, result, mapa_log);
 	posy = recibirInt(entrenador->fd, result, mapa_log);
-	mover_eje_x(datos,posx);
-	mover_eje_y(datos, posy);
+	mover_eje_x(datos,posx,nombre_mapa);
+	mover_eje_y(datos, posy,nombre_mapa);
 
 }
 

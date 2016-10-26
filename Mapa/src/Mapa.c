@@ -257,10 +257,10 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 
 	int codigo = 0;
 	int *result = malloc(sizeof(int));
-	 codigo = recibirInt(fd_entrenador, result , mapa_log);
+	 //codigo = recibirInt(fd_entrenador, result , mapa_log);
 
-	if (*result > 0) {
-	switch(codigo){
+	//if (*result > 0) {
+	switch(codigo_instruccion){
 		case SOY_ENTRENADOR:
 			recibir_nuevo_entrenador(fd_entrenador);
 			break;
@@ -273,7 +273,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 		}
 
 	}
-}
+//}
 
 void recibir_nuevo_entrenador(int fd){
 	t_entrenador *entrenador = malloc(sizeof(t_entrenador));
@@ -306,11 +306,11 @@ void recibir_nuevo_entrenador(int fd){
 
 	datos_mapa->entrenador = entrenador;
 
+	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
+	posicionar_entrenador_en_mapa(datos_mapa,nombre_mapa);
+
 	agregar_entrenador_a_listos(entrenador);
 
-	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
-
-	posicionar_entrenador_en_mapa(datos_mapa);
 
 	/**** Hilo para manejar el trazado del mapa ****/
 	//pthread_t trazado_mapa;
@@ -612,7 +612,7 @@ void set_interbloqueo(){
 
 
 void administrar_bloqueados(){
-	t_entrenador* entrenador;
+	t_entrenador* entrenador = malloc(sizeof(t_entrenador)) ;
 	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
 	//Ver esto de bloqueados tal vez en otro hilo
 	while(1){
