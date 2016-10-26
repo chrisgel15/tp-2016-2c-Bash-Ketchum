@@ -25,7 +25,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 	  while ((ent_pokenest = readdir (dir_pokenest)) != NULL) {
 
 		  //Omite . y ..
-		  if(!string_equals_ignore_case(ent_pokenest->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest->d_name, punto_doble) ){
+		 if(!string_equals_ignore_case(ent_pokenest->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest->d_name, punto_doble) ){
 			  //Armo el Pokenest
 			  t_pokenest *pokenest = malloc(sizeof(t_pokenest));
 			  pokenest->posicion = malloc(sizeof(t_posicion));

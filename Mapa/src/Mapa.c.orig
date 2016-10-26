@@ -257,6 +257,14 @@ void inicializar_estructuras(){
 /********* FUNCIONES PARA RECIBIR PETICIONES DE LOS ENTRENADORES *********/
 void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 
+<<<<<<< HEAD
+=======
+	int codigo = 0;
+	int *result = malloc(sizeof(int));
+	 //codigo = recibirInt(fd_entrenador, result , mapa_log);
+
+	//if (*result > 0) {
+>>>>>>> b1adad658b0c822343f55adb2b5f09fc240f4d99
 	switch(codigo_instruccion){
 		case SOY_ENTRENADOR:
 			recibir_nuevo_entrenador(fd_entrenador);
@@ -268,7 +276,13 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador");
 			break;
 		}
+<<<<<<< HEAD
 }
+=======
+
+	}
+//}
+>>>>>>> b1adad658b0c822343f55adb2b5f09fc240f4d99
 
 void recibir_nuevo_entrenador(int fd){
 	log_info(mapa_log, "Se van a tomar los datos para inscribir al nuevo Entrenador.");
@@ -302,10 +316,31 @@ void recibir_nuevo_entrenador(int fd){
 
 	datos_mapa->entrenador = entrenador;
 
+<<<<<<< HEAD
 	agregar_entrenador_a_listos(entrenador);
 
 	/* Muestro en el Mapa al Entrenador */
 	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
+=======
+	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
+	posicionar_entrenador_en_mapa(datos_mapa,nombre_mapa);
+
+	agregar_entrenador_a_listos(entrenador);
+
+
+	/**** Hilo para manejar el trazado del mapa ****/
+	//pthread_t trazado_mapa;
+	//pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
+		/***********************************************/
+
+	//mover_entrenador_hacia_recurso(datos_mapa);
+
+	/*****************************************************************/
+
+	//Hilo Hoja de viaje
+	//pthread_t entrenador_Hoja_De_Viaje;
+	//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, entrenador);
+>>>>>>> b1adad658b0c822343f55adb2b5f09fc240f4d99
 
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 }
