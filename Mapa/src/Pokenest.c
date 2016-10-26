@@ -31,7 +31,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 			  pokenest->posicion = malloc(sizeof(t_posicion));
 			  t_config *metadata = get_pokenest_metadata(ruta_pokedex , nombre_mapa, ent_pokenest->d_name);
 			  pokenest->nombre = ent_pokenest->d_name;
-			  pokenest->caracter = get_identificador_pokemon(metadata);
+			  strncpy(&pokenest->caracter, get_identificador_pokemon(metadata), 1);
 			  t_posicion_pokemon *posicion = get_posicion_pokemon(metadata);
 			  pokenest->posicion->x = atoi(posicion->posicion_x);
 			  pokenest->posicion->y = atoi(posicion->posicion_y);

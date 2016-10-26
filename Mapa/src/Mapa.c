@@ -123,8 +123,8 @@ int main(int argc, char **argv) {
 	//pokenests=get_lista_de_pokenest(metadata);
 	//cargar_pokenests_en _items(items, argv[2], nombre_mapa, pokenests);
 
-	dibujar_mapa_vacio(items);
-	//inicializar_mapa(lista_pokenests, nombre_mapa);
+	//dibujar_mapa_vacio(items);
+	inicializar_mapa(items, lista_pokenests, nombre_mapa);
 
 	//Hilo Hoja de viaje
 	pthread_t lista_de_bloqueados;
