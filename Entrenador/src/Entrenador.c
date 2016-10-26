@@ -63,25 +63,27 @@ int main(int argc, char **argv) {
 
 	printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
-	socket_mapa = conectar_mapa(ruta_pokedex,hojaDeViaje[0]);
+	/*socket_mapa = conectar_mapa(ruta_pokedex,hojaDeViaje[0]);
 	if(socket_mapa == 0){
 		perror("Ocurrio un error al intentarse conectar al Mapa.");
 		exit(1);
-	}
+	}*/
 
-	handshake(nombre_entrendor);
+	//handshake(nombre_entrendor);
 
 	//Creo el Hilo que va a esperar los mensajes del Servidor
 	//pthread_t chat_entrenadores;
 	//pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
 
 	//Hilo para recorrer Hoja de Viaje
-	pthread_t entrenador_hojaDeViaje;
-	pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
+	//pthread_t entrenador_hojaDeViaje;
+	//pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
 
+	//Comieza el viaje del Entreandor
+	recorrer_hojaDeViaje(ruta_pokedex);
 
 	//Metodo para el Primer checkpoint
-	int seguir_enviando = 1;
+	/*int seguir_enviando = 1;
 	int tamanio_mensaje;
 	char texto[2000];
 	char *fin = "Chau";
@@ -100,7 +102,7 @@ int main(int argc, char **argv) {
 			enviarInt(socket_mapa, tamanio_mensaje);
 			enviarMensaje(socket_mapa, texto);
 		}
-	}
+	}*/
 
 	printf("Adios Entrenador Pokemon!. \n");
 	return EXIT_SUCCESS;
@@ -260,60 +262,79 @@ void terminarObjetivo(){
 
 
 void recorrer_hojaDeViaje(char * ruta_pokedex) {
-	int posHojaDeViaje =0; // indice para recorrer la hojaDeViaje
-	int posObjetivoPorMapa=0; // indice para recorrer los objetivos por mapa
+	int posHojaDeViaje = 0; //Indice para recorrer la Hoja de Viaje
+	int posObjetivoPorMapa = 0; //Indice para recorrer los Objetivos por Mapa
 	int *result = malloc(sizeof(int));
 	int turnoConcedido;
-	int estado;
-	char ** objetivosPorMapa;
+	int estado = CONECTARSE_MAPA;
+	char **objetivosPorMapa;
 
 	while (hojaDeViaje[posHojaDeViaje]!= NULL){
-			estado=UBICACION_POKENEST;
-			posObjetivoPorMapa=0;
-			objetivosPorMapa=get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
-		while(estado!=OBJETIVO_CUMPLIDO){
-				turnoConcedido=recibirInt(socket_mapa, result, entrenador_log);
-				if(*result > 0 && turnoConcedido==TURNO_CONCEDIDO){
+
+		if(estado == CONECTARSE_MAPA){
+			socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);
+			if(socket_mapa == 0){
+				perror("Ocurrio un error al intentarse conectar al Mapa.");
+				exit(1);
+			}
+			handshake();
+		}
+
+		estado = UBICACION_POKENEST;
+		posObjetivoPorMapa = 0;
+		objetivosPorMapa = get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
+
+		while(estado != OBJETIVO_CUMPLIDO){
+
+				turnoConcedido = recibirInt(socket_mapa, result, entrenador_log);
+
+				if(*result > 0 && turnoConcedido == TURNO_CONCEDIDO){
+
 					switch(estado){
 						case UBICACION_POKENEST:
-							solicitar_posicion_pokenest( metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
-							estado=AVANZAR_HACIA_POKENEST;
+							solicitar_posicion_pokenest(metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
+							estado = AVANZAR_HACIA_POKENEST;
 							break;
 						case AVANZAR_HACIA_POKENEST:
-							if (avanzar_hacia_pokenest()==1)
-								estado=ATRAPAR_POKEMON;
-							else
-								estado=AVANZAR_HACIA_POKENEST;
+							if (avanzar_hacia_pokenest() == 1){
+								estado = ATRAPAR_POKEMON;
+							} else {
+								estado = AVANZAR_HACIA_POKENEST;
+							}
 							break;
 						case ATRAPAR_POKEMON:
 							capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa]);
 							if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
-								estado=OBJETIVO_CUMPLIDO;
-							}
-							else{
+								estado = OBJETIVO_CUMPLIDO;
+							} else {
 								posObjetivoPorMapa++;
-								estado=UBICACION_POKENEST;
+								estado = UBICACION_POKENEST;
 							}
 							break;
 						default:
 							log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");
 							break;
 					}
+			} else {
+				perror("Ocurrio un error al intentarse interactuar con el Mapa.");
+				exit(1);
 			}
 		}
+
 		posHojaDeViaje++;
+
 		if (hojaDeViaje[posHojaDeViaje] == NULL){
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
 				terminarObjetivo();
 				//TODO DESCONECTARSE
-		}
-		else{
-		socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);
+		} else {
+			/*socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);
 			if(socket_mapa == 0){
 				perror("Ocurrio un error al intentarse conectar al Mapa.");
 				exit(1);
 			}
-			handshake();
+			handshake();*/
+			estado = CONECTARSE_MAPA;
 		}
 	}
 }

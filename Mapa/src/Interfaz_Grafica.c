@@ -123,6 +123,11 @@ void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa){
 	nivel_gui_dibujar(items, nombre_mapa);
 }
 
+void ingreso_nuevo_entrenador(t_list* items, t_entrenador* entrenador, char *nombre_mapa){
+	CrearPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
+	nivel_gui_dibujar(items,"nombre_mapa");
+}
+
 
 //TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
 //		CrearCaja y CrearPersonaje que implementan CrearItem.

@@ -124,6 +124,8 @@ int main(int argc, char **argv) {
 	//cargar_pokenests_en _items(items, argv[2], nombre_mapa, pokenests);
 
 	//dibujar_mapa_vacio(items);
+
+	//Inicializamos la Interfaz Grafica
 	inicializar_mapa(items, lista_pokenests, nombre_mapa);
 
 	//Hilo Hoja de viaje
@@ -255,12 +257,7 @@ void inicializar_estructuras(){
 /********* FUNCIONES PARA RECIBIR PETICIONES DE LOS ENTRENADORES *********/
 void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 
-	int codigo = 0;
-	int *result = malloc(sizeof(int));
-	 codigo = recibirInt(fd_entrenador, result , mapa_log);
-
-	if (*result > 0) {
-	switch(codigo){
+	switch(codigo_instruccion){
 		case SOY_ENTRENADOR:
 			recibir_nuevo_entrenador(fd_entrenador);
 			break;
@@ -271,11 +268,10 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador");
 			break;
 		}
-
-	}
 }
 
 void recibir_nuevo_entrenador(int fd){
+	log_info(mapa_log, "Se van a tomar los datos para inscribir al nuevo Entrenador.");
 	t_entrenador *entrenador = malloc(sizeof(t_entrenador));
 	t_posicion* posicion = malloc(sizeof(t_posicion));
 	entrenador->posicion = posicion;
@@ -308,24 +304,9 @@ void recibir_nuevo_entrenador(int fd){
 
 	agregar_entrenador_a_listos(entrenador);
 
-	/* Pruebo dibujar el mapa con la posicion inical del entrenador*/
+	/* Muestro en el Mapa al Entrenador */
+	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
 
-	posicionar_entrenador_en_mapa(datos_mapa);
-
-	/**** Hilo para manejar el trazado del mapa ****/
-	//pthread_t trazado_mapa;
-	//pthread_create(&trazado_mapa, NULL, (void*)mover_entrenador_hacia_recurso, (void*)datos_mapa);
-		/***********************************************/
-
-	//mover_entrenador_hacia_recurso(datos_mapa);
-
-	/*****************************************************************/
-
-	//Hilo Hoja de viaje
-	//pthread_t entrenador_Hoja_De_Viaje;
-	//pthread_create(&entrenador_Hoja_De_Viaje, NULL, (void *) atender_Viaje_Entrenador, entrenador);
-
-	//printf("Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 }
 

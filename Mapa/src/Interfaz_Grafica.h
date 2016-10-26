@@ -31,6 +31,7 @@ void dibujar_mapa(void);
 void dibujar_mapa_vacio(t_list*);
 
 void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa);
+void ingreso_nuevo_entrenador(t_list* items, t_entrenador* entrenador, char *nombre_mapa);
 
 //void mover_entrenador(t_entrenador *, t_log* mapa_log,t_datos_mapa* datos);
 

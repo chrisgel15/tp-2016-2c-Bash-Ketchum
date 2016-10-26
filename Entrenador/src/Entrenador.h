@@ -21,6 +21,8 @@
 #define log_nombre "entrenador.log"
 #define programa_nombre "Entrenador.c"
 
+#define CONECTARSE_MAPA 999
+
 typedef struct{
 	char* nombre;
 	int vidas;
