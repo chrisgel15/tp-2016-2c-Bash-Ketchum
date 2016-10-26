@@ -3,6 +3,8 @@
 t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 
 	t_list *pokenest_list = list_create();
+	int posicion_x;
+	int posicion_y;
 
 	char *punto_simple = string_new();
 	char *punto_doble = string_new();
@@ -26,12 +28,13 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 		  if(!string_equals_ignore_case(ent_pokenest->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest->d_name, punto_doble) ){
 			  //Armo el Pokenest
 			  t_pokenest *pokenest = malloc(sizeof(t_pokenest));
+			  pokenest->posicion = malloc(sizeof(t_posicion));
 			  t_config *metadata = get_pokenest_metadata(ruta_pokedex , nombre_mapa, ent_pokenest->d_name);
 			  pokenest->nombre = ent_pokenest->d_name;
 			  pokenest->caracter = get_identificador_pokemon(metadata);
 			  t_posicion_pokemon *posicion = get_posicion_pokemon(metadata);
-			  //pokenest->posicion->x = atoi(posicion->posicion_x); TODO: Ver como pasar de String a Int
-			  //pokenest->posicion->y = atoi(posicion->posicion_y); TODO: Ver como pasar de String a Int
+			  pokenest->posicion->x = atoi(posicion->posicion_x);
+			  pokenest->posicion->y = atoi(posicion->posicion_y);
 			  pokenest->tipo = get_pokenest_tipo(metadata);
 			  pokenest->pokemons = list_create();
 

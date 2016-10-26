@@ -76,7 +76,6 @@ int main(int argc, char **argv) {
 	string_append(&nombre_mapa, argv[1]);
 
 	metadata = get_mapa_metadata(argv[2] , nombre_mapa);
-	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa); //Obtengo un listado de todos los Pokenests con sus respectivos Pokemons
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -117,11 +116,15 @@ int main(int argc, char **argv) {
 	//Interbloqueo
 	interbloqueo = get_mapa_tiempo_deadlock(metadata);
 
+	//Obtengo un listado de todos los Pokenests con sus respectivos Pokemons
+	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
+
 	//Lista de nombres de pokenests
 	//pokenests=get_lista_de_pokenest(metadata);
 	//cargar_pokenests_en _items(items, argv[2], nombre_mapa, pokenests);
 
 	dibujar_mapa_vacio(items);
+	//inicializar_mapa(lista_pokenests, nombre_mapa);
 
 	//Hilo Hoja de viaje
 	pthread_t lista_de_bloqueados;

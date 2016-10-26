@@ -109,6 +109,20 @@ void dibujar_mapa_vacio(t_list* items){
 //	nivel_gui_terminar();
 }
 
+void inicializar_mapa(t_list* pokenest, char *nombre_mapa){
+	int filas = 50;
+	int columnas = 50;
+	int i = 0;
+	int cantidad_pokenest = list_size(pokenest);
+	for(i = 0; i < cantidad_pokenest; i++){
+		t_pokenest *pokenest = list_get(pokenest, i);
+		CrearCaja(pokenest->pokemons, pokenest->caracter, pokenest->posicion->x, pokenest->posicion->y, pokenest->cantPokemons);
+	}
+	nivel_gui_inicializar();
+	nivel_gui_get_area_nivel(&filas, &columnas);
+	nivel_gui_dibujar(pokenest, nombre_mapa);
+}
+
 
 //TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
 //		CrearCaja y CrearPersonaje que implementan CrearItem.
