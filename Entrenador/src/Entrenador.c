@@ -161,7 +161,7 @@ void recibir_mensajes(){
 			printf("%s \n", mensaje_recibio);
 		} else {
 			perror("Ocurrio un error al intentar recibir un mensaje del Servidor. FIN!.");
-			exit(1);
+			exit(0);
 		}
 	}
 }
@@ -181,20 +181,18 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 	return socket_mapa;
 }
 
-void solicitar_posicion_pokenest(t_config* metadata,char *mapa,int posPokenest){
-	int * result = malloc(sizeof(int));
+void solicitar_posicion_pokenest(char *pokemon){
+	int *result = malloc(sizeof(int));
 	int posicion_x, posicion_y;
-	int num=2;
-	char ** pokenests = get_entrenador_objetivos_por_mapa(metadata, mapa);
-	enviarInt(socket_mapa,UBICACION_POKENEST);
-	enviarInt(socket_mapa,/*strlen(pokenests[posPokenest])*/num);
-	enviarMensaje(socket_mapa,/*pokemon*/pokenests[posPokenest]);
+	enviarInt(socket_mapa, UBICACION_POKENEST);
+	enviarInt(socket_mapa, (sizeof(char) * 2));
+	enviarMensaje(socket_mapa,pokemon);
 	posicion_x = recibirInt(socket_mapa, result, entrenador_log);
 	posicion_y = recibirInt(socket_mapa, result, entrenador_log);
 
 	//Actualizo la posicion del proximo pokenest
 	actualizar_posicion_pokenest(posicion_pokenest, posicion_x, posicion_y);
-	//free(pokemon);
+	free(result);
 }
 
 
@@ -213,17 +211,36 @@ void capturar_pokemon(char *nombre_pokemon){
 
 int avanzar_hacia_pokenest(){
 	int movimiento_x, movimiento_y;
-
+	int mensaje_recibido;
+	int *result = malloc(sizeof(u_int32_t));
 
 	enviarInt(socket_mapa, AVANZAR_HACIA_POKENEST);
 
 	//Me muevo en X
 	movimiento_x = moverse_en_mapa_eje_x(posicion_mapa, posicion_pokenest);
-	enviarInt(socket_mapa, movimiento_x);
+	//enviarInt(socket_mapa, movimiento_x);
+	enviarInt(socket_mapa, posicion_mapa->x);
+
+	mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
+
+	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
+		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
+		exit(0);
+	}
 
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
-	enviarInt(socket_mapa, movimiento_y);
+	//enviarInt(socket_mapa, movimiento_y);
+	enviarInt(socket_mapa, posicion_mapa->y);
+
+	mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
+
+	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
+		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
+		exit(0);
+	}
+
+	free(result);
 
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
 	if(movimiento_x == 0 && movimiento_y == 0){
@@ -292,7 +309,8 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 
 					switch(estado){
 						case UBICACION_POKENEST:
-							solicitar_posicion_pokenest(metadata,hojaDeViaje[posHojaDeViaje],posHojaDeViaje);
+							//solicitar_posicion_pokenest(metadata, hojaDeViaje[posHojaDeViaje], posHojaDeViaje);
+							solicitar_posicion_pokenest(objetivosPorMapa[posHojaDeViaje]);
 							estado = AVANZAR_HACIA_POKENEST;
 							break;
 						case AVANZAR_HACIA_POKENEST:
@@ -307,17 +325,18 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 							if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
 								estado = OBJETIVO_CUMPLIDO;
 							} else {
-								posObjetivoPorMapa++;
+								//posObjetivoPorMapa++;
+								posObjetivoPorMapa = 0;
 								estado = UBICACION_POKENEST;
 							}
 							break;
 						default:
-							log_error(entrenador_log, "Se ha producido un error al intentar realizar un movimiento del Entrenador.");
+							log_error(entrenador_log, "Se ha producido un error al intentar realizar una accion del Entrenador.");
 							break;
 					}
 			} else {
 				perror("Ocurrio un error al intentarse interactuar con el Mapa.");
-				exit(1);
+				exit(0);
 			}
 		}
 

@@ -76,3 +76,16 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 	  return EXIT_FAILURE;
 	}
 }
+
+t_pokenest *get_pokenest_by_identificador(t_list *lista_pokenest, char *identificador){
+	int tamanio_lista = list_size(lista_pokenest);
+	int i = 0;
+	for(i = 0; i < tamanio_lista; i++){
+		t_pokenest *pokenest = (t_pokenest *) list_get(lista_pokenest, i);
+		if(pokenest->caracter == *identificador){
+			return pokenest;
+		}
+	}
+
+	return NULL;
+}

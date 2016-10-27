@@ -119,12 +119,6 @@ int main(int argc, char **argv) {
 	//Obtengo un listado de todos los Pokenests con sus respectivos Pokemons
 	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
 
-	//Lista de nombres de pokenests
-	//pokenests=get_lista_de_pokenest(metadata);
-	//cargar_pokenests_en _items(items, argv[2], nombre_mapa, pokenests);
-
-	//dibujar_mapa_vacio(items);
-
 	//Inicializamos la Interfaz Grafica
 	inicializar_mapa(items, lista_pokenests, nombre_mapa);
 
@@ -408,22 +402,32 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 void enviar_posicion_pokenest(int fd ){
 	int tamanio_texto;
 	int *result = malloc(sizeof(int));
-	char *nombre_pokenest = NULL;
-	char nombre;
-	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
+	char *nombre_pokenest;
+
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
 
-	nombre = *nombre_pokenest;
-	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
-	pokenest = _search_item_by_id(items, nombre);
-	enviarInt(fd,pokenest->posx);
-	enviarInt(fd,pokenest->posy);
-	//free(result);
-	//free(pokenest);
-	//free(nombre_pokenest);
+	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, nombre_pokenest);
 
+	log_info(mapa_log, "Se envia posicion del Pokenest: %s", pokenest->nombre);
+
+	enviarInt(fd,pokenest->posicion->x);
+	enviarInt(fd,pokenest->posicion->y);
+
+	free(result);
+}
+
+void avanzar_hacia_pokenest(t_entrenador *entrenador){
+		int *result = malloc(sizeof(int));
+		entrenador->posicion->x = recibirInt(entrenador->fd, result, mapa_log);
+		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
+		enviarInt(entrenador->fd, ACCION_REALIZADA); //Es Para mandarle el aviso al Entrenador
+		entrenador->posicion->y = recibirInt(entrenador->fd, result, mapa_log);
+		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
+		enviarInt(entrenador->fd, ACCION_REALIZADA);
+		free(result);
+		log_info(mapa_log, "El Entrenador %s se movio a la posicion (%d, %d).", entrenador->nombre, entrenador->posicion->x, entrenador->posicion->y);
 }
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
@@ -502,6 +506,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 
 	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
 		//Envio al Entrenador el aviso que le toca realizar una accion
+		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
 		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
 
@@ -510,7 +515,8 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				enviar_posicion_pokenest(entrenador->fd);
 				break;
 			case AVANZAR_HACIA_POKENEST:
-				mover_entrenador(entrenador, mapa_log, datos_mapa);
+				//mover_entrenador(entrenador, mapa_log, datos_mapa);
+				avanzar_hacia_pokenest(entrenador);
 				break;
 			case ATRAPAR_POKEMON:
 				entregar_pokemon(entrenador);
