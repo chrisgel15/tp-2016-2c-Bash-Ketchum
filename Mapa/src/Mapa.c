@@ -10,11 +10,13 @@ pthread_mutex_t mutex_entrenadores_ejecutando;
 sem_t sem_listos;
 sem_t sem_bloqueados;
 sem_t sem_ejecutando;
+sem_t sem_mensajes;
 
 //Estructuras para el Manejo de Entrenadores
 t_list *entrenadores_listos;
 t_list *entrenadores_bloqueados;
 t_list *entrenadores_ejecutando;
+t_list *mensajes_entrenadores;
 
 //t_list *pokenests;
 //Lista de nombres de pokenests
@@ -227,6 +229,7 @@ void inicializar_estructuras(){
 	entrenadores_bloqueados = list_create();
 	entrenadores_ejecutando = list_create();
 	items = list_create();
+	mensajes_entrenadores = list_create();
 
 	datos_mapa = malloc(sizeof(t_datos_mapa));
 	algoritmo=malloc(sizeof(char)*4);
@@ -234,6 +237,7 @@ void inicializar_estructuras(){
 	datos_mapa->entrenador = NULL;
 
 	//Semaforos
+	inicializar_semaforo_mensajes();
 	pthread_mutex_init(&mutex_desplaza_x, NULL);
 	pthread_mutex_init(&mutex_desplaza_y, NULL);
 	pthread_mutex_init(&mutex_entrenadores_listos, NULL);
@@ -244,6 +248,7 @@ void inicializar_estructuras(){
 	sem_init(&sem_listos, 0, 0);
 	sem_init(&sem_bloqueados,0,0);
 	sem_init(&sem_ejecutando,0,0);
+	sem_init(&sem_mensajes, 0, 0);
 
 	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
@@ -257,6 +262,25 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			break;
 		case ENVIAR_MENSAJE:
 			recibir_mensaje_entrenador(fd_entrenador);
+			break;
+		case UBICACION_POKENEST:
+			if(!recibir_mensaje_ubicacion_pokenest(mensajes_entrenadores, fd_entrenador, mapa_log)){
+				log_info(mapa_log, "El Entrenador del FD %d se Desconecto, se procedera a liberar sus recursos.", fd_entrenador);
+				//TODO: Agregar logica de Liberacion de Recursos
+			} else {
+				log_info(mapa_log, "Se recibio correctamente el mensaje UBICACION POKENES del Entrenador del FD %d.", fd_entrenador);
+				sem_post(&sem_mensajes);
+			}
+			break;
+		case AVANZAR_HACIA_POKENEST:
+			log_info(mapa_log, "Enviaron el mensaje AVANZAR HACIA POKENEST del Entrenador del FD %d.", fd_entrenador);
+			if(!recibir_mensaje_avanzar_hacia_pokenest(mensajes_entrenadores, fd_entrenador, mapa_log)){
+				log_info(mapa_log, "El Entrenador del FD %d se Desconecto, se procedera a liberar sus recursos.", fd_entrenador);
+				//TODO: Agregar logica de Liberacion de Recursos
+			} else {
+				log_info(mapa_log, "Se recibio correctamente el mensaje AVANZAR HACIA POKENEST del Entrenador del FD %d.", fd_entrenador);
+				sem_post(&sem_mensajes);
+			}
 			break;
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador");
@@ -294,14 +318,17 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->posicion->x = POSICION_INICIAL_X;
 	entrenador->posicion->y = POSICION_INICIAL_Y;
 
+	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
+
 	datos_mapa->entrenador = entrenador;
+
+	//Creamos la estructura donde van a ir los mensajes
+	inicializar_mensajes_entrenador(mensajes_entrenadores, fd, mapa_log);
 
 	agregar_entrenador_a_listos(entrenador);
 
 	/* Muestro en el Mapa al Entrenador */
 	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
-
-	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
 }
 
 void recibir_mensaje_entrenador(int fd){
@@ -399,14 +426,15 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 	free(entrenador);
 }
 
-void enviar_posicion_pokenest(int fd ){
-	int tamanio_texto;
-	int *result = malloc(sizeof(int));
-	char *nombre_pokenest;
+void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
+	//int tamanio_texto;
+	//int *result = malloc(sizeof(int));
+	//char *nombre_pokenest = string_new();
 
-	tamanio_texto = recibirInt(fd, result, mapa_log);
-	nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
-	recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
+	//tamanio_texto = recibirInt(fd, result, mapa_log);
+	//nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
+	//recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
+	char *nombre_pokenest = (char *)obtener_mensaje(mensajes);
 
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, nombre_pokenest);
 
@@ -415,19 +443,21 @@ void enviar_posicion_pokenest(int fd ){
 	enviarInt(fd,pokenest->posicion->x);
 	enviarInt(fd,pokenest->posicion->y);
 
-	free(result);
+	//free(result);
 }
 
-void avanzar_hacia_pokenest(t_entrenador *entrenador){
-		int *result = malloc(sizeof(int));
+void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
+		//int *result = malloc(sizeof(int));
 
-		entrenador->posicion->x = recibirInt(entrenador->fd, result, mapa_log);
+		//entrenador->posicion->x = recibirInt(entrenador->fd, result, mapa_log);
+		entrenador->posicion->x = (int) obtener_mensaje(mensajes);
 		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
 		//enviarInt(entrenador->fd, ACCION_REALIZADA); //Es Para mandarle el aviso al Entrenador
-		entrenador->posicion->y = recibirInt(entrenador->fd, result, mapa_log);
+		//entrenador->posicion->y = recibirInt(entrenador->fd, result, mapa_log);
+		entrenador->posicion->y = (int) obtener_mensaje(mensajes);
 		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
 		//enviarInt(entrenador->fd, ACCION_REALIZADA);
-		free(result);
+		//free(result);
 		log_info(mapa_log, "El Entrenador %s se movio a la posicion (%d, %d).", entrenador->nombre, entrenador->posicion->x, entrenador->posicion->y);
 }
 
@@ -502,23 +532,26 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	bool bloqueado = FALSE; //Flag utilizado para saber si un Entrenador se Bloqueo
 	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
 	int instruccion;
-	int *result = malloc(sizeof(int));
+	//int *result = malloc(sizeof(int));
 
 
 	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
+		sem_wait(&sem_mensajes);
 		//Envio al Entrenador el aviso que le toca realizar una accion
 		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
 		//enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-		instruccion = recibirInt(entrenador->fd, result, mapa_log);
+		//instruccion = recibirInt(entrenador->fd, result, mapa_log);
+
+		t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
+		instruccion = (int) obtener_mensaje(mensajes_entrenador);
 
 		switch(instruccion){
 			case UBICACION_POKENEST:
-				enviar_posicion_pokenest(entrenador->fd);
+				enviar_posicion_pokenest(entrenador->fd, mensajes_entrenador);
 				break;
 			case AVANZAR_HACIA_POKENEST:
 				//mover_entrenador(entrenador, mapa_log, datos_mapa);
-				log_info(mapa_log, "El Entrenador %s se mueve hacia el Pokenest.");
-				avanzar_hacia_pokenest(entrenador);
+				avanzar_hacia_pokenest(entrenador, mensajes_entrenador);
 				break;
 			case ATRAPAR_POKEMON:
 				entregar_pokemon(entrenador);

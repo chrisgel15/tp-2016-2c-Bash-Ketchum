@@ -47,4 +47,10 @@ typedef struct {
 	char carater; //Caracter que representa al Pokemon
 } t_pokemon;
 
+//Estructuras para almacenar mensajes de los Entrenadores
+typedef struct {
+	int fd;
+	t_queue *mensajes;
+} t_mensajes;
+
 #endif /* ESTRUCTURAS_H_ */

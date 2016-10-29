@@ -23,7 +23,6 @@
 #include "Estructuras.h"
 #include "Pokenest.h"
 
-
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
 #define programa_nombre "Mapa.c"
@@ -55,8 +54,8 @@ void mover_entrenador_hacia_recurso(t_datos_mapa*,char*);
 
 void entregar_pokemon(t_entrenador*);
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa);
-void enviar_posicion_pokenest(int fd);
-void avanzar_hacia_pokenest(t_entrenador *entrenador);
+void enviar_posicion_pokenest(int fd, t_mensajes *mensajes);
+void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes);
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
 void system_call_catch(int signal);
