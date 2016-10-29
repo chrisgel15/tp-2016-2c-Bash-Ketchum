@@ -221,26 +221,26 @@ int avanzar_hacia_pokenest(){
 	//enviarInt(socket_mapa, movimiento_x);
 	enviarInt(socket_mapa, posicion_mapa->x);
 
-	mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
+	//mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
 
-	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
-		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
-		exit(0);
-	}
+//	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
+//		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
+//		exit(0);
+//	}
 
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
 	//enviarInt(socket_mapa, movimiento_y);
 	enviarInt(socket_mapa, posicion_mapa->y);
 
-	mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
+	//mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
 
-	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
-		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
-		exit(0);
-	}
-
-	free(result);
+//	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
+//		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
+//		exit(0);
+//	}
+//
+//	free(result);
 
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
 	if(movimiento_x == 0 && movimiento_y == 0){
@@ -303,9 +303,9 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 
 		while(estado != OBJETIVO_CUMPLIDO){
 
-				turnoConcedido = recibirInt(socket_mapa, result, entrenador_log);
+				//turnoConcedido = recibirInt(socket_mapa, result, entrenador_log);
 
-				if(*result > 0 && turnoConcedido == TURNO_CONCEDIDO){
+				//if(*result > 0 && turnoConcedido == TURNO_CONCEDIDO){
 
 					switch(estado){
 						case UBICACION_POKENEST:
@@ -334,10 +334,10 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 							log_error(entrenador_log, "Se ha producido un error al intentar realizar una accion del Entrenador.");
 							break;
 					}
-			} else {
-				perror("Ocurrio un error al intentarse interactuar con el Mapa.");
-				exit(0);
-			}
+//			} else {
+//				perror("Ocurrio un error al intentarse interactuar con el Mapa.");
+//				exit(0);
+//			}
 		}
 
 		posHojaDeViaje++;

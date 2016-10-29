@@ -420,12 +420,13 @@ void enviar_posicion_pokenest(int fd ){
 
 void avanzar_hacia_pokenest(t_entrenador *entrenador){
 		int *result = malloc(sizeof(int));
+
 		entrenador->posicion->x = recibirInt(entrenador->fd, result, mapa_log);
 		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
-		enviarInt(entrenador->fd, ACCION_REALIZADA); //Es Para mandarle el aviso al Entrenador
+		//enviarInt(entrenador->fd, ACCION_REALIZADA); //Es Para mandarle el aviso al Entrenador
 		entrenador->posicion->y = recibirInt(entrenador->fd, result, mapa_log);
 		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
-		enviarInt(entrenador->fd, ACCION_REALIZADA);
+		//enviarInt(entrenador->fd, ACCION_REALIZADA);
 		free(result);
 		log_info(mapa_log, "El Entrenador %s se movio a la posicion (%d, %d).", entrenador->nombre, entrenador->posicion->x, entrenador->posicion->y);
 }
@@ -507,7 +508,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
 		//Envio al Entrenador el aviso que le toca realizar una accion
 		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
-		enviarInt(entrenador->fd,TURNO_CONCEDIDO);
+		//enviarInt(entrenador->fd,TURNO_CONCEDIDO);
 		instruccion = recibirInt(entrenador->fd, result, mapa_log);
 
 		switch(instruccion){
@@ -516,6 +517,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				break;
 			case AVANZAR_HACIA_POKENEST:
 				//mover_entrenador(entrenador, mapa_log, datos_mapa);
+				log_info(mapa_log, "El Entrenador %s se mueve hacia el Pokenest.");
 				avanzar_hacia_pokenest(entrenador);
 				break;
 			case ATRAPAR_POKEMON:
