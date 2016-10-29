@@ -191,7 +191,7 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 	list_add(entrenadores_bloqueados, (void *) entrenador);
 	sem_post(&sem_bloqueados);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
-	log_info(mapa_log, "Se agrega un entrenador a la lista de bloqueados");
+	log_info(mapa_log, "Se agrega al Entrenador %s a la Lista de Bloqueados.", entrenador->nombre);
 }
 
 //Elimina un entrenador de la lista de bloqueados
@@ -279,6 +279,16 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 				//TODO: Agregar logica de Liberacion de Recursos
 			} else {
 				log_info(mapa_log, "Se recibio correctamente el mensaje AVANZAR HACIA POKENEST del Entrenador del FD %d.", fd_entrenador);
+				sem_post(&sem_mensajes);
+			}
+			break;
+		case ATRAPAR_POKEMON:
+			log_info(mapa_log, "Enviaron el mensaje ATRAPAR POKEMON del Entrenador del FD %d.", fd_entrenador);
+			if(!recibir_mensaje_atrapar_pokemon(mensajes_entrenadores, fd_entrenador, mapa_log)){
+				log_info(mapa_log, "El Entrenador del FD %d se Desconecto, se procedera a liberar sus recursos.", fd_entrenador);
+				//TODO: Agregar logica de Liberacion de Recursos
+			} else {
+				log_info(mapa_log, "Se recibio correctamente el mensaje ATRAPAR POKEMON del Entrenador del FD %d.", fd_entrenador);
 				sem_post(&sem_mensajes);
 			}
 			break;
@@ -427,38 +437,25 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 }
 
 void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
-	//int tamanio_texto;
-	//int *result = malloc(sizeof(int));
-	//char *nombre_pokenest = string_new();
-
-	//tamanio_texto = recibirInt(fd, result, mapa_log);
-	//nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
-	//recibirMensaje(fd, nombre_pokenest, tamanio_texto, mapa_log);
 	char *nombre_pokenest = (char *)obtener_mensaje(mensajes);
-
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, nombre_pokenest);
-
 	log_info(mapa_log, "Se envia posicion del Pokenest: %s", pokenest->nombre);
-
 	enviarInt(fd,pokenest->posicion->x);
 	enviarInt(fd,pokenest->posicion->y);
-
-	//free(result);
 }
 
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
-		//int *result = malloc(sizeof(int));
+	entrenador->posicion->x = (int) obtener_mensaje(mensajes);
+	mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
+	entrenador->posicion->y = (int) obtener_mensaje(mensajes);
+	mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
+	log_info(mapa_log, "El Entrenador %s se movio a la posicion (%d, %d).", entrenador->nombre, entrenador->posicion->x, entrenador->posicion->y);
+}
 
-		//entrenador->posicion->x = recibirInt(entrenador->fd, result, mapa_log);
-		entrenador->posicion->x = (int) obtener_mensaje(mensajes);
-		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
-		//enviarInt(entrenador->fd, ACCION_REALIZADA); //Es Para mandarle el aviso al Entrenador
-		//entrenador->posicion->y = recibirInt(entrenador->fd, result, mapa_log);
-		entrenador->posicion->y = (int) obtener_mensaje(mensajes);
-		mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
-		//enviarInt(entrenador->fd, ACCION_REALIZADA);
-		//free(result);
-		log_info(mapa_log, "El Entrenador %s se movio a la posicion (%d, %d).", entrenador->nombre, entrenador->posicion->x, entrenador->posicion->y);
+void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
+	log_info(mapa_log, "Veamos que pasa aca...");
+	char *nombre_pokemon = (char *)obtener_mensaje(mensajes);
+	strncpy(&entrenador->pokemon_bloqueado, nombre_pokemon, 1);
 }
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
@@ -476,55 +473,26 @@ void system_call_catch(int signal){
 	}
 }
 
-
 void administrar_turnos() {
 	t_entrenador* entrenador;
-	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
-	int cantidad_bloqueados;
-	int i;
-	//char* algoritmo = malloc(sizeof(char)*4);
-	char * algoritmo = string_new();
 	char *round_robin = string_new();
 	string_append(&round_robin, "RR");
 	bool es_algoritmo_rr = FALSE;
 
 	while (1){
-
 		sem_wait(&sem_listos);
-		//algoritmo = algoritmo_actual();
-
-		string_append(&algoritmo, algoritmo_actual());
 
 		//Si es verdadero, se extrae por algoritmo de Round Robin
-		if(string_equals_ignore_case(algoritmo, round_robin)){
+		if(string_equals_ignore_case(algoritmo_actual(), round_robin)){
 			entrenador = remover_entrenador_listo_por_RR();
 			es_algoritmo_rr = TRUE;
 		} else {
 			entrenador = remover_entrenador_listo_por_SRDF();
-			es_algoritmo_rr = FALSE;
+			es_algoritmo_rr = FALSE;;
 		}
 
 		atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
-
-		sleep(retardo);
-
-		/*if (algoritmo=="RR"){
-			pthread_mutex_lock(&mutex_entrenadores_listos);
-			if (list_size(entrenadores_listos)>0){
-				entrenador=remover_entrenador_listo_por_RR();
-				agregar_entrenador_a_ejecutando(entrenador);
-				sleep(retardo);
-				enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-				}
-			pthread_mutex_unlock(&mutex_entrenadores_listos);
-		} else {
-			if (algoritmo=="SRDF"){
-				entrenador=remover_entrenador_listo_por_SRDF();
-				enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-			}
-		}*/
 	}
-
 }
 
 void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
@@ -532,15 +500,11 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	bool bloqueado = FALSE; //Flag utilizado para saber si un Entrenador se Bloqueo
 	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
 	int instruccion;
-	//int *result = malloc(sizeof(int));
-
 
 	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
 		sem_wait(&sem_mensajes);
-		//Envio al Entrenador el aviso que le toca realizar una accion
+
 		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
-		//enviarInt(entrenador->fd,TURNO_CONCEDIDO);
-		//instruccion = recibirInt(entrenador->fd, result, mapa_log);
 
 		t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
 		instruccion = (int) obtener_mensaje(mensajes_entrenador);
@@ -550,11 +514,12 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				enviar_posicion_pokenest(entrenador->fd, mensajes_entrenador);
 				break;
 			case AVANZAR_HACIA_POKENEST:
-				//mover_entrenador(entrenador, mapa_log, datos_mapa);
 				avanzar_hacia_pokenest(entrenador, mensajes_entrenador);
 				break;
 			case ATRAPAR_POKEMON:
-				entregar_pokemon(entrenador);
+				//entregar_pokemon(entrenador);
+				solicitar_atrapar_pokemon(entrenador, mensajes_entrenador);
+				log_info("El Entrenador %s solicito atrapar a un Pokemon.", entrenador->nombre);
 				bloqueado = TRUE;
 				break;
 			case OBJETIVO_CUMPLIDO:
@@ -567,6 +532,8 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 		}
 
 		turnos++;
+
+		sleep(retardo);
 	}
 
 	//Finalizo el Turno del Entrenador
@@ -575,6 +542,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 			agregar_entrenador_a_listos(entrenador);
 		}
 	} else {
+		log_info("Se va a Bloquear al Entrenador %s.", entrenador->nombre);
 		agregar_entrenador_a_bloqueados(entrenador);
 	}
 
