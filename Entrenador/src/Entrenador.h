@@ -15,6 +15,7 @@
 #include <string.h>
 #include <signal.h>
 #include <metadata/entrenador.h>
+#include <stdbool.h>
 #include "Gps.h"
 
 //Varibles para el Log del Programa
