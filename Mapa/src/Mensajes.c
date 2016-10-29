@@ -89,7 +89,7 @@ int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_
 		return 1;
 	}
 
-	return 1;
+	return 0;
 }
 
 int recibir_mensaje_avanzar_hacia_pokenest(t_list *mensajes_entrenadores, int fd, t_log *log){
@@ -130,5 +130,41 @@ int recibir_mensaje_avanzar_hacia_pokenest(t_list *mensajes_entrenadores, int fd
 		return 1;
 	}
 
-	return 1;
+	return 0;
+}
+
+int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log *log){
+	t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, fd);
+
+	if(mensajes_entrenador != NULL){
+		t_queue *cola_mensajes = mensajes_entrenador->mensajes;
+		int accion = ATRAPAR_POKEMON;
+		int tamanio_nombre_pokemon;
+		int *result = malloc(sizeof(int));
+		char *nombre_pokemon;
+
+		//Recibo el Nombre del Pokemon
+		tamanio_nombre_pokemon = recibirInt(fd, result, log);
+
+		if(*result <= 0){
+			free(result);
+			return 0;
+		}
+
+		nombre_pokemon = malloc(sizeof(char) * tamanio_nombre_pokemon);
+		recibirMensaje(fd, nombre_pokemon, tamanio_nombre_pokemon, log);
+
+
+		pthread_mutex_lock(&mutex_mensajes);
+		queue_push(cola_mensajes, accion);
+		queue_push(cola_mensajes, nombre_pokemon);
+		pthread_mutex_unlock(&mutex_mensajes);
+
+		free(result);
+
+		return 1;
+
+	}
+
+	return 0;
 }

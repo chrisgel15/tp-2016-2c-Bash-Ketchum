@@ -24,5 +24,6 @@ void *obtener_mensaje(t_mensajes *mensajes);
 t_mensajes *obtener_mensajes_de_entrenador(t_list *mensajes_entrenadores, int fd);
 int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_log *log);
 int recibir_mensaje_avanzar_hacia_pokenest(t_list *mensajes_entrenadores, int fd, t_log *log);
+int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log *log);
 
 #endif /* MENSAJES_H_ */
