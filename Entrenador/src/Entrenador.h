@@ -15,6 +15,7 @@
 #include <string.h>
 #include <signal.h>
 #include <metadata/entrenador.h>
+#include <stdbool.h>
 #include "Gps.h"
 #include <time.h>
 #include <commons/collections/list.h>
