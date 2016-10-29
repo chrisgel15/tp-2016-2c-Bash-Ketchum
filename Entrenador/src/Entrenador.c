@@ -290,7 +290,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 	time_t inicio_De_Viaje, inicio_bloqueado, fin_bloqueado, fin_De_Viaje, tiempo_total_bloqueado, total_tiempo_viaje;
 	tiempo_total_bloqueado=0;
 	inicio_De_Viaje=time(NULL);
-	t_list* pokemons_atrapados; // es una lista temporal en caso de que en el mapa actual tenga que borrar los archivos por muerte
+	t_list* pokemons_atrapados = list_create();; // es una lista temporal en caso de que en el mapa actual tenga que borrar los archivos por muerte
 	while (hojaDeViaje[posHojaDeViaje]!= NULL){
 
 		if(estado == CONECTARSE_MAPA){
@@ -301,7 +301,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 			}
 			handshake();
 		}
-		pokemons_atrapados = list_create();
+		list_clean(pokemons_atrapados);
 		estado = UBICACION_POKENEST;
 		posObjetivoPorMapa = 0;
 		objetivosPorMapa = get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
