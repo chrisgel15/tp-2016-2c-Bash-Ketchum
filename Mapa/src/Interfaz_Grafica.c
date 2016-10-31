@@ -27,6 +27,7 @@ int distancia_A_RecursoY(int posy){
 
 extern pthread_mutex_t mutex_desplaza_x;
 extern pthread_mutex_t mutex_desplaza_y;
+pthread_mutex_t mutex_interfaz;
 
 /*F:MANDRI => funcion dibujar_mapa(): ejemplo para ver como mover un personaje hacia un recurso
  * para probar se puede armar un proyecto separado (fuera del repo mejor)
@@ -114,6 +115,8 @@ void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa){
 	int columnas = 50;
 	int i = 0;
 	int cantidad_pokenest = list_size(pokenest_list);
+	pthread_mutex_init(&mutex_interfaz, NULL); //Inicializo Mutex Para La Interfaz
+
 	for(i = 0; i < cantidad_pokenest; i++){
 		t_pokenest *pokenest = (t_pokenest *) list_get(pokenest_list, i);
 		CrearCaja(items, pokenest->caracter, pokenest->posicion->x, pokenest->posicion->y, pokenest->cantPokemons);
@@ -124,20 +127,28 @@ void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa){
 }
 
 void ingreso_nuevo_entrenador(t_list* items, t_entrenador* entrenador, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
 	CrearPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
 	nivel_gui_dibujar(items, nombre_mapa);
 	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
 }
 
 void mover_entrenador_en_mapa(t_list* items, t_entrenador* entrenador, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
 	MoverPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
 	nivel_gui_dibujar(items, nombre_mapa);
 	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
 }
 
-
-
-
+void disminuir_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+	restarRecurso(items, pokenest_id);
+	nivel_gui_dibujar(items, nombre_mapa);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
 
 //TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
 //		CrearCaja y CrearPersonaje que implementan CrearItem.

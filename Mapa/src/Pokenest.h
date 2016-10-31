@@ -18,6 +18,7 @@
 #include <commons/config.h>
 
 t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa);
-t_pokenest *get_pokenest_by_identificador(t_list *lista_pokenest, char *identificador);
+t_pokenest *get_pokenest_by_identificador(t_list *lista_pokenest, char identificador);
+t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificador);
 
 #endif /* POKENEST_H_ */

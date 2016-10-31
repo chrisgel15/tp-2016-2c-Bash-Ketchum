@@ -22,6 +22,7 @@
 #include <stdbool.h>
 #include "Estructuras.h"
 #include "Pokenest.h"
+#include <commons/collections/dictionary.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
@@ -34,9 +35,6 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador);
 t_entrenador *remover_entrenador_listo_por_RR();
 t_entrenador *remover_entrenador_listo_por_SRDF();
 void agregar_entrenador_a_bloqueados(t_entrenador *);
-void agregar_entrenador_a_ejecutando(t_entrenador *);
-void remover_entrenador_de_ejecutando(int);
-
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
@@ -52,7 +50,7 @@ t_entrenador *buscar_entrenador(int fd);
 void posicionar_entrenador_en_mapa(t_datos_mapa*,char* );
 void mover_entrenador_hacia_recurso(t_datos_mapa*,char*);
 
-void entregar_pokemon(t_entrenador*);
+void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenest_id);
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa);
 void enviar_posicion_pokenest(int fd, t_mensajes *mensajes);
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes);
@@ -61,10 +59,12 @@ void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes);
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
 void system_call_catch(int signal);
 
-
+/********* FUNCIONES ENCARGADAS DE LA ADMINISTRACIÓN DEL MAPA *********/
 void administrar_turnos();
 void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr);
-void administrar_bloqueados();
+void administrar_bloqueados(char *pokenest_id);
+void incializar_gestion_colas_bloqueados();
+
 /*** Funcion para obtener el algoritmo despues de ser actualizado por la señal ***/
 char* algoritmo_actual();
 

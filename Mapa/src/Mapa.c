@@ -4,18 +4,20 @@
 //Mutexs de Estructura de Estados
 pthread_mutex_t mutex_entrenadores_listos;
 pthread_mutex_t mutex_cola_bloqueados;
-pthread_mutex_t mutex_entrenadores_ejecutando;
+//pthread_mutex_t mutex_entrenadores_ejecutando;
+pthread_mutex_t mutex_pokenests;
 
 //Semaforos para sincronizar Hilos
 sem_t sem_listos;
-sem_t sem_bloqueados;
+sem_t *sem_entrenadores_bloqueados;
+sem_t *sem_pokemones_disponibles;
 sem_t sem_ejecutando;
 sem_t sem_mensajes;
 
 //Estructuras para el Manejo de Entrenadores
 t_list *entrenadores_listos;
-t_list *entrenadores_bloqueados;
-t_list *entrenadores_ejecutando;
+t_dictionary *entrenadores_bloqueados;
+//t_list *entrenadores_ejecutando;
 t_list *mensajes_entrenadores;
 
 //t_list *pokenests;
@@ -87,6 +89,9 @@ int main(int argc, char **argv) {
 	log_info(mapa_log, "Se ha creado el Log para el Mapa.");
 
 
+	//Inicializamos el Listado de los Pokenests con sus respectivos Pokemons
+	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
+
 	//Inicializamos Estructuras
 	inicializar_estructuras();
 
@@ -118,20 +123,12 @@ int main(int argc, char **argv) {
 	//Interbloqueo
 	interbloqueo = get_mapa_tiempo_deadlock(metadata);
 
-	//Obtengo un listado de todos los Pokenests con sus respectivos Pokemons
-	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
-
 	//Inicializamos la Interfaz Grafica
 	inicializar_mapa(items, lista_pokenests, nombre_mapa);
 
-	//Hilo Hoja de viaje
-	pthread_t lista_de_bloqueados;
-	pthread_create(&lista_de_bloqueados, NULL, (void *) administrar_bloqueados,NULL);
-
-	//Hilo planificador
+	//Hilo Planificador
 	pthread_t planificador;
 	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
-
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -158,7 +155,7 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	list_add(entrenadores_listos, entrenador);
 	sem_post(&sem_listos);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
-	log_info(mapa_log, "Se agrega un entrenador a la cola de listos");
+	log_info(mapa_log, "Se agrega al Entrenador %s a la Cola de Listos", entrenador->nombre);
 }
 
 //Remover entrenador segun Round Robin
@@ -168,7 +165,7 @@ t_entrenador *remover_entrenador_listo_por_RR(){
 	//sem_wait(&sem_listos);
 	entrenador = (t_entrenador *) list_remove(entrenadores_listos, 0);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
-	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
+	log_info(mapa_log, "Se remueve el Entrenador %s de la Cola de Listos.", entrenador->nombre);
 	return entrenador;
 }
 
@@ -180,7 +177,7 @@ t_entrenador *remover_entrenador_listo_por_SRDF(){
 	srdf(entrenadores_listos);
 	entrenador = (t_entrenador*)list_remove(entrenadores_listos,0);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
-	log_info(mapa_log, "Se remueve un entrenador de la lista de listos");
+	log_info(mapa_log, "Se remueve el Entrenador %s de la Cola de Listos.", entrenador->nombre);
 	return entrenador;
 
 }
@@ -188,37 +185,11 @@ t_entrenador *remover_entrenador_listo_por_SRDF(){
 //Agrega un entrenador a la cola bloqueados
 void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
-	list_add(entrenadores_bloqueados, (void *) entrenador);
-	sem_post(&sem_bloqueados);
+	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
+	queue_push(bloqueados->entrenadores, entrenador);
+	sem_post(&sem_entrenadores_bloqueados[bloqueados->sem_index]); //TODO: VER porque no hace post
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
 	log_info(mapa_log, "Se agrega al Entrenador %s a la Lista de Bloqueados.", entrenador->nombre);
-}
-
-//Elimina un entrenador de la lista de bloqueados
-void remover_entrenador_de_bloqueados(int i){
-	pthread_mutex_lock(&mutex_cola_bloqueados);
-	list_remove(entrenadores_bloqueados,i);
-	//sem_wait(&sem_bloqueados);
-	pthread_mutex_unlock(&mutex_cola_bloqueados);
-	log_info(mapa_log, "Se remueve un entrenador de la lista de bloqueados");
-}
-
-//Agrega un entrenador a la lista de ejecutando
-void agregar_entrenador_a_ejecutando(t_entrenador *entrenador){
-	pthread_mutex_lock(&mutex_entrenadores_ejecutando);
-	list_add(entrenadores_ejecutando, (void *) entrenador);
-	sem_post(&sem_ejecutando);
-	pthread_mutex_unlock(&mutex_entrenadores_ejecutando);
-	log_info(mapa_log, "Se agrega un entrenador a la lista de ejecutando");
-}
-
-//Elimina un entrenador de la lista de ejecutando
-void remover_entrenador_de_ejecutando(int i){
-	pthread_mutex_lock(&mutex_entrenadores_ejecutando);
-	sem_wait(&sem_ejecutando);
-	list_remove(entrenadores_ejecutando,i);
-	pthread_mutex_unlock(&mutex_entrenadores_ejecutando);
-	log_info(mapa_log, "Se remueve un entrenador de la lista de ejecutando");
 }
 
 /********* FUNCIONES DE INICIALIZACION *********/
@@ -226,8 +197,6 @@ void inicializar_estructuras(){
 
 	//Estructuras
 	entrenadores_listos = list_create();
-	entrenadores_bloqueados = list_create();
-	entrenadores_ejecutando = list_create();
 	items = list_create();
 	mensajes_entrenadores = list_create();
 
@@ -243,12 +212,12 @@ void inicializar_estructuras(){
 	pthread_mutex_init(&mutex_entrenadores_listos, NULL);
 	pthread_mutex_init(&mutex_cola_bloqueados, NULL);
 	pthread_mutex_init(&mutex_recursos_pokenest,NULL);
-	pthread_mutex_init(&mutex_entrenadores_ejecutando,NULL);
+	pthread_mutex_init(&mutex_pokenests,NULL);
 
 	sem_init(&sem_listos, 0, 0);
-	sem_init(&sem_bloqueados,0,0);
-	sem_init(&sem_ejecutando,0,0);
 	sem_init(&sem_mensajes, 0, 0);
+
+	incializar_gestion_colas_bloqueados();
 
 	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
@@ -327,8 +296,9 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->caracter =  *caracter;
 	entrenador->posicion->x = POSICION_INICIAL_X;
 	entrenador->posicion->y = POSICION_INICIAL_Y;
+	entrenador->pokemons = list_create();
 
-	log_info(mapa_log,"Bienvenido Entrenador %s N° %d. \n", entrenador->nombre, fd);
+	log_info(mapa_log,"Bienvenido Entrenador %s N° %d.", entrenador->nombre, fd);
 
 	datos_mapa->entrenador = entrenador;
 
@@ -397,29 +367,41 @@ t_entrenador *buscar_entrenador(int fd){
 	return NULL;
 }
 
-void entregar_pokemon(t_entrenador* entrenador){
+void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenest_id){
+	int tamanio_nombre_archivo = string_length(pokemon->nombre_archivo);
+	list_add(entrenador->pokemons, pokemon);
 
-	//t_entrenador* entrenador=malloc (sizeof(t_entrenador));
-	//entrenador=buscar_entrenador(fd);
-	int tamanio_texto;
-	int *result = malloc(sizeof(int));
-	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
-	char *nombre_pokenest= NULL;
-	char nombre;
-	int i;
-
-	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
-	tamanio_texto = recibirInt(entrenador->fd, result, mapa_log);
-	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
-	recibirMensaje(entrenador->fd, nombre_pokenest, tamanio_texto, mapa_log);
-	nombre = *nombre_pokenest;
-	pokenest = _search_item_by_id(items, nombre);
-	pthread_mutex_lock(&mutex_recursos_pokenest);
-	entrenador->pokemon_bloqueado=pokenest->id;
-	pokenest->quantity=pokenest->quantity-1;
-	pthread_mutex_unlock(&mutex_recursos_pokenest);
-	agregar_entrenador_a_bloqueados(entrenador);
-	//free(pokenest);
+	//Envio el nombre del archivo al Entrenador
+	enviarInt(entrenador->fd, (sizeof(char) * tamanio_nombre_archivo));
+	if(enviarMensaje(entrenador->fd, pokemon->nombre_archivo) < 0){
+		//TODO: Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
+	} else {
+		//Resto el Recurso de la Interfaz de Mapa
+		disminuir_recursos_de_pokenest(items, pokenest_id, nombre_mapa);
+		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
+	}
+//
+//	//t_entrenador* entrenador=malloc (sizeof(t_entrenador));
+//	//entrenador=buscar_entrenador(fd);
+//	int tamanio_texto;
+//	int *result = malloc(sizeof(int));
+//	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
+//	char *nombre_pokenest= NULL;
+//	char nombre;
+//	int i;
+//
+//	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
+//	tamanio_texto = recibirInt(entrenador->fd, result, mapa_log);
+//	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
+//	recibirMensaje(entrenador->fd, nombre_pokenest, tamanio_texto, mapa_log);
+//	nombre = *nombre_pokenest;
+//	pokenest = _search_item_by_id(items, nombre);
+//	pthread_mutex_lock(&mutex_recursos_pokenest);
+//	entrenador->pokemon_bloqueado=pokenest->id;
+//	pokenest->quantity=pokenest->quantity-1;
+//	pthread_mutex_unlock(&mutex_recursos_pokenest);
+//	agregar_entrenador_a_bloqueados(entrenador);
+//	//free(pokenest);
 }
 
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
@@ -438,7 +420,9 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 
 void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
 	char *nombre_pokenest = (char *)obtener_mensaje(mensajes);
-	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, nombre_pokenest);
+	pthread_mutex_lock(&mutex_pokenests);
+	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, *nombre_pokenest);
+	pthread_mutex_unlock(&mutex_pokenests);
 	log_info(mapa_log, "Se envia posicion del Pokenest: %s", pokenest->nombre);
 	enviarInt(fd,pokenest->posicion->x);
 	enviarInt(fd,pokenest->posicion->y);
@@ -453,9 +437,9 @@ void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
 }
 
 void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
-	log_info(mapa_log, "Veamos que pasa aca...");
 	char *nombre_pokemon = (char *)obtener_mensaje(mensajes);
-	strncpy(&entrenador->pokemon_bloqueado, nombre_pokemon, 1);
+	entrenador->pokemon_bloqueado = nombre_pokemon;
+	log_info(mapa_log, "El Entrenador %s solicito atrapar a un Pokemon.", entrenador->nombre);
 }
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
@@ -517,9 +501,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				avanzar_hacia_pokenest(entrenador, mensajes_entrenador);
 				break;
 			case ATRAPAR_POKEMON:
-				//entregar_pokemon(entrenador);
 				solicitar_atrapar_pokemon(entrenador, mensajes_entrenador);
-				log_info("El Entrenador %s solicito atrapar a un Pokemon.", entrenador->nombre);
 				bloqueado = TRUE;
 				break;
 			case OBJETIVO_CUMPLIDO:
@@ -542,7 +524,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 			agregar_entrenador_a_listos(entrenador);
 		}
 	} else {
-		log_info("Se va a Bloquear al Entrenador %s.", entrenador->nombre);
+		log_info(mapa_log, "Se va a Bloquear al Entrenador %s.", entrenador->nombre);
 		agregar_entrenador_a_bloqueados(entrenador);
 	}
 
@@ -601,23 +583,87 @@ void set_interbloqueo(){
 }
 
 
-void administrar_bloqueados(){
-	t_entrenador* entrenador = malloc(sizeof(t_entrenador)) ;
+void administrar_bloqueados(char *pokenest_id){
+	//Obtengo la Estructura de Cola de Entrenadores Bloqueados
+	pthread_mutex_lock(&mutex_cola_bloqueados);
+	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *) dictionary_get(entrenadores_bloqueados, pokenest_id);
+	pthread_mutex_unlock(&mutex_cola_bloqueados);
+
+	t_queue *entrenadores = bloqueados->entrenadores;
+	//sem_t sem_entrenadores = sem_entrenadores_bloqueados[bloqueados->sem_index]; //Obtengo el semaforo asociado a la Cola Entrenadores
+	//sem_t sem_pokemons = sem_pokemones_disponibles[bloqueados->sem_index]; //Obtengo el Semaforo asociado a la Cantidad Pokemons
+
+	while(1){
+		//sem_wait(&sem_pokemons);
+		//sem_wait(&sem_entrenadores);
+		sem_wait(&sem_pokemones_disponibles[bloqueados->sem_index]);
+		sem_wait(&sem_entrenadores_bloqueados[bloqueados->sem_index]);
+
+		log_info(mapa_log, "Hola, entre a ejecutar en el Hilo de Bloqueados %d.", bloqueados->sem_index);
+
+		//Obtengo el Entrenador Bloqueado
+		pthread_mutex_lock(&mutex_cola_bloqueados);
+		t_entrenador *entrenador = queue_pop(entrenadores);
+		pthread_mutex_unlock(&mutex_cola_bloqueados);
+		log_info(mapa_log, "Se removio al Entrenador %s a la Cola de Bloqueados.", entrenador->nombre);
+
+		//Obtengo el Pokemon
+		pthread_mutex_lock(&mutex_pokenests);
+		t_pokemon *pokemon = get_pokemon_by_identificador(lista_pokenests, *pokenest_id);
+		pthread_mutex_unlock(&mutex_pokenests);
+
+		//Entregamos el Pokemon al Entrenador
+		entregar_pokemon(entrenador, pokemon, *pokenest_id);
+
+		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
+
+		agregar_entrenador_a_listos(entrenador);
+	}
+
+	/*t_entrenador* entrenador = malloc(sizeof(t_entrenador)) ;
 	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
 	//Ver esto de bloqueados tal vez en otro hilo
 	while(1){
 		sem_wait(&sem_bloqueados);
 		entrenador = (t_entrenador *)list_get(entrenadores_bloqueados, 0);
 		pokenest = _search_item_by_id(items, entrenador->pokemon_bloqueado);
+
 		pthread_mutex_lock(&mutex_recursos_pokenest);
-			if(pokenest->quantity > 0){
-				pokenest->quantity--;
+		if(pokenest->quantity > 0){
+			pokenest->quantity--;
 			remover_entrenador_de_bloqueados(0);
 			enviarInt(entrenador->fd,POKEMON_CONCEDIDO);
 			agregar_entrenador_a_listos(entrenador);
-			}
+		}
 		pthread_mutex_unlock(&mutex_recursos_pokenest);
 
-		}
+	}*/
+}
 
+void incializar_gestion_colas_bloqueados(){
+	entrenadores_bloqueados = dictionary_create();
+	int cantidad_pokenest = list_size(lista_pokenests);
+	pthread_t *bloqueados_threads_vec = malloc(cantidad_pokenest * sizeof(pthread_t));
+	sem_entrenadores_bloqueados = malloc(cantidad_pokenest * sizeof(sem_t));
+	sem_pokemones_disponibles = malloc(cantidad_pokenest * sizeof(sem_t));
+	int i;
+	t_pokenest *pokenest;
+	char *pokenest_id;
+
+	//Contruyo el Diccionario de las Colas de Bloquados, incializo los Semaforos y creo los Hilos de Administracion
+	for(i = 0; i < cantidad_pokenest; i++){
+		t_entrenadores_bloqueados *cola_bloqueados = malloc(sizeof(t_entrenadores_bloqueados));
+		pokenest = list_get(lista_pokenests, i);
+		sem_init(&(sem_entrenadores_bloqueados[i]), 0, 0); //Inicializo Semaforo de Entrenadores
+		sem_init(&(sem_pokemones_disponibles[i]), 0, pokenest->cantPokemons); //Inicializo Semaforo de Pokemons
+		cola_bloqueados->sem_index = i;
+		cola_bloqueados->entrenadores = queue_create();
+		pokenest_id = string_repeat(pokenest->caracter, 1);
+		pthread_mutex_lock(&mutex_cola_bloqueados);
+		dictionary_put(entrenadores_bloqueados, pokenest_id, cola_bloqueados);
+		pthread_mutex_unlock(&mutex_cola_bloqueados);
+
+		//Creo los Hilos Administradores de Bloquados
+		pthread_create(&(bloqueados_threads_vec[i]), NULL, (void *)administrar_bloqueados, (void *) pokenest_id);
+	}
 }

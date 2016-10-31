@@ -30,13 +30,13 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 			  t_pokenest *pokenest = malloc(sizeof(t_pokenest));
 			  pokenest->posicion = malloc(sizeof(t_posicion));
 			  t_config *metadata = get_pokenest_metadata(ruta_pokedex , nombre_mapa, ent_pokenest->d_name);
-			  pokenest->nombre = ent_pokenest->d_name;
+			  pokenest->nombre = ent_pokenest->d_name; //TODO: Pasarlo a String
 			  strncpy(&pokenest->caracter, get_identificador_pokemon(metadata), 1);
 			  t_posicion_pokemon *posicion = get_posicion_pokemon(metadata);
 			  pokenest->posicion->x = atoi(posicion->posicion_x);
 			  pokenest->posicion->y = atoi(posicion->posicion_y);
 			  pokenest->tipo = get_pokenest_tipo(metadata);
-			  pokenest->pokemons = list_create();
+			  pokenest->pokemons = queue_create();
 
 			  pokenest_pokemon_path = get_pokenest_pokemon_path_dir(pokenest_path, ent_pokenest->d_name);
 
@@ -44,13 +44,13 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 			  if ((dir_pokenest_pokemon = opendir (pokenest_pokemon_path)) != NULL) {
 				  while ((ent_pokenest_pokemon = readdir (dir_pokenest_pokemon)) != NULL) {
 
-
 					  if(!string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_doble) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, metada_file_name)){
 						  t_pokemon *pokemon = malloc(sizeof(t_pokemon));
 						  t_config *metadata_pokemon = get_pokemon_information(pokenest_pokemon_path, ent_pokenest_pokemon->d_name);
 						  pokemon->nivel = get_nivel_pokemon(metadata_pokemon);
 						  pokemon->nombre = pokenest->nombre;
-						  list_add(pokenest->pokemons, pokemon);
+						  pokemon->nombre_archivo = ent_pokenest_pokemon->d_name;
+						  queue_push(pokenest->pokemons, pokemon);
 					  }
 				  }
 				  closedir (dir_pokenest_pokemon);
@@ -60,7 +60,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 				  return EXIT_FAILURE;
 			  }
 
-			  pokenest->cantPokemons = list_size(pokenest->pokemons);
+			  pokenest->cantPokemons = queue_size(pokenest->pokemons);
 
 			  //Agrego el Pokenest al listado
 			  list_add(pokenest_list, pokenest);
@@ -77,13 +77,27 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 	}
 }
 
-t_pokenest *get_pokenest_by_identificador(t_list *lista_pokenest, char *identificador){
+t_pokenest *get_pokenest_by_identificador(t_list *lista_pokenest, char identificador){
 	int tamanio_lista = list_size(lista_pokenest);
 	int i = 0;
 	for(i = 0; i < tamanio_lista; i++){
 		t_pokenest *pokenest = (t_pokenest *) list_get(lista_pokenest, i);
-		if(pokenest->caracter == *identificador){
+		if(pokenest->caracter == identificador){
 			return pokenest;
+		}
+	}
+
+	return NULL;
+}
+
+t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificador){
+	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenest, identificador);
+
+	if(pokenest != NULL){
+		int tamanio_cola_pokemons = queue_size(pokenest->pokemons);
+
+		if(tamanio_cola_pokemons > 0){
+			return queue_pop(pokenest->pokemons);
 		}
 	}
 
