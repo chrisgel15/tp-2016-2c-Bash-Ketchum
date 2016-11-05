@@ -41,7 +41,7 @@ void solicitar_posicion_pokenest(char *pokemon);
 
 int conectar_mapa(char*, char*);
 
-void capturar_pokemon(char*, t_list*);
+void capturar_pokemon(char*, t_list*, int);
 
 int avanzar_hacia_pokenest();
 
@@ -49,7 +49,9 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest);
 
 void terminarObjetivo();
 
-void recorrer_hojaDeViaje(char * ruta_pokedex);
+void recorrer_hojaDeViaje(int posHojaDeViaje);
+
+void reiniciar_Hoja_De_Viaje();
 
 void handshake();
 #endif /* ENTRENADOR_H_ */
