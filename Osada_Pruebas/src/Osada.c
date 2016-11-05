@@ -28,6 +28,8 @@
 #define OSADA_BLOCK_SIZE 64
 #define OSADA_TABLA_ARCHIVOS_SIZE 1024
 #define OSADA_HEADER_BLOCK_SIZE 1
+#define NO_HAY_ESPACIO_TABLA_ARCHIVOS -1
+#define TAMANIO_MAXIMO_NOMBRE_ARCHIVO 17
 
 char * TipoDeArchivo (int tipo);
 int TamanioEnBloques(int tamanioBytes);
@@ -44,6 +46,11 @@ void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler);
 int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf);
 void ImprimirBloquesDelBitMap(t_bitarray * bitmap, int size, int * parcial, int * total);
 int CantidadBloquesLibres();
+char ** SplitPath(char * path);
+bool ExistsDirectoryByName(char * path);
+bool FindParentDirectoryByName(char * path, int * directoryId);
+bool TamanioNombreAdecuado(char * path);
+void CrearCarpeta(char * path, int tablaArchivosId, int parentDirectoryId);
 
 struct stat osadaStat;
 int* pmap_osada;
@@ -125,17 +132,64 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 	return ReadBytesFromOffset(offset, size, *directoryId, buf);
 }
 
-static int osada_write(int filedes, const void * buffer, size_t size)
+static int osada_truncate(const char * filename , off_t length)
 {
+	return 0;
+}
+
+static int osada_mkdir (const char * path, mode_t mode)
+{
+	// Chequear espacio disponible
+	int returnValue = -1;
+	int tablaArchivosId = BuscaPrimerEspacioDisponibleEnTablaArchivos();
+
+	if (tablaArchivosId > NO_HAY_ESPACIO_TABLA_ARCHIVOS)
+	{
+		// Chequear longitud del nombre
+		if (TamanioNombreAdecuado(path))
+		{
+			// Chequear que no exista otro igual
+			if (!ExistsDirectoryByName(path))
+			{
+				// Ubicar el ID del directorio padre
+				int * parentDirectoryId = malloc(sizeof(char)*4);
+				*parentDirectoryId = -1;
+				if (FindParentDirectoryByName(path, parentDirectoryId))
+				{
+					// Generar la carpeta
+					CrearCarpeta(path, tablaArchivosId, *parentDirectoryId);
+					returnValue = 0;
+				}
+				else
+					returnValue = -ENOENT;
+			}
+			else
+				returnValue = -ENOENT;
+		}
+		else
+			returnValue = -EFBIG;
+	}
+	else
+		returnValue = -ENOSPC;
+
+
+	return returnValue;
 
 }
+
 
 static struct fuse_operations osada_oper = {
 		.getattr = osada_getattr,
 		.readdir = osada_readdir,
 		.read = osada_read,
-		.write = osada_write
-//		.open = hello_open,
+//		.write = osada_write,
+//		.open = osada_open,
+//		.flush = remote_flush,
+//		.release = remote_release,
+//		.unlink = remote_unlink,
+		.mkdir = osada_mkdir,
+//		.rmdir = remote_rmdir,
+		.truncate = osada_truncate
 
 };
 
@@ -165,10 +219,10 @@ int main(int argc, char *argv[]) {
 	pmap_osada= mmap(0, osadaStat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_osadaDisk, 0);
 
 	UbicarPunteros();
-	ImprimirHeader();
+//	ImprimirHeader();
 //	ImprimirBitMap(bitmap);
-//	ImprimirTablaDeArchivos();
-	CantidadBloquesLibres();
+	ImprimirTablaDeArchivos();
+//	CantidadBloquesLibres();
 
 	// FUSE
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -311,13 +365,50 @@ void UbicarPunteros()
 // Enviar el path sin la barra del principio...
 bool FindDirectoryByName(char * path, int * directoryId)
 {
+	char ** arr = SplitPath(path);
+	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+}
 
+bool ExistsDirectoryByName(char * path)
+{
+	char ** arr = SplitPath(path);
+	int * directoryId = malloc(sizeof(char)*4);
+	*directoryId = -1;
+	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+}
+
+
+char ** SplitPath(char * path)
+{
 	char * str = string_new();
 	string_append(&str, path);
 	char ** arr = string_split(str, "/");
+//	log_trace(osada_log, arr[0]);
+	return arr;
+}
+
+bool FindParentDirectoryByName(char * path, int * directoryId)
+{
+	char ** arr = SplitPath(path);
+	int lArray = LongitudArray(arr);
+
+	if (lArray == 1) return 0xffff; // Es un directorio en el directorio raiz.
+
+	arr[lArray - 1] = NULL;
 	log_trace(osada_log, arr[0]);
 	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
 }
+
+int LongitudArray(char ** arr)
+{
+	int index = 0;
+
+	while(arr[index] != NULL)
+		index++;
+
+	return index;
+}
+
 bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 {
 	bool exists = false;
@@ -395,6 +486,58 @@ int CantidadBloquesLibres()
 	}
 
 	log_info(osada_log, "Cantidad de Bloques libres: %d", bloques_libres);
+
+}
+
+int BuscaPrimerEspacioDisponibleEnTablaArchivos()
+{
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	int index = 0;
+	bool hayEspacio = false;
+
+	while(!hayEspacio && index < OSADA_TABLA_ARCHIVOS_SIZE)
+	{
+		if ((indice_tabla_archivos+index)->state == 0)
+			hayEspacio = true;
+		else
+			index++;
+	}
+
+	return hayEspacio ? index : NO_HAY_ESPACIO_TABLA_ARCHIVOS;
+
+}
+
+bool TamanioNombreAdecuado(char * path)
+{
+	char ** splitPath = SplitPath(path);
+
+	return (strlen(splitPath[LongitudArray(splitPath)-1]) <= TAMANIO_MAXIMO_NOMBRE_ARCHIVO);
+
+}
+
+void CrearCarpeta(char * path, int tablaArchivosId, int parentDirectoryId)
+{
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	if (parentDirectoryId == -1)
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = 0xffff;
+	else
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = (uint16_t)parentDirectoryId;
+	(indice_tabla_archivos+tablaArchivosId)->state = 2;
+
+	char ** splitPath = SplitPath(path);
+
+	int index = 0;
+
+	while (index < 18)
+
+	{
+		(indice_tabla_archivos+tablaArchivosId)->fname[index] = *((splitPath[LongitudArray(splitPath)-1])+index);
+		index++;
+	}
+
+	(indice_tabla_archivos+tablaArchivosId)->file_size = 0;
+	(indice_tabla_archivos+tablaArchivosId)->first_block = NULL;
+
 
 }
 
