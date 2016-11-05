@@ -19,6 +19,7 @@
 #define RETARDO "retardo"
 #define IP "IP"
 #define PUERTO "Puerto"
+#define MEDALLA "medalla-"
 
 t_config * get_mapa_metadata(char * ruta_pokedex , char * nombre_mapa);
 int get_mapa_tiempo_deadlock(t_config * metadata);
@@ -29,7 +30,8 @@ int get_mapa_retardo(t_config * metadata);
 char * get_mapa_ip(t_config * metadata);
 int get_mapa_puerto(t_config * metadata);
 char ** get_lista_de_pokenest(t_config * metadata);
-char *get_mapa_path(char * ruta_pokedex , char * nombre_mapa);
+char *get_mapa_path(char *ruta_pokedex , char *nombre_mapa);
+char *get_medalla_path(char *ruta_pokedex , char *nombre_mapa);
 
 
 #endif /* METADATA_MAPA_H_ */

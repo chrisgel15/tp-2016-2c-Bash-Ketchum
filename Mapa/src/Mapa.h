@@ -77,4 +77,6 @@ void set_quantum();
 void set_retardo();
 void set_interbloqueo();
 
+void liberar_recursos_entrenador(t_entrenador *entrenador);
+
 #endif /* MAPA_H_ */

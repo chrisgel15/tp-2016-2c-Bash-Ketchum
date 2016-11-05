@@ -168,3 +168,43 @@ int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log
 
 	return 0;
 }
+
+int recibir_mensaje_objetivo_cumplido(t_list *mensajes_entrenadores, int fd, t_log *log){
+	t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, fd);
+
+	if(mensajes_entrenador != NULL){
+		t_queue *cola_mensajes = mensajes_entrenador->mensajes;
+		int accion = OBJETIVO_CUMPLIDO;
+
+		pthread_mutex_lock(&mutex_mensajes);
+		queue_push(cola_mensajes, accion);
+		pthread_mutex_unlock(&mutex_mensajes);
+
+		return 1;
+
+	}
+
+	return 0;
+}
+
+void eliminar_cola_mensajes_entrenador(t_list *mensajes, int fd, t_log *log){
+	pthread_mutex_lock(&mutex_mensajes);
+
+	int mensajes_size = list_size(mensajes);
+	int i = 0, borrado = 0;
+
+	while(i < mensajes_size && !borrado){
+		t_mensajes *mensajes = (t_mensajes *) list_get(mensajes, i);
+		//Borro todos los mensajes
+		if(mensajes->fd == fd){
+			list_remove(mensajes, i);
+			queue_destroy(mensajes->mensajes);
+			free(mensajes);
+			borrado = 1;
+			log_info(log, "Se ha borrado exitosamente la Estructura de Mensajes para el FD N° %d.", fd);
+		}
+		i++;
+	}
+
+	pthread_mutex_unlock(&mutex_mensajes);
+}
