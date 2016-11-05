@@ -129,11 +129,99 @@ static int osada_write(int filedes, const void * buffer, size_t size)
 
 }
 
+static int osada_mkdir(const char* filename, mode_t mode){
+/*
+	char** path;
+	char* parentfile ="";
+	char* file="";
+	u_int pos = 0;
+
+	osada_file *tabla_archivos_aux = tabla_archivos;
+	osada_file *tabla_archivos_pathaux = tabla_archivos;
+
+	path = string_n_split(string_reverse(filename),2,"/");
+	file = string_reverse(path[0]);
+
+	if(*(path + 1)){
+		parentfile = string_substring_from(string_reverse(*(path+1)),1);
+	} else {
+		pos = 0xFF;
+	}
+
+	while(pos != 0xFF && tabla_archivos_pathaux->state != 2 && strcmp(tabla_archivos_pathaux->fname,parentfile)==0){
+		++tabla_archivos_pathaux;
+		pos++;
+	}
+
+	tabla_archivos_aux = tabla_archivos;
+	while(tabla_archivos_aux->state != 0){
+		++tabla_archivos_aux;
+	}
+
+	tabla_archivos_aux->state = 2;
+	tabla_archivos_aux->parent_directory = pos; //posicion en la que se encuentra el directorio padre en el vector.
+	tabla_archivos_aux->file_size = 0;
+	tabla_archivos_aux->lastmod = mode;
+	tabla_archivos_aux->first_block = 0; //No tiene porque creo un directorio y no un archivo
+	strcpy(tabla_archivos_aux->fname, file); //Calcular en base al filename
+*/
+
+	return 0;
+}
+
+int osada_rmdir (const char* filename){
+
+	char ** path;
+	char * directory;
+
+	osada_file *tabla_archivos_aux = tabla_archivos;
+
+	path = string_n_split(string_reverse(filename),2,"/");
+	directory = string_reverse(path[0]);
+
+	while(strcmp(tabla_archivos_aux->fname,directory)!=0){
+		++tabla_archivos_aux;
+	}
+
+	tabla_archivos_aux->state=0;
+
+	return 0;
+}
+
+int osada_unlink(const char* filename){
+
+	int * directoryId = malloc(sizeof(char)*4);
+	int cantBloques = 0, i = 0;
+
+	*directoryId = -1;
+
+	FindDirectoryByName(filename , directoryId);
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=directoryId;
+
+	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+
+	osada_block_pointer primerBloque = indice_tabla_archivos->first_block;
+
+
+
+	while(i<cantBloques){
+
+	}
+
+	return -1;
+}
+
 static struct fuse_operations osada_oper = {
 		.getattr = osada_getattr,
 		.readdir = osada_readdir,
 		.read = osada_read,
-		.write = osada_write
+		.write = osada_write,
+		.mkdir = osada_mkdir,
+		.rmdir = osada_rmdir,
+		.unlink = osada_unlink,
+
 //		.open = hello_open,
 
 };
