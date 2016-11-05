@@ -32,7 +32,7 @@
 #define TURNO_CONCEDIDO  		205
 #define OBJETIVO_NO_CUMPLIDO 	206
 #define POKEMON_CONCEDIDO 		207
-#define ACCION_REALIZADA 		250
+#define MUERTE			 		208
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 

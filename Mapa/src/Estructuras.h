@@ -36,7 +36,7 @@ typedef struct {
 typedef struct {
 	char *nombre;
 	char *tipo;
-	char caracter; //Caracter que va a representar al Entrendor en el Mapa
+	char caracter; //Caracter que va a representar al Pokenest en el Mapa
 	t_posicion* posicion;
 	int cantPokemons; //registrar recursos
 	t_queue *pokemons;
@@ -47,6 +47,7 @@ typedef struct {
 	int nivel;
 	char carater; //Caracter que representa al Pokemon
 	char *nombre_archivo; //Nombre del Archivo Correspondiente al Pokemon
+	char pokenest_id; //Caracter que va a representar al Pokenest
 } t_pokemon;
 
 //Estructuras para almacenar mensajes de los Entrenadores

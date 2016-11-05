@@ -150,6 +150,28 @@ void disminuir_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombr
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
+void aumentar_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+
+	ITEM_NIVEL* item = _search_item_by_id(items, pokenest_id);
+
+	if (item != NULL) {
+		item->quantity = item->quantity > 0 ? item->quantity + 1 : 0;
+	} else {
+		printf("WARN: Item %c no existente\n", pokenest_id);
+	}
+
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
+
+void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+	BorrarItem(items, entrenador_id);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
+
 //TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
 //		CrearCaja y CrearPersonaje que implementan CrearItem.
 //		Debería ser así: CrearPkenest(itms,id,x,y,cantidad){

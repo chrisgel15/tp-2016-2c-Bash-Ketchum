@@ -34,6 +34,8 @@ void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa);
 void ingreso_nuevo_entrenador(t_list* items, t_entrenador* entrenador, char *nombre_mapa);
 void mover_entrenador_en_mapa(t_list* items, t_entrenador* entrenador, char *nombre_mapa);
 void disminuir_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre_mapa);
+void aumentar_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre_mapa);
+void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa);
 
 //void mover_entrenador(t_entrenador *, t_log* mapa_log,t_datos_mapa* datos);
 

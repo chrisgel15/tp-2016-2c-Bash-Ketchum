@@ -30,7 +30,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 			  t_pokenest *pokenest = malloc(sizeof(t_pokenest));
 			  pokenest->posicion = malloc(sizeof(t_posicion));
 			  t_config *metadata = get_pokenest_metadata(ruta_pokedex , nombre_mapa, ent_pokenest->d_name);
-			  pokenest->nombre = ent_pokenest->d_name; //TODO: Pasarlo a String
+			  pokenest->nombre = ent_pokenest->d_name;
 			  strncpy(&pokenest->caracter, get_identificador_pokemon(metadata), 1);
 			  t_posicion_pokemon *posicion = get_posicion_pokemon(metadata);
 			  pokenest->posicion->x = atoi(posicion->posicion_x);
@@ -50,6 +50,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 						  pokemon->nivel = get_nivel_pokemon(metadata_pokemon);
 						  pokemon->nombre = pokenest->nombre;
 						  pokemon->nombre_archivo = ent_pokenest_pokemon->d_name;
+						  pokemon->pokenest_id = pokenest->caracter;
 						  queue_push(pokenest->pokemons, pokemon);
 					  }
 				  }
@@ -103,3 +104,34 @@ t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificad
 
 	return NULL;
 }
+
+void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon *pokemon){
+	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenest, pokemon->pokenest_id);
+
+	if(pokenest != NULL){
+		queue_push(pokenest->pokemons, pokemon);
+	}
+}
+
+t_pokemon *get_pokemon_mas_fuerte(t_list *pokemons){
+
+	int cant_pokemons = list_size(pokemons);
+
+	if(cant_pokemons > 0){
+		t_list *pokemons_ordenados = list_create();
+		list_add_all(pokemons_ordenados, pokemons); //Creamos una nueva lista que nos va a servir para ordenar
+		bool (*ordenar_pokemons)(t_pokemon *, t_pokemon *) = comparar_nivel_pokemons;
+		list_sort(pokemons_ordenados, ordenar_pokemons);
+		t_pokemon *pokemon =  (t_pokemon *)list_get(pokemons_ordenados, 0);
+		list_destroy(pokemons_ordenados);
+		return pokemon;
+	}
+
+	return NULL;
+}
+
+bool comparar_nivel_pokemons(t_pokemon *pokemon1, t_pokemon *pokemon2){
+	return pokemon1->nivel > pokemon2->nivel;
+}
+
+

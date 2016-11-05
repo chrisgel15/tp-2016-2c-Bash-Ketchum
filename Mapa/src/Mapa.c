@@ -49,6 +49,7 @@ int interbloqueo;
 
 //Nombre de Mapa
 char *nombre_mapa;
+char *ruta_pokedex;
 
 //Ids de Entrenadores
 int entrenador_id = 0;
@@ -70,7 +71,8 @@ void srdf(t_list*);
 
 int main(int argc, char **argv) {
 
-	nombre_mapa= string_new();
+	nombre_mapa = string_new();
+	ruta_pokedex = string_new();
 
 	if (argv[1] == NULL || argv[2] == NULL ){
 		perror("Asegurese de ingresar el nombre del Mapa y la ruta del pokedex");
@@ -78,8 +80,9 @@ int main(int argc, char **argv) {
 	}
 
 	string_append(&nombre_mapa, argv[1]);
+	string_append(&ruta_pokedex, argv[2]);
 
-	metadata = get_mapa_metadata(argv[2] , nombre_mapa);
+	metadata = get_mapa_metadata(ruta_pokedex, nombre_mapa);
 
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
@@ -261,6 +264,16 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 				sem_post(&sem_mensajes);
 			}
 			break;
+		case OBJETIVO_CUMPLIDO:
+			log_info(mapa_log, "Enviaron el mensaje OBJETIVO CUMPLIDO del Entrenador del FD %d.", fd_entrenador);
+			if(!recibir_mensaje_objetivo_cumplido(mensajes_entrenadores, fd_entrenador, mapa_log)){
+				log_info(mapa_log, "El Entrenador del FD %d se Desconecto, se procedera a liberar sus recursos.", fd_entrenador);
+				//TODO: Agregar logica de Liberacion de Recursos
+			} else {
+				log_info(mapa_log, "Se recibio correctamente el mensaje OBJETIVO CUMPLIDO del Entrenador del FD %d.", fd_entrenador);
+				sem_post(&sem_mensajes);
+			}
+			break;
 		default:
 			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador");
 			break;
@@ -372,9 +385,11 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenes
 	list_add(entrenador->pokemons, pokemon);
 
 	//Envio el nombre del archivo al Entrenador
+	enviarInt(entrenador->fd, POKEMON_CONCEDIDO);
 	enviarInt(entrenador->fd, (sizeof(char) * tamanio_nombre_archivo));
 	if(enviarMensaje(entrenador->fd, pokemon->nombre_archivo) < 0){
-		//TODO: Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
+		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
+		liberar_recursos_entrenador(entrenador);
 	} else {
 		//Resto el Recurso de la Interfaz de Mapa
 		disminuir_recursos_de_pokenest(items, pokenest_id, nombre_mapa);
@@ -405,17 +420,12 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenes
 }
 
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
-	char *ruta_medalla = string_new();
-	string_append(&ruta_medalla, "mapas/");
-	string_append(&ruta_medalla,nombre_mapa);
-	string_append(&ruta_medalla,"/medalla-");
-	string_append(&ruta_medalla,nombre_mapa);
-	string_append(&ruta_medalla,".jpg");
-	enviarInt(entrenador->fd,strlen(ruta_medalla));
-	enviarMensaje(entrenador->fd,ruta_medalla);
-	//TODO Liberar recursos del Entrenador
+	char *ruta_medalla = get_medalla_path(ruta_pokedex, nombre_mapa);
+	enviarInt(entrenador->fd, strlen(ruta_medalla));
+	enviarMensaje(entrenador->fd, ruta_medalla);
 
-	free(entrenador);
+	//Libero Entrenador
+	liberar_recursos_entrenador(entrenador);
 }
 
 void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
@@ -447,16 +457,14 @@ void system_call_catch(int signal){
 
 	if (signal == SIGUSR2){
 		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
-		/*TODO: Actualizar Algoritmo de planificación, valor de quantum, tiempo de retardo entre turnos y tiempo de chequeo de interbloqueo
-		/Hacer esto cuando ya lo tengamos levantando desde el archivo de Configuración*/
 		set_algoritmoActual();
 		set_quantum();
 		set_retardo();
 		set_interbloqueo();
-
 	}
 }
 
+/********* FUNCIONES ENCARGADAS DE LA PLANIFICACION DE LOS ENTRENADORES *********/
 void administrar_turnos() {
 	t_entrenador* entrenador;
 	char *round_robin = string_new();
@@ -527,15 +535,6 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 		log_info(mapa_log, "Se va a Bloquear al Entrenador %s.", entrenador->nombre);
 		agregar_entrenador_a_bloqueados(entrenador);
 	}
-
-	/*if (turnos>=mapa_quantum && estado!=ATRAPAR_POKEMON && estado!=OBJETIVO_CUMPLIDO){
-		agregar_entrenador_a_listos(entrenador);
-	} else{
-		if (estado==ATRAPAR_POKEMON || estado==OBJETIVO_CUMPLIDO){
-			estado=NULL;
-		}
-	}*/
-
 }
 
 char* algoritmo_actual() {
@@ -545,8 +544,6 @@ char* algoritmo_actual() {
 int quantum_actual() {
 	return mapa_quantum;
 }
-
-
 
 bool menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
 	int unaDistancia = distancia_a_pokenest(unEntrenador);
@@ -559,7 +556,6 @@ double distancia_a_pokenest(t_entrenador* entrenador){
 	int deltaY = entrenador->pokeny - entrenador->posicion->y;
 
 	return sqrt(deltaX*deltaX + deltaY*deltaY);
-
 }
 
 void srdf(t_list* entrenadores_listos){
@@ -590,12 +586,8 @@ void administrar_bloqueados(char *pokenest_id){
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
 
 	t_queue *entrenadores = bloqueados->entrenadores;
-	//sem_t sem_entrenadores = sem_entrenadores_bloqueados[bloqueados->sem_index]; //Obtengo el semaforo asociado a la Cola Entrenadores
-	//sem_t sem_pokemons = sem_pokemones_disponibles[bloqueados->sem_index]; //Obtengo el Semaforo asociado a la Cantidad Pokemons
 
 	while(1){
-		//sem_wait(&sem_pokemons);
-		//sem_wait(&sem_entrenadores);
 		sem_wait(&sem_pokemones_disponibles[bloqueados->sem_index]);
 		sem_wait(&sem_entrenadores_bloqueados[bloqueados->sem_index]);
 
@@ -619,25 +611,6 @@ void administrar_bloqueados(char *pokenest_id){
 
 		agregar_entrenador_a_listos(entrenador);
 	}
-
-	/*t_entrenador* entrenador = malloc(sizeof(t_entrenador)) ;
-	ITEM_NIVEL * pokenest = malloc(sizeof(ITEM_NIVEL));
-	//Ver esto de bloqueados tal vez en otro hilo
-	while(1){
-		sem_wait(&sem_bloqueados);
-		entrenador = (t_entrenador *)list_get(entrenadores_bloqueados, 0);
-		pokenest = _search_item_by_id(items, entrenador->pokemon_bloqueado);
-
-		pthread_mutex_lock(&mutex_recursos_pokenest);
-		if(pokenest->quantity > 0){
-			pokenest->quantity--;
-			remover_entrenador_de_bloqueados(0);
-			enviarInt(entrenador->fd,POKEMON_CONCEDIDO);
-			agregar_entrenador_a_listos(entrenador);
-		}
-		pthread_mutex_unlock(&mutex_recursos_pokenest);
-
-	}*/
 }
 
 void incializar_gestion_colas_bloqueados(){
@@ -666,4 +639,36 @@ void incializar_gestion_colas_bloqueados(){
 		//Creo los Hilos Administradores de Bloquados
 		pthread_create(&(bloqueados_threads_vec[i]), NULL, (void *)administrar_bloqueados, (void *) pokenest_id);
 	}
+}
+
+void liberar_recursos_entrenador(t_entrenador *entrenador){
+	int cant_pokemons = list_size(entrenador->pokemons);
+	int i, fd;
+
+	pthread_mutex_lock(&mutex_pokenests);
+	t_pokemon *pokemon;
+	for(i = 0; i < cant_pokemons; i++){
+		pokemon = list_remove(entrenador->pokemons, i);
+		//Agrego el Pokemon al Pokenest
+		add_pokemon_pokenest(lista_pokenests, pokemon);
+
+		//Actualizo la interfaz Grafica sumando un recurso al Pokenest
+		aumentar_recursos_de_pokenest(items, pokemon->pokenest_id, nombre_mapa);
+	}
+	pthread_mutex_unlock(&mutex_pokenests);
+
+	//Elimino el entrenador de la Interfaz grafica
+	eliminar_entrenador(items, entrenador->caracter, nombre_mapa);
+
+	fd = entrenador->fd;
+
+	//Elimino los Mensajes
+	eliminar_cola_mensajes_entrenador(mensajes_entrenadores, fd, mapa_log);
+
+	//Libero Memoria
+	list_destroy(entrenador->pokemons);
+	free(entrenador->posicion);
+	log_info(mapa_log, "El Entrenador %s a abandonado el Mapa.", entrenador->nombre);
+	free(entrenador);
+	close(fd);
 }
