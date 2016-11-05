@@ -8,7 +8,7 @@ t_config * metadata;
 
 t_entrenador *entrenador;
 char *ruta_pokedex;
-bool fin_prog;
+bool flag_fin_prog, flag_reinicio, flag_reconexion;
 
 //Socket Mapa
 int socket_mapa;
@@ -31,7 +31,9 @@ void init_datos_entrenador(void);
 
 int main(int argc, char **argv) {
 
-	fin_prog = false;
+	flag_fin_prog = false;
+	flag_reinicio = false;
+	flag_reconexion = false;
 	nombre_entrendor = NULL;
 	ruta_pokedex = NULL;
 
@@ -60,9 +62,10 @@ int main(int argc, char **argv) {
 
 	//Manejo de System Calls
 	signal(SIGTERM, system_call_catch);
-	if(fin_prog)
-		return EXIT_SUCCESS;
 	signal(SIGUSR1, system_call_catch);
+	signal(SIGKILL,system_call_catch);
+
+
 
 	//printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
 
@@ -104,13 +107,16 @@ void system_call_catch(int signal){
 
 		if (!entrenador->vidas) {
 			printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
-			printf("La cantidad de reintentos hasta el momento es %d", entrenador->reintentos);
+			printf("La cantidad de reintentos hasta el momento es %d\n", entrenador->reintentos);
 
 			switch (c = getchar()) {
 			case 'Y':
 			case 'y':
 				entrenador->reintentos++;
-				// Reiniciar hoja de viaje;
+				// Reiniciar hoja de viaje - Setea flag a ser consultado;
+				// Evaluar el flag en la funcion recorrer_hojaDeViaje
+				//flag_reinicio = true;
+				close(socket_mapa);
 				recorrer_hojaDeViaje(ruta_pokedex);
 				// Borrar medallas obtenidas;
 				// Borrar pokemones obtenidos;
@@ -119,8 +125,9 @@ void system_call_catch(int signal){
 			case 'n':
 				// Cerrar conexion, cerrar proceso, abandonar juego;
 				printf("Abandonaste el juego, se cerrará la conexión y terminará el proceso");
+				//Evaluar el valor del flag en la funcion recorrer_hojaDeViaje
+				//flag_fin_prog = true;
 				close(socket_mapa);
-				fin_prog = true;
 				break;
 			default:
 				break;
@@ -135,7 +142,8 @@ void system_call_catch(int signal){
 		break;
 
 	case SIGKILL:
-		fin_prog = true;
+		//flag_fin_prog = true;
+		close(socket_mapa);
 		break;
 
 	default:
@@ -319,6 +327,7 @@ void recorrer_hojaDeViaje(char * ruta_pokedex) {
 							estado = AVANZAR_HACIA_POKENEST;
 							break;
 						case AVANZAR_HACIA_POKENEST:
+
 							if (avanzar_hacia_pokenest() == 1){
 								estado = ATRAPAR_POKEMON;
 							} else {
