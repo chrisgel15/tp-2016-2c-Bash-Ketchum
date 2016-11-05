@@ -53,5 +53,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje);
 
 void reiniciar_Hoja_De_Viaje();
 
+void init_datos_entrenador(void);
+
 void handshake();
 #endif /* ENTRENADOR_H_ */

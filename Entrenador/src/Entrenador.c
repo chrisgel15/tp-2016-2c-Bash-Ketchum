@@ -25,7 +25,7 @@ t_posicion_mapa *posicion_mapa;
 
 
 // Funciones utilitarias //
-void init_datos_entrenador(void);
+//void init_datos_entrenador(void);
 
 
 
@@ -178,31 +178,28 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, nombre_pokemon);
 
-switch (instruccion=recibirInt(socket_mapa, result, entrenador_log)) {
-			case POKEMON_CONCEDIDO:
-				tamanio_archivo = recibirInt(socket_mapa, result, entrenador_log);
-				nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
-				recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
-				list_add(pokemons, nombre_archivo);
-				//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
-				break;
-			case MUERTE:
-				printf("Ha muerto en una batalla");
-				//TODO BORRAR ARCHIVOS DEL DIRECTORIO BILL DE ESTE MAPA CON LA LISTA POKEMONS
-				if (!entrenador->vidas)
+	switch (instruccion=recibirInt(socket_mapa, result, entrenador_log)) {
+		case POKEMON_CONCEDIDO:
+			tamanio_archivo = recibirInt(socket_mapa, result, entrenador_log);
+			nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
+			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
+			list_add(pokemons, nombre_archivo);
+			//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
+			break;
+		case MUERTE:
+			printf("Ha muerto en una batalla");
+			//TODO BORRAR ARCHIVOS DEL DIRECTORIO BILL DE ESTE MAPA CON LA LISTA POKEMONS
+			if (!entrenador->vidas){
 				reiniciar_Hoja_De_Viaje();
-				else {
+			} else {
 				close(socket_mapa);
 				entrenador->vidas--;
 				// TODO BORRAR POKEMONS OBTENIDOS DE MAPA ACTUAL
-				recorrer_HojaDeViaje(posHojaDeViaje);
-				}
+				recorrer_hojaDeViaje(posHojaDeViaje);
+			}
 
-				break;
-
-
-
-	
+			break;
+	}
 }
 
 
@@ -390,29 +387,27 @@ void init_datos_entrenador(){
 void reiniciar_Hoja_De_Viaje(){
 	char c;
 
-		printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
-		printf("La cantidad de reintentos hasta el momento es %d", entrenador->reintentos);
+	printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
+	printf("La cantidad de reintentos hasta el momento es %d", entrenador->reintentos);
 
-		switch (c = getchar()) {
-		case 'Y':
-		case 'y':
-			entrenador->reintentos++;
-			// Reiniciar hoja de viaje;
-			recorrer_hojaDeViaje(0);
-			// Borrar medallas obtenidas;
-			// Borrar pokemones obtenidos;
-			break;
-		case 'N':
-		case 'n':
-			// Cerrar conexion, cerrar proceso, abandonar juego;
-			printf("Abandonaste el juego, se cerrará la conexión y terminará el proceso");
-			close(socket_mapa);
-			fin_prog = true;
-			break;
-		default:
-			break;
-		}
-
-
+	switch (c = getchar()) {
+	case 'Y':
+	case 'y':
+		entrenador->reintentos++;
+		// Reiniciar hoja de viaje;
+		recorrer_hojaDeViaje(0);
+		// Borrar medallas obtenidas;
+		// Borrar pokemones obtenidos;
+		break;
+	case 'N':
+	case 'n':
+		// Cerrar conexion, cerrar proceso, abandonar juego;
+		printf("Abandonaste el juego, se cerrará la conexión y terminará el proceso");
+		close(socket_mapa);
+		fin_prog = true;
+		break;
+	default:
+		break;
+	}
 }
-}
+
