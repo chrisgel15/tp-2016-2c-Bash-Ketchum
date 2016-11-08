@@ -258,14 +258,13 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest){
 }
 
 
-void terminarObjetivo(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado){
+void terminarObjetivo(){
 
 	int *result = malloc(sizeof(int));
 	char *ruta_medalla = NULL;
 	int tamanio_texto;
 
-	recibirInt(socket_mapa, result, entrenador_log);//Espero TURNO_CONCEDIDO
-	enviarInt(socket_mapa,OBJETIVO_CUMPLIDO);
+	enviarInt(socket_mapa, OBJETIVO_CUMPLIDO);
 
 	//Recibo la ruta de medalla
 	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
@@ -274,8 +273,12 @@ void terminarObjetivo(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado){
 	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
 
 	//TODO INFORMAR POR PANTALLA TIEMPOS Y CANTIDAD DE DEADLOCKS
-	printf("Tiempo del Viaje:  %f s\n" , tiempo_total_bloqueado);
-	printf("Tiempo bloqueado en Pokenest:  %f s\n" , tiempo_total_Viaje);
+
+}
+
+void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado){
+	printf("Tiempo del Viaje:  %f s.\n" , tiempo_total_bloqueado);
+	printf("Tiempo bloqueado en Pokenest:  %f s.\n" , tiempo_total_Viaje);
 }
 
 
@@ -306,55 +309,51 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 		objetivosPorMapa = get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
 
 		while(estado != OBJETIVO_CUMPLIDO){
+			switch(estado){
+				case UBICACION_POKENEST:
+					//solicitar_posicion_pokenest(metadata, hojaDeViaje[posHojaDeViaje], posHojaDeViaje);
+					solicitar_posicion_pokenest(objetivosPorMapa[posObjetivoPorMapa]);
+					estado = AVANZAR_HACIA_POKENEST;
+					break;
+				case AVANZAR_HACIA_POKENEST:
 
-				//turnoConcedido = recibirInt(socket_mapa, result, entrenador_log);
-
-				//if(*result > 0 && turnoConcedido == TURNO_CONCEDIDO){
-
-					switch(estado){
-						case UBICACION_POKENEST:
-							//solicitar_posicion_pokenest(metadata, hojaDeViaje[posHojaDeViaje], posHojaDeViaje);
-							solicitar_posicion_pokenest(objetivosPorMapa[posHojaDeViaje]);
-							estado = AVANZAR_HACIA_POKENEST;
-							break;
-						case AVANZAR_HACIA_POKENEST:
-
-							if (avanzar_hacia_pokenest() == 1){
-								estado = ATRAPAR_POKEMON;
-							} else {
-								estado = AVANZAR_HACIA_POKENEST;
-							}
-							break;
-						case ATRAPAR_POKEMON:
-							inicio_bloqueado=time(NULL);
-							capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa],pokemons_atrapados,posHojaDeViaje);
-							fin_bloqueado = time(NULL);
-							tiempo_total_bloqueado+=difftime(fin_bloqueado,inicio_bloqueado);
-							if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
-								estado = OBJETIVO_CUMPLIDO;
-							} else {
-								//posObjetivoPorMapa++;
-								posObjetivoPorMapa = 0;
-								estado = UBICACION_POKENEST;
-							}
-							break;
-						default:
-							log_error(entrenador_log, "Se ha producido un error al intentar realizar una accion del Entrenador.");
-							break;
+					if (avanzar_hacia_pokenest() == 1){
+						estado = ATRAPAR_POKEMON;
+					} else {
+						estado = AVANZAR_HACIA_POKENEST;
 					}
-//			} else {
-//				perror("Ocurrio un error al intentarse interactuar con el Mapa.");
-//				exit(0);
-//			}
+					break;
+				case ATRAPAR_POKEMON:
+					inicio_bloqueado=time(NULL);
+					capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa],pokemons_atrapados,posHojaDeViaje);
+					fin_bloqueado = time(NULL);
+					tiempo_total_bloqueado+=difftime(fin_bloqueado,inicio_bloqueado);
+					if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
+						estado = OBJETIVO_CUMPLIDO;
+					} else {
+						//posObjetivoPorMapa++;
+						//posObjetivoPorMapa = 0;
+						posObjetivoPorMapa++;
+						estado = UBICACION_POKENEST;
+					}
+					break;
+				default:
+					log_error(entrenador_log, "Se ha producido un error al intentar realizar una accion del Entrenador.");
+					break;
+			}
 		}
+
+		//Espera la Medalla por Parte del Mapa
+		terminarObjetivo();
 
 		posHojaDeViaje++;
 
 		if (hojaDeViaje[posHojaDeViaje] == NULL){
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
-				fin_De_Viaje=time(NULL);
-				total_tiempo_viaje=difftime(fin_De_Viaje,inicio_De_Viaje);
-				terminarObjetivo(total_tiempo_viaje,tiempo_total_bloqueado);
+				fin_De_Viaje = time(NULL);
+				total_tiempo_viaje = difftime(fin_De_Viaje,inicio_De_Viaje);
+				//terminarObjetivo(total_tiempo_viaje,tiempo_total_bloqueado);
+				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado);
 				//TODO DESCONECTARSE
 		} else {
 			/*socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);

@@ -49,6 +49,8 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest);
 
 void terminarObjetivo();
 
+void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado);
+
 void recorrer_hojaDeViaje(int posHojaDeViaje);
 
 void reiniciar_Hoja_De_Viaje();
