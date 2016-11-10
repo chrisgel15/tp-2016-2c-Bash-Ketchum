@@ -194,12 +194,12 @@ void eliminar_cola_mensajes_entrenador(t_list *mensajes, int fd, t_log *log){
 	int i = 0, borrado = 0;
 
 	while(i < mensajes_size && !borrado){
-		t_mensajes *mensajes = (t_mensajes *) list_get(mensajes, i);
+		t_mensajes *mensaje = (t_mensajes *) list_get(mensajes, i);
 		//Borro todos los mensajes
-		if(mensajes->fd == fd){
+		if(mensaje->fd == fd){
 			list_remove(mensajes, i);
-			queue_destroy(mensajes->mensajes);
-			free(mensajes);
+			queue_destroy(mensaje->mensajes);
+			free(mensaje);
 			borrado = 1;
 			log_info(log, "Se ha borrado exitosamente la Estructura de Mensajes para el FD N° %d.", fd);
 		}
