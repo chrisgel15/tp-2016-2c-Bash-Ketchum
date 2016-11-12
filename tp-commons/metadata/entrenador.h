@@ -19,6 +19,7 @@
 #define REINTENTOS "reintentos"
 #define NOMBRE_ARCHIVO_METADATA "metadata"
 #define DIRECTORIO_BILL "directorio de bill"
+#define MEDALLAS "medallas"
 
 
 t_config * get_entrenador_metadata(char * , char * );
@@ -29,5 +30,6 @@ char ** get_entrenador_objetivos_por_mapa(t_config *, char *);
 int get_entrenador_vidas(t_config *);
 int get_entrenador_reintentos(t_config *);
 char *get_entrenador_directorio_bill(char *ruta_pokedex , char *nombre_entrenador);
+char *get_entrenador_directorio_medallas(char* ruta_pokedex, char* nombre_entrenador);
 
 #endif /* METADATA_ENTRENADOR_H_ */
