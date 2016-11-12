@@ -177,8 +177,7 @@ static int osada_mkdir (const char * path, mode_t mode)
 
 }
 
-<<<<<<< HEAD
-static int osada_mkdir(const char* filename, mode_t mode){
+//static int osada_mkdir(const char* filename, mode_t mode){
 /*
 	char** path;
 	char* parentfile ="";
@@ -215,8 +214,8 @@ static int osada_mkdir(const char* filename, mode_t mode){
 	strcpy(tabla_archivos_aux->fname, file); //Calcular en base al filename
 */
 
-	return 0;
-}
+//	return 0;
+//}
 
 int osada_rmdir (const char* filename){
 
@@ -261,31 +260,16 @@ int osada_unlink(const char* filename){
 
 	return -1;
 }
-=======
->>>>>>> ee963123ce79bc706aaf2fa19c496735f76a36fd
 
 static struct fuse_operations osada_oper = {
 		.getattr = osada_getattr,
 		.readdir = osada_readdir,
 		.read = osada_read,
-<<<<<<< HEAD
-		.write = osada_write,
+		//.write = osada_write,
 		.mkdir = osada_mkdir,
 		.rmdir = osada_rmdir,
 		.unlink = osada_unlink,
-
-//		.open = hello_open,
-=======
-//		.write = osada_write,
-//		.open = osada_open,
-//		.flush = remote_flush,
-//		.release = remote_release,
-//		.unlink = remote_unlink,
-		.mkdir = osada_mkdir,
-//		.rmdir = remote_rmdir,
 		.truncate = osada_truncate
->>>>>>> ee963123ce79bc706aaf2fa19c496735f76a36fd
-
 };
 
 /** keys for FUSE_OPT_ options */
@@ -710,41 +694,10 @@ void GenerarArchivo(char * indice_datos, int tamanio_en_bytes, int primer_bloque
 }
 void ImprimirBitMap(t_bitarray * bitmap)
 {
-<<<<<<< HEAD
-		int i = 0;
-
-		while(i < bitmap->size)
-		{
-
-			log_info(osada_log,"%d%d%d%d%d%d%d%d\t%d%d%d%d%d%d%d%d\t%d%d%d%d%d%d%d%d\t%d%d%d%d%d%d%d%d"
-					,(int)bitarray_test_bit(bitmap, i),(int)bitarray_test_bit(bitmap, i+1)
-					,(int)bitarray_test_bit(bitmap, i+2),(int)bitarray_test_bit(bitmap, i+3)
-					,(int)bitarray_test_bit(bitmap, i+4),(int)bitarray_test_bit(bitmap, i+5)
-					,(int)bitarray_test_bit(bitmap, i+6),(int)bitarray_test_bit(bitmap, i+7)
-					,(int)bitarray_test_bit(bitmap, i+8),(int)bitarray_test_bit(bitmap, i+9)
-					,(int)bitarray_test_bit(bitmap, i+10),(int)bitarray_test_bit(bitmap, i+11)
-					,(int)bitarray_test_bit(bitmap, i+12),(int)bitarray_test_bit(bitmap, i+13)
-					,(int)bitarray_test_bit(bitmap, i+14),(int)bitarray_test_bit(bitmap, i+15)
-					,(int)bitarray_test_bit(bitmap, i+16),(int)bitarray_test_bit(bitmap, i+17)
-					,(int)bitarray_test_bit(bitmap, i+18),(int)bitarray_test_bit(bitmap, i+19)
-					,(int)bitarray_test_bit(bitmap, i+20),(int)bitarray_test_bit(bitmap, i+21)
-					,(int)bitarray_test_bit(bitmap, i+22),(int)bitarray_test_bit(bitmap, i+23)
-					,(int)bitarray_test_bit(bitmap, i+24),(int)bitarray_test_bit(bitmap, i+25)
-					,(int)bitarray_test_bit(bitmap, i+26),(int)bitarray_test_bit(bitmap, i+27)
-					,(int)bitarray_test_bit(bitmap, i+28),(int)bitarray_test_bit(bitmap, i+29)
-					,(int)bitarray_test_bit(bitmap, i+30),(int)bitarray_test_bit(bitmap, i+31)
-
-
-
-			);
-			i+=32;
-		}
-=======
 		int * total = malloc(sizeof(int));
 		int * parcial = malloc(sizeof(int));
 		*total = 0;
 		*parcial = 0;
->>>>>>> ee963123ce79bc706aaf2fa19c496735f76a36fd
 
 		log_info(osada_log, "\nTamanio BitMap: %d", bitmap->size);
 
