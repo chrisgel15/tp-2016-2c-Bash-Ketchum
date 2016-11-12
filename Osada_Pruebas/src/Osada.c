@@ -22,6 +22,8 @@
 #include <commons/string.h>
 #include <commons/temporal.h>
 #include <communications/ltnCommons.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #include "Osada.h"
 
@@ -65,9 +67,15 @@ osada_file * tabla_archivos;
 int * tabla_asignaciones;
 char * tabla_datos;
 
+pthread_mutex_t mutex_escritura_disco;
+sem_t sem_lectura_disco;
+int cantidad_lectores;
+
 
 
 static int osada_getattr(const char *path, struct stat *stbuf) {
+	pthread_mutex_lock(&mutex_escritura_disco);
+
 	int res = 0;
 	int * directoryId = malloc(sizeof(char)*4);
 	*directoryId = -1;
@@ -82,7 +90,7 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 	}
 	else
 	{
-		log_trace(osada_log, "Entro a 'ELSE'. Path: %s", path);
+		log_trace(osada_log, "Entro a 'ELSE'. Path: %s - DirectoryId: %d", path, *directoryId);
 
 		FindDirectoryByName(path, directoryId);
 		if (*directoryId < 0)
@@ -91,11 +99,12 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 			SetAttrByDirectoryId(*directoryId, stbuf);
 	}
 
-
+	pthread_mutex_unlock(&mutex_escritura_disco);
 	return res;
 }
 
 static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
+	pthread_mutex_lock(&mutex_escritura_disco);
 	(void) offset;
 	(void) fi;
 	int * directoryId = malloc(sizeof(char)*4);
@@ -105,6 +114,7 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	{
 		*directoryId = 0xffff;
 		FindAllFilesByParentId(directoryId, buf, filler);
+
 	}
 	else
 	{
@@ -118,12 +128,13 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	//filler(buf, DEFAULT_FILE_NAME, NULL, 0);
-
+	pthread_mutex_unlock(&mutex_escritura_disco);
 	return 0;
 }
 
 static int osada_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {
+
 	int * directoryId = malloc(sizeof(char)*4);
 	*directoryId = -1;
 
@@ -134,11 +145,14 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 
 static int osada_truncate(const char * filename , off_t length)
 {
+	pthread_mutex_lock(&mutex_escritura_disco);
 	return 0;
+	pthread_mutex_unlock(&mutex_escritura_disco);
 }
 
 static int osada_mkdir (const char * path, mode_t mode)
 {
+	pthread_mutex_lock(&mutex_escritura_disco);
 	// Chequear espacio disponible
 	int returnValue = -1;
 	int tablaArchivosId = BuscaPrimerEspacioDisponibleEnTablaArchivos();
@@ -172,6 +186,7 @@ static int osada_mkdir (const char * path, mode_t mode)
 	else
 		returnValue = -ENOSPC;
 
+	pthread_mutex_unlock(&mutex_escritura_disco);
 
 	return returnValue;
 
@@ -316,6 +331,9 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 
+		pthread_mutex_init(&mutex_escritura_disco,NULL);
+		sem_init(&sem_lectura_disco, 0, 10);
+
 		// Esta es la funcion principal de FUSE, es la que se encarga
 		// de realizar el montaje, comuniscarse con el kernel, delegar todo
 		// en varios threads
@@ -349,6 +367,7 @@ int TamanioEnBloques(int tamanioBytes)
 }
 int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf)
 {
+	pthread_mutex_lock(&mutex_escritura_disco);
 	char * aux_buf = malloc(sizeof(char)*bytes_to_read);
 	char * indice_aux_buf = aux_buf;
 
@@ -408,6 +427,7 @@ int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId
 
 	memcpy(buf,((char*)aux_buf),bytes_to_read);
 
+	pthread_mutex_unlock(&mutex_escritura_disco);
 	return bytes_to_read;
 }
 
@@ -488,17 +508,31 @@ int LongitudArray(char ** arr)
 	return index;
 }
 
-bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
+bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId)
 {
 	bool exists = false;
 	osada_file * indice_tabla_archivos = tabla_archivos;
 	int i = 0;
 
+
+
 	while(i < OSADA_TABLA_ARCHIVOS_SIZE && !exists)
 	{
 		if ((int)indice_tabla_archivos->state != 0)
 		{
-			if (indice_tabla_archivos->parent_directory == parentId && strcmp(indice_tabla_archivos->fname,path[0]) == 0)
+			if (memcmp(indice_tabla_archivos->fname,path[0],strlen(path[0])) == 0)
+			{
+			log_trace(osada_log, "indice_tabla_archivos->fname: %s", indice_tabla_archivos->fname);
+			log_trace(osada_log, "Longitud: %d", strlen(indice_tabla_archivos->fname));
+			log_trace(osada_log, "path[0]: %s", path[0]);
+			log_trace(osada_log, "Longitud: %d", strlen(path[0]));
+			log_trace(osada_log, "Son Iguales?: %d\n", memcmp(indice_tabla_archivos->fname,path[0],strlen(path[0])));
+
+			}
+//			log_trace(osada_log, "Estoy Buscando el archivo: %s - Que tiene Id: %d y padre: %04x", *path, *directoryId, parentId);
+//			log_trace(osada_log, "File Name: %s - Parent_directory: %d - %04x", indice_tabla_archivos->fname, indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
+			//if (indice_tabla_archivos->parent_directory == parentId && strcmp(indice_tabla_archivos->fname,path[0]) == 0)
+			if (indice_tabla_archivos->parent_directory == parentId && memcmp(indice_tabla_archivos->fname,path[0],strlen(path[0])) == 0)
 			{
 				if (path[1] != NULL)
 					return FindDirectoryByNameAndParent(&path[1], (int)(indice_tabla_archivos - tabla_archivos), directoryId);
@@ -506,6 +540,7 @@ bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 				{
 					exists = true;
 					*directoryId = (int)(indice_tabla_archivos - tabla_archivos);
+					log_trace(osada_log, "Encontrado!!!");
 				}
 			}
 		}
@@ -596,28 +631,59 @@ bool TamanioNombreAdecuado(char * path)
 
 void CrearCarpeta(char * path, int tablaArchivosId, int parentDirectoryId)
 {
+	log_trace(osada_log, "Comienzo a Crear el directorio...%s", path);
 	osada_file * indice_tabla_archivos = tabla_archivos;
-	if (parentDirectoryId == -1)
-		(indice_tabla_archivos+tablaArchivosId)->parent_directory = 0xffff;
-	else
-		(indice_tabla_archivos+tablaArchivosId)->parent_directory = (uint16_t)parentDirectoryId;
-	(indice_tabla_archivos+tablaArchivosId)->state = 2;
 
 	char ** splitPath = SplitPath(path);
 
+	int name = 0;
+	while(splitPath[name] != NULL)
+	{
+		log_trace(osada_log, "nombre PARCIAL: %s", splitPath[name]);
+		name++;
+	}
+	char * nombre_archivo = splitPath[name-1];
+
+	log_trace(osada_log, "nombre: %s", nombre_archivo);
+
 	int index = 0;
 
-	while (index < 18)
+//	while(index < 17)
+//	{
+//		log_trace(osada_log, "letra %d: %c", index, *(nombre_archivo+index));
+//		index++;
+//	}
+//	index = 0;
 
+	while (index < 17)
 	{
-		(indice_tabla_archivos+tablaArchivosId)->fname[index] = *((splitPath[LongitudArray(splitPath)-1])+index);
+		if ((nombre_archivo[index]) != '\0')
+			(indice_tabla_archivos+tablaArchivosId)->fname[index] = (nombre_archivo[index]);
+		else
+			(indice_tabla_archivos+tablaArchivosId)->fname[index] = '\0';
+		//(indice_tabla_archivos+tablaArchivosId)->fname[index] = *((splitPath[LongitudArray(splitPath)-1])+index);
 		index++;
 	}
+
+	if (parentDirectoryId == -1)
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = (uint16_t)0xffff;
+	else
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = parentDirectoryId;
+	(indice_tabla_archivos+tablaArchivosId)->state = 2;
+
+
+
 
 	(indice_tabla_archivos+tablaArchivosId)->file_size = 0;
 	(indice_tabla_archivos+tablaArchivosId)->first_block = NULL;
 
+	log_trace(osada_log, "Fin creacion del directorio...%s - con padre id: %04x", path, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
+	if (parentDirectoryId == -1)
+	log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", 0xffff, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
+	else
+		log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", parentDirectoryId, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
 
+	log_trace(osada_log, "File Size: %d", (indice_tabla_archivos+tablaArchivosId)->file_size);
 }
 
 // Metodos para Test
