@@ -204,7 +204,7 @@ int osada_unlink(const char* filename){
 
 	osada_block_pointer primerBloque = indice_tabla_archivos->first_block;
 
-
+	int primerBitTablaAsignaciones = OSADA_HEADER_BLOCK_SIZE + OSADA_TABLA_ARCHIVOS_SIZE +
 
 	while(i<cantBloques){
 
@@ -569,7 +569,7 @@ void ImprimirBitMap(t_bitarray * bitmap)
 					,(int)bitarray_test_bit(bitmap, i+2),(int)bitarray_test_bit(bitmap, i+3)
 					,(int)bitarray_test_bit(bitmap, i+4),(int)bitarray_test_bit(bitmap, i+5)
 					,(int)bitarray_test_bit(bitmap, i+6),(int)bitarray_test_bit(bitmap, i+7)
-					,(int)bitarray_test_bit(bitmap, i+8),(int)bitarray_test_bit(bitmap, i+1)
+					,(int)bitarray_test_bit(bitmap, i+8),(int)bitarray_test_bit(bitmap, i+9)
 					,(int)bitarray_test_bit(bitmap, i+10),(int)bitarray_test_bit(bitmap, i+11)
 					,(int)bitarray_test_bit(bitmap, i+12),(int)bitarray_test_bit(bitmap, i+13)
 					,(int)bitarray_test_bit(bitmap, i+14),(int)bitarray_test_bit(bitmap, i+15)
