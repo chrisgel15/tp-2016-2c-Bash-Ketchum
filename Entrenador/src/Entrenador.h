@@ -53,9 +53,14 @@ void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_
 
 void recorrer_hojaDeViaje(int posHojaDeViaje);
 
-void reiniciar_Hoja_De_Viaje();
+void reiniciar_Hoja_De_Viaje(int );
 
 void init_datos_entrenador(void);
 
 void handshake();
+
+void borrar_medallas();
+
+void borrar_pokemon();
+
 #endif /* ENTRENADOR_H_ */

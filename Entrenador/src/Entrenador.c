@@ -86,13 +86,13 @@ int main(int argc, char **argv) {
 	//pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
 
 	//Comieza el viaje del Entreandor
-	recorrer_hojaDeViaje(ruta_pokedex);
+	recorrer_hojaDeViaje(0);
 
 
 
 	//printf("Adios Entrenador Pokemon!. \n");
 	//Liberar memoria dinamica -> TODO: encapsular en funcion
-	free(entrenador);
+	//free(entrenador);
 	return EXIT_SUCCESS;
 }
 
@@ -196,7 +196,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			printf("Ha muerto en una batalla");
 			//TODO BORRAR ARCHIVOS DEL DIRECTORIO BILL DE ESTE MAPA CON LA LISTA POKEMONS
 			if (!entrenador->vidas){
-				reiniciar_Hoja_De_Viaje();
+				reiniciar_Hoja_De_Viaje(posHojaDeViaje);
 			} else {
 				close(socket_mapa);
 				entrenador->vidas--;
@@ -381,16 +381,18 @@ void handshake(){
 		char * simbolo = get_entrenador_simbolo(metadata);
 		enviarMensaje(socket_mapa, simbolo);
 		ingresar_a_nuevo_mapa(posicion_mapa);
+
 }
 
 void init_datos_entrenador(){
+
 	entrenador = malloc(sizeof(t_entrenador));
 	entrenador -> vidas = get_entrenador_vidas(metadata);
 	entrenador -> reintentos = get_entrenador_reintentos(metadata);
 
 }
 
-void reiniciar_Hoja_De_Viaje(){
+void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 	char c;
 
 	printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
@@ -401,7 +403,7 @@ void reiniciar_Hoja_De_Viaje(){
 	case 'y':
 		entrenador->reintentos++;
 		// Reiniciar hoja de viaje;
-		recorrer_hojaDeViaje(ruta_pokedex);
+		recorrer_hojaDeViaje(posHojaDeViaje);
 		// Borrar medallas obtenidas;
 		borrar_medallas();
 		// Borrar pokemones obtenidos;
@@ -419,3 +421,10 @@ void reiniciar_Hoja_De_Viaje(){
 	}
 }
 
+void borrar_medallas(){
+
+}
+
+void borrar_pokemon() {
+
+}
