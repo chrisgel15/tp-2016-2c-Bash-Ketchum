@@ -28,6 +28,8 @@
 #define OSADA_BLOCK_SIZE 64
 #define OSADA_TABLA_ARCHIVOS_SIZE 1024
 #define OSADA_HEADER_BLOCK_SIZE 1
+#define NO_HAY_ESPACIO_TABLA_ARCHIVOS -1
+#define TAMANIO_MAXIMO_NOMBRE_ARCHIVO 17
 
 char * TipoDeArchivo (int tipo);
 int TamanioEnBloques(int tamanioBytes);
@@ -42,6 +44,13 @@ bool FindDirectoryByName(char * path, int * directoryId);
 void SetAttrByDirectoryId(int directoryId, struct stat *stbuf);
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler);
 int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf);
+void ImprimirBloquesDelBitMap(t_bitarray * bitmap, int size, int * parcial, int * total);
+int CantidadBloquesLibres();
+char ** SplitPath(char * path);
+bool ExistsDirectoryByName(char * path);
+bool FindParentDirectoryByName(char * path, int * directoryId);
+bool TamanioNombreAdecuado(char * path);
+void CrearCarpeta(char * path, int tablaArchivosId, int parentDirectoryId);
 
 struct stat osadaStat;
 int* pmap_osada;
@@ -52,7 +61,6 @@ int tamanio_tabla_asignaciones_bloques;
 // Punteros a las diferentes estructuras del disco.
 osada_header* header;
 t_bitarray * bitmap;
-t_bitarray * indice_bitmap_tabla_datos;
 osada_file * tabla_archivos;
 int * tabla_asignaciones;
 char * tabla_datos;
@@ -124,11 +132,52 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 	return ReadBytesFromOffset(offset, size, *directoryId, buf);
 }
 
-static int osada_write(int filedes, const void * buffer, size_t size)
+static int osada_truncate(const char * filename , off_t length)
 {
+	return 0;
+}
+
+static int osada_mkdir (const char * path, mode_t mode)
+{
+	// Chequear espacio disponible
+	int returnValue = -1;
+	int tablaArchivosId = BuscaPrimerEspacioDisponibleEnTablaArchivos();
+
+	if (tablaArchivosId > NO_HAY_ESPACIO_TABLA_ARCHIVOS)
+	{
+		// Chequear longitud del nombre
+		if (TamanioNombreAdecuado(path))
+		{
+			// Chequear que no exista otro igual
+			if (!ExistsDirectoryByName(path))
+			{
+				// Ubicar el ID del directorio padre
+				int * parentDirectoryId = malloc(sizeof(char)*4);
+				*parentDirectoryId = -1;
+				if (FindParentDirectoryByName(path, parentDirectoryId))
+				{
+					// Generar la carpeta
+					CrearCarpeta(path, tablaArchivosId, *parentDirectoryId);
+					returnValue = 0;
+				}
+				else
+					returnValue = -ENOENT;
+			}
+			else
+				returnValue = -ENOENT;
+		}
+		else
+			returnValue = -EFBIG;
+	}
+	else
+		returnValue = -ENOSPC;
+
+
+	return returnValue;
 
 }
 
+<<<<<<< HEAD
 static int osada_mkdir(const char* filename, mode_t mode){
 /*
 	char** path;
@@ -212,17 +261,30 @@ int osada_unlink(const char* filename){
 
 	return -1;
 }
+=======
+>>>>>>> ee963123ce79bc706aaf2fa19c496735f76a36fd
 
 static struct fuse_operations osada_oper = {
 		.getattr = osada_getattr,
 		.readdir = osada_readdir,
 		.read = osada_read,
+<<<<<<< HEAD
 		.write = osada_write,
 		.mkdir = osada_mkdir,
 		.rmdir = osada_rmdir,
 		.unlink = osada_unlink,
 
 //		.open = hello_open,
+=======
+//		.write = osada_write,
+//		.open = osada_open,
+//		.flush = remote_flush,
+//		.release = remote_release,
+//		.unlink = remote_unlink,
+		.mkdir = osada_mkdir,
+//		.rmdir = remote_rmdir,
+		.truncate = osada_truncate
+>>>>>>> ee963123ce79bc706aaf2fa19c496735f76a36fd
 
 };
 
@@ -252,9 +314,10 @@ int main(int argc, char *argv[]) {
 	pmap_osada= mmap(0, osadaStat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_osadaDisk, 0);
 
 	UbicarPunteros();
-	ImprimirHeader();
-	ImprimirBitMap(bitmap);
-//	ImprimirTablaDeArchivos();
+//	ImprimirHeader();
+//	ImprimirBitMap(bitmap);
+	ImprimirTablaDeArchivos();
+//	CantidadBloquesLibres();
 
 	// FUSE
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -393,35 +456,54 @@ void UbicarPunteros()
 
 	// Me muevo el tamaño de la tabla de asignaciones y apunto a la tabla de datos...
 	tabla_datos = header + 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
-
-	// Genero un nuevo puntero que apunta a un bitmap (lo vamos a poner al comienzo de donde empiezan
-	// los datos, ya que es lo que vamos a escribir o borrar
-
-	// Lo tengo que mover:
-	// 1 bloque por el header + N bloques por el propio bitmap + 1024 por tabla archivos +
-	// + "A" Bloques por tabla asignaciones
-
-	int cantidad_bits_a_moverme = 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
-
-	log_trace(osada_log, "Cantidad Bits a Moverme dentro del Bitmap: %d", cantidad_bits_a_moverme);
-
-	indice_bitmap_tabla_datos = bitarray_create_with_mode((char*)bitmap + cantidad_bits_a_moverme, (header->data_blocks), LSB_FIRST);
-
-
-
 }
-
-
 // Enviar el path sin la barra del principio...
 bool FindDirectoryByName(char * path, int * directoryId)
 {
+	char ** arr = SplitPath(path);
+	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+}
 
+bool ExistsDirectoryByName(char * path)
+{
+	char ** arr = SplitPath(path);
+	int * directoryId = malloc(sizeof(char)*4);
+	*directoryId = -1;
+	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+}
+
+
+char ** SplitPath(char * path)
+{
 	char * str = string_new();
 	string_append(&str, path);
 	char ** arr = string_split(str, "/");
+//	log_trace(osada_log, arr[0]);
+	return arr;
+}
+
+bool FindParentDirectoryByName(char * path, int * directoryId)
+{
+	char ** arr = SplitPath(path);
+	int lArray = LongitudArray(arr);
+
+	if (lArray == 1) return 0xffff; // Es un directorio en el directorio raiz.
+
+	arr[lArray - 1] = NULL;
 	log_trace(osada_log, arr[0]);
 	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
 }
+
+int LongitudArray(char ** arr)
+{
+	int index = 0;
+
+	while(arr[index] != NULL)
+		index++;
+
+	return index;
+}
+
 bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 {
 	bool exists = false;
@@ -450,7 +532,6 @@ bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 	return exists;
 
 }
-
 
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler)
 {
@@ -484,6 +565,76 @@ void SetAttrByDirectoryId(int directoryId, struct stat *stbuf)
 	stbuf->st_size = indice_tabla_archivos->file_size;
 }
 
+int CantidadBloquesLibres()
+{
+	int offset_tabla_datos = 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
+	int bloques_libres = 0;
+	int index = 0;
+
+	while(index < header->data_blocks)
+	{
+		if (!(int)bitarray_test_bit(bitmap, offset_tabla_datos))
+			bloques_libres++;
+
+		offset_tabla_datos++;
+		index++;
+	}
+
+	log_info(osada_log, "Cantidad de Bloques libres: %d", bloques_libres);
+
+}
+
+int BuscaPrimerEspacioDisponibleEnTablaArchivos()
+{
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	int index = 0;
+	bool hayEspacio = false;
+
+	while(!hayEspacio && index < OSADA_TABLA_ARCHIVOS_SIZE)
+	{
+		if ((indice_tabla_archivos+index)->state == 0)
+			hayEspacio = true;
+		else
+			index++;
+	}
+
+	return hayEspacio ? index : NO_HAY_ESPACIO_TABLA_ARCHIVOS;
+
+}
+
+bool TamanioNombreAdecuado(char * path)
+{
+	char ** splitPath = SplitPath(path);
+
+	return (strlen(splitPath[LongitudArray(splitPath)-1]) <= TAMANIO_MAXIMO_NOMBRE_ARCHIVO);
+
+}
+
+void CrearCarpeta(char * path, int tablaArchivosId, int parentDirectoryId)
+{
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	if (parentDirectoryId == -1)
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = 0xffff;
+	else
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = (uint16_t)parentDirectoryId;
+	(indice_tabla_archivos+tablaArchivosId)->state = 2;
+
+	char ** splitPath = SplitPath(path);
+
+	int index = 0;
+
+	while (index < 18)
+
+	{
+		(indice_tabla_archivos+tablaArchivosId)->fname[index] = *((splitPath[LongitudArray(splitPath)-1])+index);
+		index++;
+	}
+
+	(indice_tabla_archivos+tablaArchivosId)->file_size = 0;
+	(indice_tabla_archivos+tablaArchivosId)->first_block = NULL;
+
+
+}
 
 // Metodos para Test
 void ImprimirHeader()
@@ -559,6 +710,7 @@ void GenerarArchivo(char * indice_datos, int tamanio_en_bytes, int primer_bloque
 }
 void ImprimirBitMap(t_bitarray * bitmap)
 {
+<<<<<<< HEAD
 		int i = 0;
 
 		while(i < bitmap->size)
@@ -587,9 +739,39 @@ void ImprimirBitMap(t_bitarray * bitmap)
 			);
 			i+=32;
 		}
+=======
+		int * total = malloc(sizeof(int));
+		int * parcial = malloc(sizeof(int));
+		*total = 0;
+		*parcial = 0;
+>>>>>>> ee963123ce79bc706aaf2fa19c496735f76a36fd
 
 		log_info(osada_log, "\nTamanio BitMap: %d", bitmap->size);
 
+		/*Impresion del bit de header*/
+		log_trace(osada_log, "Impresion del bit del header");
+		ImprimirBloquesDelBitMap(bitmap, 1, parcial, total);
+
+		/*Impresion de los bits del bitmap*/
+		*parcial = 0;
+		log_trace(osada_log, "Impresion de los bits del BitMap");
+		ImprimirBloquesDelBitMap(bitmap, header->bitmap_blocks, parcial, total);
+
+		/*Impresion de tabla de archivos*/
+		log_trace(osada_log, "Impresion de los bits de la tabla de archivos");
+		*parcial = 0;
+		ImprimirBloquesDelBitMap(bitmap, OSADA_TABLA_ARCHIVOS_SIZE, parcial, total);
+
+		/*Impresion de bits de la tabla de asignaciones*/
+		//j = 0;
+		*parcial = 0;
+		log_trace(osada_log, "Impresion de los bits de la tabla de asignaciones");
+		ImprimirBloquesDelBitMap(bitmap, tamanio_tabla_asignaciones_bloques, parcial, total);
+
+		/*Impresion de bits de la tabla de datos*/
+		*parcial = 0;
+		log_trace(osada_log, "Impresion de los bits de la tabla de datos");
+		ImprimirBloquesDelBitMap(bitmap, header->data_blocks, parcial, total);
 }
 
 void ImprimirTablaDeArchivos()
@@ -610,7 +792,7 @@ void ImprimirTablaDeArchivos()
 			log_info(osada_log, "Tamanio: %d bytes - %d bloques", indice_tabla_archivos->file_size, TamanioEnBloques(indice_tabla_archivos->file_size));
 			log_info(osada_log, "Directorio Padre: %04x hexa - %d decimal", indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
 			log_info(osada_log, "Primer Bloque: %04x hexa - %d decimal", indice_tabla_archivos->first_block, indice_tabla_archivos->first_block);
-		//	ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
+			ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
 			log_info(osada_log, "Fecha Ultima Modificacion: %d\n", indice_tabla_archivos->lastmod);
 			GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
 		}
@@ -618,3 +800,69 @@ void ImprimirTablaDeArchivos()
 	}
 
 }
+
+void ImprimirUnBloqueDeBits(t_bitarray * bitmap, int * total, int * parcial)
+{
+	int i = *total;
+	log_info(osada_log,"%d%d%d%d%d%d%d%d  %d%d%d%d%d%d%d%d  %d%d%d%d%d%d%d%d  %d%d%d%d%d%d%d%d  "
+			"%d%d%d%d%d%d%d%d  %d%d%d%d%d%d%d%d  %d%d%d%d%d%d%d%d  %d%d%d%d%d%d%d%d Parcial:%d Total:%d"
+						,(int)bitarray_test_bit(bitmap, i),(int)bitarray_test_bit(bitmap, i+1)
+						,(int)bitarray_test_bit(bitmap, i+2),(int)bitarray_test_bit(bitmap, i+3)
+						,(int)bitarray_test_bit(bitmap, i+4),(int)bitarray_test_bit(bitmap, i+5)
+						,(int)bitarray_test_bit(bitmap, i+6),(int)bitarray_test_bit(bitmap, i+7)
+						,(int)bitarray_test_bit(bitmap, i+8),(int)bitarray_test_bit(bitmap, i+1)
+						,(int)bitarray_test_bit(bitmap, i+10),(int)bitarray_test_bit(bitmap, i+11)
+						,(int)bitarray_test_bit(bitmap, i+12),(int)bitarray_test_bit(bitmap, i+13)
+						,(int)bitarray_test_bit(bitmap, i+14),(int)bitarray_test_bit(bitmap, i+15)
+						,(int)bitarray_test_bit(bitmap, i+16),(int)bitarray_test_bit(bitmap, i+17)
+						,(int)bitarray_test_bit(bitmap, i+18),(int)bitarray_test_bit(bitmap, i+19)
+						,(int)bitarray_test_bit(bitmap, i+20),(int)bitarray_test_bit(bitmap, i+21)
+						,(int)bitarray_test_bit(bitmap, i+22),(int)bitarray_test_bit(bitmap, i+23)
+						,(int)bitarray_test_bit(bitmap, i+24),(int)bitarray_test_bit(bitmap, i+25)
+						,(int)bitarray_test_bit(bitmap, i+26),(int)bitarray_test_bit(bitmap, i+27)
+						,(int)bitarray_test_bit(bitmap, i+28),(int)bitarray_test_bit(bitmap, i+29)
+						,(int)bitarray_test_bit(bitmap, i+30),(int)bitarray_test_bit(bitmap, i+31)
+						,(int)bitarray_test_bit(bitmap, i+32),(int)bitarray_test_bit(bitmap, i+33)
+						,(int)bitarray_test_bit(bitmap, i+34),(int)bitarray_test_bit(bitmap, i+35)
+						,(int)bitarray_test_bit(bitmap, i+36),(int)bitarray_test_bit(bitmap, i+37)
+						,(int)bitarray_test_bit(bitmap, i+38),(int)bitarray_test_bit(bitmap, i+39)
+						,(int)bitarray_test_bit(bitmap, i+40),(int)bitarray_test_bit(bitmap, i+41)
+						,(int)bitarray_test_bit(bitmap, i+42),(int)bitarray_test_bit(bitmap, i+43)
+						,(int)bitarray_test_bit(bitmap, i+44),(int)bitarray_test_bit(bitmap, i+45)
+						,(int)bitarray_test_bit(bitmap, i+46),(int)bitarray_test_bit(bitmap, i+47)
+						,(int)bitarray_test_bit(bitmap, i+48),(int)bitarray_test_bit(bitmap, i+49)
+						,(int)bitarray_test_bit(bitmap, i+50),(int)bitarray_test_bit(bitmap, i+51)
+						,(int)bitarray_test_bit(bitmap, i+52),(int)bitarray_test_bit(bitmap, i+53)
+						,(int)bitarray_test_bit(bitmap, i+54),(int)bitarray_test_bit(bitmap, i+55)
+						,(int)bitarray_test_bit(bitmap, i+56),(int)bitarray_test_bit(bitmap, i+57)
+						,(int)bitarray_test_bit(bitmap, i+58),(int)bitarray_test_bit(bitmap, i+59)
+						,(int)bitarray_test_bit(bitmap, i+60),(int)bitarray_test_bit(bitmap, i+61)
+						,(int)bitarray_test_bit(bitmap, i+62),(int)bitarray_test_bit(bitmap, i+63)
+						,(*parcial)+64
+						,(*total)+64
+						);
+	*total+=64;
+	*parcial+=64;
+}
+
+void ImprimirBloquesDelBitMap(t_bitarray * bitmap, int size, int * parcial, int * total)
+{
+	while(*parcial < size)
+			{
+				if ((int)(size - *parcial) >= 64)
+					ImprimirUnBloqueDeBits(bitmap, total, parcial);
+				else
+				{
+					log_trace(osada_log, "Impresion de a uno...");
+					while((int)(size - *parcial) > 0)
+					{
+						*parcial+=1;
+						*total+=1;
+						log_trace(osada_log,"%d Parcial:%d Total:%d",(int)bitarray_test_bit(bitmap, *total),(*parcial),(*total));
+					}
+				}
+
+			}
+}
+
+
