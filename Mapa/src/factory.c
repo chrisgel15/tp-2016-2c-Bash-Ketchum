@@ -183,18 +183,18 @@ void destroy_pkmn_factory(t_pkmn_factory* factory) {
 
 void add_pkmn_data( t_dictionary* pkmn_database, char* species, 
                     t_pokemon_type type, t_pokemon_type second_type) {
-  t_pokemon* data = malloc(sizeof(t_pokemon));
+	t_pokemon_factory* data = malloc(sizeof(t_pokemon_factory));
   data->type = type;
   data->second_type = second_type;
   dictionary_put(pkmn_database, species, data);
 }
 
-t_pokemon* create_pokemon(t_pkmn_factory* factory, char* species, t_level level) {
-  t_pokemon* new_pkmn = NULL;
-  t_pokemon* pkmn_types = dictionary_get(factory->pkmn_data, species);
+t_pokemon_factory* create_pokemon(t_pkmn_factory* factory, char* species, t_level level) {
+  t_pokemon_factory* new_pkmn = NULL;
+  t_pokemon_factory* pkmn_types = dictionary_get(factory->pkmn_data, species);
 
   if(pkmn_types) {
-    new_pkmn = malloc(sizeof(t_pokemon));
+    new_pkmn = malloc(sizeof(t_pokemon_factory));
     new_pkmn->species = species;
     new_pkmn->type = pkmn_types->type;
     new_pkmn->second_type = pkmn_types->second_type;

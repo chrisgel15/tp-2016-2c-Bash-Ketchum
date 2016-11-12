@@ -705,6 +705,8 @@ void chequear_interbloqueados(){
 	lista_interbloqueo = list_create();
 	void (*add_entrenadores_interbloqueados) (char*, void*) = add_entrenadores_interbloqueados;
 	t_list *entrenadores_interbloqueados = list_create();
+	int modo_batalla = get_mapa_batalla_on_off(metadata);
+
 
 	//Preparo el Array de Disponobiles
 	pthread_mutex_lock(&mutex_pokenests);
@@ -754,4 +756,8 @@ void chequear_interbloqueados(){
 	list_destroy(lista_interbloqueo);
 
 	//Informar los entrenadores que estan interbloqueados por log
+
+	if(modo_batalla){
+
+	}
 }
