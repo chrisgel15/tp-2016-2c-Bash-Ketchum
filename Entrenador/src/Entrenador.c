@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 	//pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
 
 	//Comieza el viaje del Entreandor
-	recorrer_hojaDeViaje(0);
+	recorrer_hojaDeViaje(ruta_pokedex);
 
 
 
@@ -402,9 +402,11 @@ void reiniciar_Hoja_De_Viaje(){
 	case 'y':
 		entrenador->reintentos++;
 		// Reiniciar hoja de viaje;
-		recorrer_hojaDeViaje(0);
+		recorrer_hojaDeViaje(ruta_pokedex);
 		// Borrar medallas obtenidas;
+		borrar_medallas();
 		// Borrar pokemones obtenidos;
+		borrar_pokemon();
 		break;
 	case 'N':
 	case 'n':
