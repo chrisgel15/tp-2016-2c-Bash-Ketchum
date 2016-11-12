@@ -11,6 +11,8 @@
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
 
+int cantidad_pokenest;
+
 typedef struct{
 	int x;
 	int y;
@@ -61,5 +63,12 @@ typedef struct {
 	int sem_index; //Index del semaforo correspondiente a la IO
 	t_queue *entrenadores;
 } t_entrenadores_bloqueados;
+
+typedef struct {
+	t_entrenador *entrenador;
+	int marcado;
+	int *solicitud;
+	int *asignacion;
+} t_entrenador_interbloqueado;
 
 #endif /* ESTRUCTURAS_H_ */

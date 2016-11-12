@@ -23,5 +23,6 @@ t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificad
 void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon *pokemon);
 t_pokemon *get_pokemon_mas_fuerte(t_list *pokemons);
 bool comparar_nivel_pokemons(t_pokemon *pokemon1, t_pokemon *pokemon2);
+int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id);
 
 #endif /* POKENEST_H_ */

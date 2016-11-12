@@ -98,6 +98,7 @@ t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificad
 		int tamanio_cola_pokemons = queue_size(pokenest->pokemons);
 
 		if(tamanio_cola_pokemons > 0){
+			pokenest->cantPokemons = pokenest->cantPokemons - 1;
 			return queue_pop(pokenest->pokemons);
 		}
 	}
@@ -109,6 +110,7 @@ void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon *pokemon){
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenest, pokemon->pokenest_id);
 
 	if(pokenest != NULL){
+		pokenest->cantPokemons = pokenest->cantPokemons + 1;
 		queue_push(pokenest->pokemons, pokemon);
 	}
 }
@@ -132,6 +134,20 @@ t_pokemon *get_pokemon_mas_fuerte(t_list *pokemons){
 
 bool comparar_nivel_pokemons(t_pokemon *pokemon1, t_pokemon *pokemon2){
 	return pokemon1->nivel > pokemon2->nivel;
+}
+
+int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id){
+	int pokenests_size = list_size(pokenests);
+	int i;
+
+	for(i = 0; i < pokenests_size; i++){
+		t_pokenest *pokenest = (t_pokenest *) list_get(pokenests, i);
+		if(pokenest->caracter == id){
+			return i;
+		}
+	}
+
+	return NULL;
 }
 
 

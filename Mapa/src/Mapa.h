@@ -23,6 +23,7 @@
 #include "Estructuras.h"
 #include "Pokenest.h"
 #include <commons/collections/dictionary.h>
+#include "Interbloqueo.h"
 
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
@@ -78,5 +79,9 @@ void set_retardo();
 void set_interbloqueo();
 
 void liberar_recursos_entrenador(t_entrenador *entrenador);
+
+/* Funciones para la Gestion de Entrenadores Interbloqueados */
+void add_entrenadores_interbloqueados(char *key, void *entrenadores);
+void chequear_interbloqueados();
 
 #endif /* MAPA_H_ */
