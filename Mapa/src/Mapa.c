@@ -395,32 +395,12 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenes
 		disminuir_recursos_de_pokenest(items, pokenest_id, nombre_mapa);
 		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
 	}
-//
-//	//t_entrenador* entrenador=malloc (sizeof(t_entrenador));
-//	//entrenador=buscar_entrenador(fd);
-//	int tamanio_texto;
-//	int *result = malloc(sizeof(int));
-//	ITEM_NIVEL* pokenest= malloc(sizeof(ITEM_NIVEL));
-//	char *nombre_pokenest= NULL;
-//	char nombre;
-//	int i;
-//
-//	//Recibo el mensaje TODO REUTILIZAR FUNCION RECIBIR_MENSAJE_ENTRENADOR
-//	tamanio_texto = recibirInt(entrenador->fd, result, mapa_log);
-//	nombre_pokenest= malloc(sizeof(char) * tamanio_texto);
-//	recibirMensaje(entrenador->fd, nombre_pokenest, tamanio_texto, mapa_log);
-//	nombre = *nombre_pokenest;
-//	pokenest = _search_item_by_id(items, nombre);
-//	pthread_mutex_lock(&mutex_recursos_pokenest);
-//	entrenador->pokemon_bloqueado=pokenest->id;
-//	pokenest->quantity=pokenest->quantity-1;
-//	pthread_mutex_unlock(&mutex_recursos_pokenest);
-//	agregar_entrenador_a_bloqueados(entrenador);
-//	//free(pokenest);
 }
 
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
+	log_info(mapa_log, "Se va a Entregar la Medalla a %s.", entrenador->nombre);
 	char *ruta_medalla = get_medalla_path(ruta_pokedex, nombre_mapa);
+	log_info(mapa_log, "La ruta de la Medalla es %s.", ruta_medalla);
 	enviarInt(entrenador->fd, strlen(ruta_medalla));
 	enviarMensaje(entrenador->fd, ruta_medalla);
 
@@ -645,13 +625,14 @@ void liberar_recursos_entrenador(t_entrenador *entrenador){
 	int cant_pokemons = list_size(entrenador->pokemons);
 	int i, fd;
 
+	log_info(mapa_log, "Voy a liberar los recursos del Entrenador");
+
 	pthread_mutex_lock(&mutex_pokenests);
 	t_pokemon *pokemon;
 	for(i = 0; i < cant_pokemons; i++){
-		pokemon = list_remove(entrenador->pokemons, i);
+		pokemon = list_remove(entrenador->pokemons, 0); //Siempre saco el Pokemon que quedo en la posicion 0
 		//Agrego el Pokemon al Pokenest
 		add_pokemon_pokenest(lista_pokenests, pokemon);
-
 		//Actualizo la interfaz Grafica sumando un recurso al Pokenest
 		aumentar_recursos_de_pokenest(items, pokemon->pokenest_id, nombre_mapa);
 	}

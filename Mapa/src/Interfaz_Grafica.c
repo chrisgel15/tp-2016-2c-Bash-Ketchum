@@ -156,11 +156,12 @@ void aumentar_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre
 	ITEM_NIVEL* item = _search_item_by_id(items, pokenest_id);
 
 	if (item != NULL) {
-		item->quantity = item->quantity > 0 ? item->quantity + 1 : 0;
+		item->quantity = item->quantity + 1;
 	} else {
 		printf("WARN: Item %c no existente\n", pokenest_id);
 	}
 
+	nivel_gui_dibujar(items, nombre_mapa);
 	sleep(1);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
@@ -168,6 +169,7 @@ void aumentar_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre
 void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa){
 	pthread_mutex_lock(&mutex_interfaz);
 	BorrarItem(items, entrenador_id);
+	nivel_gui_dibujar(items, nombre_mapa);
 	sleep(1);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
