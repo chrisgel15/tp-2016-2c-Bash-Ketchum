@@ -19,6 +19,7 @@
 #include "Gps.h"
 #include <time.h>
 #include <commons/collections/list.h>
+#include <dirent.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"

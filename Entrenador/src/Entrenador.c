@@ -400,12 +400,12 @@ void reiniciar_Hoja_De_Viaje(){
 	case 'Y':
 	case 'y':
 		entrenador->reintentos++;
-		// Reiniciar hoja de viaje;
-		recorrer_hojaDeViaje(ruta_pokedex);
 		// Borrar medallas obtenidas;
 		borrar_medallas();
 		// Borrar pokemones obtenidos;
 		borrar_pokemon();
+		// Reiniciar hoja de viaje;
+		recorrer_hojaDeViaje(ruta_pokedex);
 		break;
 	case 'N':
 	case 'n':
@@ -419,3 +419,29 @@ void reiniciar_Hoja_De_Viaje(){
 	}
 }
 
+void borrar_medallas(void){
+	char* medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
+	DIR* dir_medalla = opendir(medalla);
+	char* contenido = ".jpg";
+
+	borrar(dir_medalla,contenido);
+
+}
+
+void borrar_pokemon(void){
+	char* bill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+	DIR* dir_bill = opendir(bill);
+	char * contenido = ".dat";
+	borrar(dir_bill,contenido);
+
+}
+
+void borrar(DIR* deDirectorio, char* contenido){
+	struct dirent *ep;
+	if(deDirectorio != NULL){
+		while(ep = readdir(deDirectorio)){
+			if(strstr((char*)deDirectorio,contenido) != NULL)
+				remove((char*)deDirectorio);
+		}
+	}
+}
