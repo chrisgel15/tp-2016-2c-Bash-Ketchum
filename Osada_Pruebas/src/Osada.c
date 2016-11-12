@@ -192,61 +192,16 @@ static int osada_mkdir (const char * path, mode_t mode)
 
 }
 
-//static int osada_mkdir(const char* filename, mode_t mode){
-/*
-	char** path;
-	char* parentfile ="";
-	char* file="";
-	u_int pos = 0;
-
-	osada_file *tabla_archivos_aux = tabla_archivos;
-	osada_file *tabla_archivos_pathaux = tabla_archivos;
-
-	path = string_n_split(string_reverse(filename),2,"/");
-	file = string_reverse(path[0]);
-
-	if(*(path + 1)){
-		parentfile = string_substring_from(string_reverse(*(path+1)),1);
-	} else {
-		pos = 0xFF;
-	}
-
-	while(pos != 0xFF && tabla_archivos_pathaux->state != 2 && strcmp(tabla_archivos_pathaux->fname,parentfile)==0){
-		++tabla_archivos_pathaux;
-		pos++;
-	}
-
-	tabla_archivos_aux = tabla_archivos;
-	while(tabla_archivos_aux->state != 0){
-		++tabla_archivos_aux;
-	}
-
-	tabla_archivos_aux->state = 2;
-	tabla_archivos_aux->parent_directory = pos; //posicion en la que se encuentra el directorio padre en el vector.
-	tabla_archivos_aux->file_size = 0;
-	tabla_archivos_aux->lastmod = mode;
-	tabla_archivos_aux->first_block = 0; //No tiene porque creo un directorio y no un archivo
-	strcpy(tabla_archivos_aux->fname, file); //Calcular en base al filename
-*/
-
-//	return 0;
-//}
-
 int osada_rmdir (const char* filename){
 
-	char ** path;
-	char * directory;
+	osada_file *indice_tabla_archivos = tabla_archivos;
+	int * directoryId = malloc(sizeof(char)*4);
 
-	osada_file *tabla_archivos_aux = tabla_archivos;
+	FindDirectoryByName(filename, directoryId);
 
-	path = string_n_split(string_reverse(filename),2,"/");
-	directory = string_reverse(path[0]);
+	indice_tabla_archivos+=*directoryId;
 
-	while(strcmp(tabla_archivos_aux->fname,directory)!=0){
-		++tabla_archivos_aux;
-	}
-
-	tabla_archivos_aux->state=0;
+	indice_tabla_archivos->state = 0;
 
 	return 0;
 }
@@ -254,26 +209,58 @@ int osada_rmdir (const char* filename){
 int osada_unlink(const char* filename){
 
 	int * directoryId = malloc(sizeof(char)*4);
-	int cantBloques = 0, i = 0;
+	int cantBloques = 0, status = 0;
 
 	*directoryId = -1;
 
 	FindDirectoryByName(filename , directoryId);
 
 	osada_file * indice_tabla_archivos = tabla_archivos;
-	indice_tabla_archivos+=directoryId;
+	indice_tabla_archivos+=*directoryId;
 
 	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
 
-	osada_block_pointer primerBloque = indice_tabla_archivos->first_block;
+	status = DeleteBlocks(cantBloques,*directoryId);
 
-	int primerBitTablaAsignaciones = OSADA_HEADER_BLOCK_SIZE + OSADA_TABLA_ARCHIVOS_SIZE +
-
-	while(i<cantBloques){
-
+	if(!status){
+		indice_tabla_archivos->state=0;
 	}
 
-	return -1;
+	return status;
+}
+
+int osada_rename(const char* oldname, const char* newname){
+	int * directoryId = malloc(sizeof(char)*4);
+	int returnValue = -1;
+	*directoryId = -1;
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+
+	FindDirectoryByName(oldname,directoryId);
+	indice_tabla_archivos+=*directoryId;
+
+	char ** pathPartido = string_split(string_reverse(newname),"/");
+	char* nombreNuevo = string_reverse(pathPartido[0]) + '\0';
+
+
+	if(TamanioNombreAdecuado(nombreNuevo)){
+
+		int index = 0;
+
+		while (index < 17)
+		{
+			if ((nombreNuevo[index]) != '\0')
+				(indice_tabla_archivos)->fname[index] = (nombreNuevo[index]);
+			else
+				(indice_tabla_archivos)->fname[index] = '\0';
+			//(indice_tabla_archivos+tablaArchivosId)->fname[index] = *((splitPath[LongitudArray(splitPath)-1])+index);
+			index++;
+		}
+		returnValue = 0;
+	}
+	else returnValue = -EFBIG;
+
+	return returnValue;
 }
 
 static struct fuse_operations osada_oper = {
@@ -284,7 +271,8 @@ static struct fuse_operations osada_oper = {
 		.mkdir = osada_mkdir,
 		.rmdir = osada_rmdir,
 		.unlink = osada_unlink,
-		.truncate = osada_truncate
+		.truncate = osada_truncate,
+		.rename = osada_rename,
 };
 
 /** keys for FUSE_OPT_ options */
@@ -365,6 +353,33 @@ int TamanioEnBloques(int tamanioBytes)
 
 	return tam;
 }
+
+int DeleteBlocks(size_t blocks_to_delete, int directoryId){
+	pthread_mutex_lock(&mutex_escritura_disco);
+	bool algo;
+	int i = 0;
+
+	t_bitarray *bitmap_aux = bitmap;
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=directoryId;
+
+	int * indice_tabla_asignaciones = tabla_asignaciones;
+
+	int bloque_actual = indice_tabla_archivos->first_block;
+
+	while(i<blocks_to_delete){
+		algo = bitarray_test_bit(bitmap_aux,bloque_actual);
+
+		bitarray_clean_bit(bitmap_aux,bloque_actual);
+		i++;
+		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+	}
+
+	pthread_mutex_unlock(&mutex_escritura_disco);
+	return 0;
+}
+
 int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf)
 {
 	pthread_mutex_lock(&mutex_escritura_disco);
@@ -681,7 +696,7 @@ void CrearCarpeta(char * path, int tablaArchivosId, int parentDirectoryId)
 	if (parentDirectoryId == -1)
 	log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", 0xffff, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
 	else
-		log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", parentDirectoryId, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
+	log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", parentDirectoryId, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
 
 	log_trace(osada_log, "File Size: %d", (indice_tabla_archivos+tablaArchivosId)->file_size);
 }
@@ -817,7 +832,6 @@ void ImprimirTablaDeArchivos()
 		}
 		indice_tabla_archivos++;
 	}
-
 }
 
 void ImprimirUnBloqueDeBits(t_bitarray * bitmap, int * total, int * parcial)
@@ -866,22 +880,18 @@ void ImprimirUnBloqueDeBits(t_bitarray * bitmap, int * total, int * parcial)
 
 void ImprimirBloquesDelBitMap(t_bitarray * bitmap, int size, int * parcial, int * total)
 {
-	while(*parcial < size)
-			{
-				if ((int)(size - *parcial) >= 64)
-					ImprimirUnBloqueDeBits(bitmap, total, parcial);
-				else
-				{
-					log_trace(osada_log, "Impresion de a uno...");
-					while((int)(size - *parcial) > 0)
-					{
-						*parcial+=1;
-						*total+=1;
-						log_trace(osada_log,"%d Parcial:%d Total:%d",(int)bitarray_test_bit(bitmap, *total),(*parcial),(*total));
-					}
-				}
-
+	while(*parcial < size){
+		if ((int)(size - *parcial) >= 64)
+			ImprimirUnBloqueDeBits(bitmap, total, parcial);
+		else{
+			log_trace(osada_log, "Impresion de a uno...");
+			while((int)(size - *parcial) > 0){
+				*parcial+=1;
+				*total+=1;
+				log_trace(osada_log,"%d Parcial:%d Total:%d",(int)bitarray_test_bit(bitmap, *total),(*parcial),(*total));
 			}
+		}
+	}
 }
 
 
