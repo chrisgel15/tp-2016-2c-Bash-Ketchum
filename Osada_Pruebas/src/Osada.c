@@ -484,7 +484,11 @@ void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler)
 			{
 				if (indice_tabla_archivos->parent_directory == *parentId)
 				{
-					filler(buf, indice_tabla_archivos->fname, NULL, 0);
+					char * name = malloc(OSADA_FILENAME_LENGTH+1*sizeof(char));
+					strcpy(name, indice_tabla_archivos->fname);
+					*(name+OSADA_FILENAME_LENGTH) = '\0';
+					filler(buf, name, NULL, 0);
+					//filler(buf, "asdfgasdfgasdfgas", NULL, 0);
 				}
 			}
 			indice_tabla_archivos++;
