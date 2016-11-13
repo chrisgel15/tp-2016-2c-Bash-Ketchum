@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 
 	//printf("Adios Entrenador Pokemon!. \n");
 	//Liberar memoria dinamica -> TODO: encapsular en funcion
-	//free(entrenador);
+	free(entrenador);
 	return EXIT_SUCCESS;
 }
 
@@ -105,7 +105,7 @@ void system_call_catch(int signal){
 		log_info(entrenador_log, "Se ha enviado la señal SIGTERM. Se le restará una vida al Entrenador.");
 
 		if (!entrenador->vidas)
-		reiniciar_Hoja_De_Viaje();
+		reiniciar_Hoja_De_Viaje(0);
 		else
 
 			entrenador->vidas--;
@@ -402,12 +402,13 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 	case 'Y':
 	case 'y':
 		entrenador->reintentos++;
-		// Reiniciar hoja de viaje;
-		recorrer_hojaDeViaje(posHojaDeViaje);
+
 		// Borrar medallas obtenidas;
 		borrar_medallas();
 		// Borrar pokemones obtenidos;
 		borrar_pokemon();
+		// Reiniciar hoja de viaje;
+		recorrer_hojaDeViaje(posHojaDeViaje);
 		break;
 	case 'N':
 	case 'n':
@@ -421,10 +422,30 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 	}
 }
 
-void borrar_medallas(){
+
+void borrar_medallas(void){
+	char* medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
+	DIR* dir_medalla = opendir(medalla);
+	char* contenido = ".jpg";
+
+	borrar(dir_medalla,contenido);
 
 }
 
-void borrar_pokemon() {
+void borrar_pokemon(void){
+	char* bill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+	DIR* dir_bill = opendir(bill);
+	char * contenido = ".dat";
+	borrar(dir_bill,contenido);
 
+}
+
+void borrar(DIR* deDirectorio, char* contenido){
+	struct dirent *ep;
+	if(deDirectorio != NULL){
+		while(ep = readdir(deDirectorio)){
+			if(strstr((char*)deDirectorio,contenido) != NULL)
+				remove((char*)deDirectorio);
+		}
+	}
 }
