@@ -46,6 +46,7 @@ int retardo;
 
 //Interbloqueo
 int interbloqueo;
+t_list *lista_interbloqueo;
 
 //Nombre de Mapa
 char *nombre_mapa;
@@ -94,7 +95,7 @@ int main(int argc, char **argv) {
 
 	//Inicializamos el Listado de los Pokenests con sus respectivos Pokemons
 	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
-
+//
 	//Inicializamos Estructuras
 	inicializar_estructuras();
 
@@ -652,4 +653,111 @@ void liberar_recursos_entrenador(t_entrenador *entrenador){
 	log_info(mapa_log, "El Entrenador %s a abandonado el Mapa.", entrenador->nombre);
 	free(entrenador);
 	close(fd);
+}
+
+/* Funciones para la Gestion de Entrenadores Interbloqueados */
+void add_entrenadores_interbloqueados(char *key, void *entrenadores){
+	t_list *entrenadores_lista = (t_list *) entrenadores;
+	int cant_entrenadores = list_size(entrenadores_lista);
+	int cant_pokenets = list_size(lista_pokenests);
+	int i, j, cant_pokemons, pokenest_index;
+
+	for(i = 0; i < cant_entrenadores; i++){
+		t_entrenador_interbloqueado *interbloqueado = malloc(sizeof(t_entrenador_interbloqueado));
+		interbloqueado->entrenador = malloc(sizeof(t_entrenador));
+		interbloqueado->entrenador = (t_entrenador *) list_get(entrenadores, i);
+		interbloqueado->marcado = 0;
+		interbloqueado->solicitud = malloc(cant_pokenets * sizeof(int));
+		interbloqueado->asignacion = malloc(cant_pokenets * sizeof(int));
+		cant_pokemons = list_size(interbloqueado->entrenador->pokemons);
+
+		//Inicializo los Arrays
+		for(j = 0; j < cant_pokenets; j++){
+			interbloqueado->asignacion[j] = 0;
+			interbloqueado->solicitud[j] = 0;
+		}
+
+		//Armo Array de Asignaciones
+		for(j = 0; j < cant_pokemons; j++){
+			t_pokemon *pokemon = (t_pokemon *) list_get(interbloqueado->entrenador->pokemons, j);
+			pthread_mutex_lock(&mutex_pokenests);
+			pokenest_index = get_pokenest_index_by_pokemon_id(lista_pokenests, pokemon->pokenest_id);
+			pthread_mutex_unlock(&mutex_pokenests);
+			interbloqueado->asignacion[pokenest_index] = interbloqueado->asignacion[pokenest_index] + 1;
+		}
+
+		//Actualizo el Array de Solicitudes
+		pthread_mutex_lock(&mutex_pokenests);
+		pokenest_index = get_pokenest_index_by_pokemon_id(lista_pokenests, *interbloqueado->entrenador->pokemon_bloqueado);
+		pthread_mutex_unlock(&mutex_pokenests);
+		interbloqueado->solicitud[pokenest_index] = interbloqueado->solicitud[pokenest_index] + 1;
+
+		list_add(lista_interbloqueo, interbloqueado);
+	}
+}
+
+void chequear_interbloqueados(){
+	//sleep(interbloqueo);
+
+	int cant_pokenets = list_size(lista_pokenests);
+	int i, cant_entrenadores;
+	int *disponibles = malloc(cant_pokenets * sizeof(int));
+	lista_interbloqueo = list_create();
+	void (*add_entrenadores_interbloqueados) (char*, void*) = add_entrenadores_interbloqueados;
+	t_list *entrenadores_interbloqueados = list_create();
+	int modo_batalla = get_mapa_batalla_on_off(metadata);
+
+
+	//Preparo el Array de Disponobiles
+	pthread_mutex_lock(&mutex_pokenests);
+	for(i = 0; i < cant_pokenets; i++){
+		t_pokenest *pokenets = (t_pokenest *) list_get(lista_pokenests, i);
+		disponibles[i] = pokenets->cantPokemons;
+	}
+	pthread_mutex_unlock(&mutex_pokenests);
+
+	//Preparo la estructura de Entrenadores
+	pthread_mutex_lock(&mutex_cola_bloqueados);
+	dictionary_iterator(entrenadores_bloqueados, add_entrenadores_interbloqueados);
+	pthread_mutex_unlock(&mutex_cola_bloqueados);
+
+	cant_entrenadores = list_size(lista_interbloqueo);
+
+	//Marcos los entrenadores que no tienen recursos asignados
+	for(i = 0; i < cant_entrenadores; i++){
+		t_entrenador_interbloqueado *entrenador = (t_entrenador_interbloqueado *) list_get(lista_interbloqueo, i);
+
+		if(chequear_pokemones_sin_asignar(cant_pokenets, entrenador->asignacion)){
+			entrenador->marcado = 1; //Marco al Entrenador
+		}
+	}
+
+	//Busco los Entrenadores que no fueron marcados usando su matris de solicitud
+	int termino_ciclo = 0;
+
+	while(!termino_ciclo){
+		if(!recorrer_solicitudes(lista_interbloqueo, cant_pokenets, cant_entrenadores, disponibles)){
+			termino_ciclo = 1;
+		}
+	}
+
+	//Libero la lista de Chequeo de Interbloqueo
+	for(i = 0; i < cant_entrenadores; i++){
+		t_entrenador_interbloqueado *entrenador = (t_entrenador_interbloqueado *) list_remove(lista_interbloqueo, i);
+		if(!entrenador->marcado){
+			list_add(entrenadores_interbloqueados, entrenador->entrenador);
+		}
+
+		free(entrenador->asignacion);
+		free(entrenador->entrenador);
+		free(entrenador->solicitud);
+	}
+
+	list_destroy(lista_interbloqueo);
+
+	//Informar los entrenadores que estan interbloqueados por log
+
+	if(modo_batalla){
+
+	}
 }

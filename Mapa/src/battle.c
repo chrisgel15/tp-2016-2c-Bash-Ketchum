@@ -31,12 +31,12 @@ typedef enum {
 
 t_type_chart_damage type_chart[19][19];
 
-int extra_damage(t_pokemon* attacker, t_pokemon* defender);
+int extra_damage(t_pokemon_factory* attacker, t_pokemon_factory* defender);
 int signum(int number);
 
 
-t_pokemon* pkmn_battle(t_pokemon* first_pokemon, t_pokemon* second_pokemon) {
-  t_pokemon* loser;
+t_pokemon_factory* pkmn_battle(t_pokemon_factory* first_pokemon, t_pokemon_factory* second_pokemon) {
+	t_pokemon_factory* loser;
 
   t_result_pkmn_battle result = 
       (first_pokemon->level + extra_damage(first_pokemon, second_pokemon)) 
@@ -62,7 +62,7 @@ t_pokemon* pkmn_battle(t_pokemon* first_pokemon, t_pokemon* second_pokemon) {
 
 //Private functions
 
-int extra_damage(t_pokemon* attacker, t_pokemon* defender) {
+int extra_damage(t_pokemon_factory* attacker, t_pokemon_factory* defender) {
     t_type_chart_damage damage, alt_damage;
 
     damage = type_chart[attacker->type][defender->type];
