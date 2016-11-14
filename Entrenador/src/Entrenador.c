@@ -28,7 +28,6 @@ t_posicion_mapa *posicion_mapa;
 //void init_datos_entrenador(void);
 
 
-
 int main(int argc, char **argv) {
 
 	flag_fin_prog = false;
