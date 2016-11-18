@@ -36,6 +36,9 @@
 #define TAMANIO_MAXIMO_NOMBRE_ARCHIVO 17
 #define CONTAR_TODOS_LOS_BLOQUES -1
 #define SIN_BLOQUES_ASIGNADOS 0xFFFFFFFF
+#define LECTURA 1
+#define ESCRITURA 2
+#define NO_HAY_MAS_BLOQUES_POR_RW 0
 
 char * TipoDeArchivo (int tipo);
 int TamanioEnBloques(int tamanioBytes);
@@ -58,6 +61,9 @@ bool FindParentDirectoryByName(char * path, int * directoryId);
 bool TamanioNombreAdecuado(char * path);
 void CrearArchivoDirectorio(char * path, int tablaArchivosId, int parentDirectoryId, int state);
 int Crear(char * path, int state);
+int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int directoryId, char * buf, int operacion);
+int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion);
+int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion);
 
 struct stat osadaStat;
 int* pmap_osada;
@@ -146,7 +152,8 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 
 	FindDirectoryByName(path , directoryId);
 
-	return ReadBytesFromOffset(offset, size, *directoryId, buf);
+	//return ReadBytesFromOffset(offset, size, *directoryId, buf);
+	return LectoEscrituraFromOffset(offset, size, *directoryId, buf, LECTURA);
 }
 
 static int osada_truncate(const char * filename , off_t length)
@@ -234,7 +241,8 @@ static int osada_write (const char * path, const char * buf, size_t size, off_t 
 	if (CantidadBloquesLibres(cantBloquesAgregar) == cantBloquesAgregar)
 	{
 		// Agrego los bloques
-		res = WriteBytesFromOffset(off, size, *directoryId, buf);
+		//res = WriteBytesFromOffset(off, size, *directoryId, buf);
+		res = LectoEscrituraFromOffset(off, size, *directoryId, buf, ESCRITURA);
 	}
 	else
 		res = -ENOSPC;
@@ -499,6 +507,134 @@ int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId
 	return bytes_to_read;
 }
 
+int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int directoryId, char * buf, int operacion)
+{
+	// Solo para la lectura
+	char * aux_buf = malloc(sizeof(char) * bytes_to_rw);
+	char * indice_aux_buf = aux_buf;
+
+	// Ubico un puntero a la tabla de archivos para averiguar el primer bloque.
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos += directoryId;
+
+	int * indice_tabla_asignaciones = tabla_asignaciones;
+	char * indice_tabla_datos = tabla_datos;
+
+	int bloque_actual, bloque_anterior;
+
+	// Ver como funciona la lectura de archivo que no tiene bloques asignados
+	bloque_actual = AsignarBloqueActualLectoEscritura(indice_tabla_archivos, operacion);
+
+	// Para no leer mas que el tamaño del archivo...
+	if (operacion == LECTURA)
+		if (bytes_to_rw > (indice_tabla_archivos->file_size - offset_from))
+			bytes_to_rw = (indice_tabla_archivos->file_size - offset_from);
+
+	int bytes_remaining = bytes_to_rw;
+
+	// Ubico el bloque donde comenzar a escribir.
+	while (offset_from > OSADA_BLOCK_SIZE)
+	{
+		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+		offset_from -= OSADA_BLOCK_SIZE;
+	}
+
+	// Ubico el indice de los datos en el byte a comenzar a leer.
+	indice_tabla_datos += bloque_actual * OSADA_BLOCK_SIZE;
+	indice_tabla_datos += offset_from;
+
+	int bytes_a_rw = 0;
+
+	while (bytes_remaining > 0)
+	{
+		if (bytes_remaining > OSADA_BLOCK_SIZE)
+			bytes_a_rw = OSADA_BLOCK_SIZE - offset_from;
+		else
+			bytes_a_rw = bytes_remaining;
+
+		if (operacion == ESCRITURA)
+		{
+			memcpy((void *)indice_tabla_datos, buf, (bytes_a_rw));
+			buf += bytes_a_rw;
+		}
+		else
+		{
+			memcpy((void *)indice_aux_buf, indice_tabla_datos, (bytes_a_rw));
+			indice_aux_buf += bytes_a_rw;
+		}
+		indice_tabla_datos += bytes_a_rw;
+		offset_from += bytes_a_rw;
+		bytes_remaining -= bytes_a_rw;
+
+		// Si llegue al final de un bloque, muevo el puntero de la tabla de asignaciones...
+		if (offset_from == (OSADA_BLOCK_SIZE) && bytes_remaining != NO_HAY_MAS_BLOQUES_POR_RW)
+		{
+			bloque_actual = FinalDeBloqueLectoEscritura(indice_tabla_asignaciones, bloque_actual, operacion);
+
+			indice_tabla_datos = tabla_datos;
+			indice_tabla_datos += bloque_actual * OSADA_BLOCK_SIZE;
+			offset_from = 0;
+		}
+
+	}
+
+	if (operacion == ESCRITURA)
+	{
+		// Marco el fin de los bloques.
+		*(indice_tabla_asignaciones + bloque_actual) = 0xFFFFFFFF;
+		indice_tabla_archivos->file_size += bytes_to_rw;
+	}
+	else
+	{
+		memcpy(buf, ((char*)aux_buf), bytes_to_rw);
+	}
+
+
+//	pthread_mutex_unlock(&mutex_escritura_disco);
+	return bytes_to_rw;
+}
+
+int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion)
+{
+	int aux_bloque_actual;
+
+	if (indice_tabla_archivos->first_block == SIN_BLOQUES_ASIGNADOS)
+	{
+		// No tiene bloque inicial, asignarlo. // Solo para escritura
+		if (operacion == ESCRITURA)
+		{
+			aux_bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
+			indice_tabla_archivos->first_block = aux_bloque_actual;
+			SeteaBitEnBitMap(aux_bloque_actual);
+		}
+	}
+	else
+	{
+		aux_bloque_actual = indice_tabla_archivos->first_block;
+	}
+
+	return aux_bloque_actual;
+}
+
+int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion)
+{
+	int bloque_anterior;
+
+	if (operacion == ESCRITURA)
+	{
+		bloque_anterior = bloque_actual;
+		bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
+		SeteaBitEnBitMap(bloque_actual);
+		*(indice_tabla_asignaciones + bloque_anterior) = bloque_actual;
+	}
+	else
+	{
+		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+	}
+
+	return bloque_actual; // Es un nuevo bloque Actual
+
+}
 
 void UbicarPunteros()
 {
