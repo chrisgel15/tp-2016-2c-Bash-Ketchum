@@ -33,6 +33,8 @@
 #define OBJETIVO_NO_CUMPLIDO 	206
 #define POKEMON_CONCEDIDO 		207
 #define MUERTE			 		208
+#define VICTORIA				209
+#define DERROTA					210
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 

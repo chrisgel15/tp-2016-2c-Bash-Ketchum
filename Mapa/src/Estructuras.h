@@ -10,6 +10,7 @@
 
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
+#include <time.h>
 
 int cantidad_pokenest;
 
@@ -28,6 +29,7 @@ typedef struct {
 	int pokenx;		//posicion de la pokenest en el eje x
 	int pokeny;		//posicion de la pokenest en el eje y
 	t_list* pokemons; //En esta Lista se Encuentran los Pokemons que va atrapando el Entrenador
+	time_t tiempo_ingreso;
 } t_entrenador;
 
 typedef struct {
