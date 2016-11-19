@@ -145,9 +145,23 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 
 static int osada_truncate(const char * filename , off_t length)
 {
-	pthread_mutex_lock(&mutex_escritura_disco);
+	int * directoryId = malloc(sizeof(char)*4);
+	int cantBloques = 0, status = 0;
+
+	*directoryId = -1;
+
+	FindDirectoryByName(filename , directoryId);
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=*directoryId;
+
+	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+
+	DeleteBlocks(cantBloques,*directoryId);
+
+	indice_tabla_archivos->first_block = 0xFFFFFFFF;
+
 	return 0;
-	pthread_mutex_unlock(&mutex_escritura_disco);
 }
 
 static int osada_mkdir (const char * path, mode_t mode)
@@ -358,6 +372,7 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId){
 	pthread_mutex_lock(&mutex_escritura_disco);
 	bool algo;
 	int i = 0;
+	int offset_tabla_datos = 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
 
 	t_bitarray *bitmap_aux = bitmap;
 
@@ -369,9 +384,9 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId){
 	int bloque_actual = indice_tabla_archivos->first_block;
 
 	while(i<blocks_to_delete){
-		algo = bitarray_test_bit(bitmap_aux,bloque_actual);
+		algo = bitarray_test_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
 
-		bitarray_clean_bit(bitmap_aux,bloque_actual);
+		bitarray_clean_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
 		i++;
 		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
 	}
