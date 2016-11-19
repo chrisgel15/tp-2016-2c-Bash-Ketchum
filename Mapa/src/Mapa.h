@@ -51,7 +51,7 @@ t_entrenador *buscar_entrenador(int fd);
 void posicionar_entrenador_en_mapa(t_datos_mapa*,char* );
 void mover_entrenador_hacia_recurso(t_datos_mapa*,char*);
 
-void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenest_id);
+void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id);
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa);
 void enviar_posicion_pokenest(int fd, t_mensajes *mensajes);
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes);

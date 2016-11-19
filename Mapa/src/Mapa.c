@@ -381,7 +381,7 @@ t_entrenador *buscar_entrenador(int fd){
 	return NULL;
 }
 
-void entregar_pokemon(t_entrenador* entrenador, t_pokemon *pokemon, char pokenest_id){
+void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
 	int tamanio_nombre_archivo = string_length(pokemon->nombre_archivo);
 	list_add(entrenador->pokemons, pokemon);
 
@@ -582,7 +582,7 @@ void administrar_bloqueados(char *pokenest_id){
 
 		//Obtengo el Pokemon
 		pthread_mutex_lock(&mutex_pokenests);
-		t_pokemon *pokemon = get_pokemon_by_identificador(lista_pokenests, *pokenest_id);
+		t_pokemon_mapa *pokemon = get_pokemon_by_identificador(lista_pokenests, *pokenest_id);
 		pthread_mutex_unlock(&mutex_pokenests);
 
 		//Entregamos el Pokemon al Entrenador
@@ -629,7 +629,7 @@ void liberar_recursos_entrenador(t_entrenador *entrenador){
 	log_info(mapa_log, "Voy a liberar los recursos del Entrenador");
 
 	pthread_mutex_lock(&mutex_pokenests);
-	t_pokemon *pokemon;
+	t_pokemon_mapa *pokemon;
 	for(i = 0; i < cant_pokemons; i++){
 		pokemon = list_remove(entrenador->pokemons, 0); //Siempre saco el Pokemon que quedo en la posicion 0
 		//Agrego el Pokemon al Pokenest
@@ -679,7 +679,7 @@ void add_entrenadores_interbloqueados(char *key, void *entrenadores){
 
 		//Armo Array de Asignaciones
 		for(j = 0; j < cant_pokemons; j++){
-			t_pokemon *pokemon = (t_pokemon *) list_get(interbloqueado->entrenador->pokemons, j);
+			t_pokemon_mapa *pokemon = (t_pokemon_mapa *) list_get(interbloqueado->entrenador->pokemons, j);
 			pthread_mutex_lock(&mutex_pokenests);
 			pokenest_index = get_pokenest_index_by_pokemon_id(lista_pokenests, pokemon->pokenest_id);
 			pthread_mutex_unlock(&mutex_pokenests);
@@ -757,6 +757,7 @@ void chequear_interbloqueados(){
 
 	//Informar los entrenadores que estan interbloqueados por log
 
+	//Verifico si el Mapa se encuentra en modo batalla
 	if(modo_batalla){
 
 	}

@@ -51,6 +51,6 @@ int recorrer_solicitudes(t_list* interbloqueados, int cant_recursos, int entrena
 	return 0;
 }
 
-void liberar_batalla(t_list *entrenadores){
+t_entrenador *liberar_batalla(t_list *entrenadores){
 
 }

@@ -50,7 +50,7 @@ typedef struct {
 	char carater; //Caracter que representa al Pokemon
 	char *nombre_archivo; //Nombre del Archivo Correspondiente al Pokemon
 	char pokenest_id; //Caracter que va a representar al Pokenest
-} t_pokemon;
+} t_pokemon_mapa;
 
 //Estructuras para almacenar mensajes de los Entrenadores
 typedef struct {

@@ -16,6 +16,6 @@ int chequear_pokemones_sin_asignar(int cant_recuros, int *asignados);
 int chequear_disponible_menor_a_solicitud(int cant_recursos, int *solicitud, int *disponible);
 void sumar_asignacion_a_disponibles(int cant_recursos, int *asignacion, int *disponible);
 int recorrer_solicitudes(t_list* interbloqueados, int cant_recursos, int entrenadores_size, int *disponible);
-void liberar_batalla(t_list *entrenadores);
+t_entrenador *liberar_batalla(t_list *entrenadores); //Devuelve el Entrenador que perdio
 
 #endif /* INTERBLOQUEO_H_ */

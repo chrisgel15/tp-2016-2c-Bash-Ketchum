@@ -54,7 +54,7 @@
     t_pokemon_type type;
     t_pokemon_type second_type;
     t_level level;
-  } t_pokemon_factory;
+  } t_pokemon;
 
   typedef struct {
     t_dictionary* pkmn_data;
@@ -83,7 +83,7 @@
   * @params la fábrica desde donde construir, el nombre de la especie(ej. "pikachu") y el nivel como número
   * @return un puntero a un t_pokemon con la información ya cargada.
   */
-  t_pokemon_factory* create_pokemon(t_pkmn_factory* factory, char* species, t_level level);
+  t_pokemon* create_pokemon(t_pkmn_factory* factory, char* species, t_level level);
 
  /*
   * Pkmn Type a String

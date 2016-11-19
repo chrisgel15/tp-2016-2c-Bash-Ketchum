@@ -35,6 +35,6 @@
   * @params 2 pokémons que tengan al menos nivel y tipo
   * @return  El t_pokemon* del pokémon perdedor
   */
-  t_pokemon_factory* pkmn_battle(t_pokemon_factory* first_pokemon, t_pokemon_factory* second_pokemon);
+  t_pokemon* pkmn_battle(t_pokemon* first_pokemon, t_pokemon* second_pokemon);
 
 #endif

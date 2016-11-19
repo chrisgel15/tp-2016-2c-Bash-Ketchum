@@ -45,7 +45,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 				  while ((ent_pokenest_pokemon = readdir (dir_pokenest_pokemon)) != NULL) {
 
 					  if(!string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_doble) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, metada_file_name)){
-						  t_pokemon *pokemon = malloc(sizeof(t_pokemon));
+						  t_pokemon_mapa *pokemon = malloc(sizeof(t_pokemon_mapa));
 						  t_config *metadata_pokemon = get_pokemon_information(pokenest_pokemon_path, ent_pokenest_pokemon->d_name);
 						  pokemon->nivel = get_nivel_pokemon(metadata_pokemon);
 						  pokemon->nombre = pokenest->nombre;
@@ -91,7 +91,7 @@ t_pokenest *get_pokenest_by_identificador(t_list *lista_pokenest, char identific
 	return NULL;
 }
 
-t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificador){
+t_pokemon_mapa *get_pokemon_by_identificador(t_list *lista_pokenest, char identificador){
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenest, identificador);
 
 	if(pokenest != NULL){
@@ -106,7 +106,7 @@ t_pokemon *get_pokemon_by_identificador(t_list *lista_pokenest, char identificad
 	return NULL;
 }
 
-void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon *pokemon){
+void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon_mapa *pokemon){
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenest, pokemon->pokenest_id);
 
 	if(pokenest != NULL){
@@ -115,16 +115,16 @@ void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon *pokemon){
 	}
 }
 
-t_pokemon *get_pokemon_mas_fuerte(t_list *pokemons){
+t_pokemon_mapa *get_pokemon_mas_fuerte(t_list *pokemons){
 
 	int cant_pokemons = list_size(pokemons);
 
 	if(cant_pokemons > 0){
 		t_list *pokemons_ordenados = list_create();
 		list_add_all(pokemons_ordenados, pokemons); //Creamos una nueva lista que nos va a servir para ordenar
-		bool (*ordenar_pokemons)(t_pokemon *, t_pokemon *) = comparar_nivel_pokemons;
+		bool (*ordenar_pokemons)(t_pokemon_mapa *, t_pokemon_mapa *) = comparar_nivel_pokemons;
 		list_sort(pokemons_ordenados, ordenar_pokemons);
-		t_pokemon *pokemon =  (t_pokemon *)list_get(pokemons_ordenados, 0);
+		t_pokemon_mapa *pokemon =  (t_pokemon_mapa *)list_get(pokemons_ordenados, 0);
 		list_destroy(pokemons_ordenados);
 		return pokemon;
 	}
@@ -132,7 +132,7 @@ t_pokemon *get_pokemon_mas_fuerte(t_list *pokemons){
 	return NULL;
 }
 
-bool comparar_nivel_pokemons(t_pokemon *pokemon1, t_pokemon *pokemon2){
+bool comparar_nivel_pokemons(t_pokemon_mapa *pokemon1, t_pokemon_mapa *pokemon2){
 	return pokemon1->nivel > pokemon2->nivel;
 }
 
