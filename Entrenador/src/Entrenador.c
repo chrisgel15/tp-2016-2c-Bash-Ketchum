@@ -415,7 +415,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		borrar_pokemon();
 		// Reiniciar hoja de viaje;
 		close(socket_mapa);
-		sleep(2);
+		sleep(2);//PARA HACER PRUEBAS DE RECONEXION CON EL MAPA (SIN SLEEP TIRA ERROR )
 		log_info(entrenador_log, "Reinicia el recorrido de ruta de viaje ");
 		flag_reinicio = true;
 		break;
