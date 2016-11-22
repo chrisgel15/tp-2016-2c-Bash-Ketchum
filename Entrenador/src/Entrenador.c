@@ -106,7 +106,6 @@ void system_call_catch(int signal){
 		if (!entrenador->vidas)
 		reiniciar_Hoja_De_Viaje(0);
 		else
-
 			entrenador->vidas--;
 		break;
 
@@ -200,7 +199,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 				close(socket_mapa);
 				entrenador->vidas--;
 				// TODO BORRAR POKEMONS OBTENIDOS DE MAPA ACTUAL
-				recorrer_hojaDeViaje(posHojaDeViaje);
+				flag_reconexion = true;
 			}
 
 			break;
@@ -307,7 +306,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 		posObjetivoPorMapa = 0;
 		objetivosPorMapa = get_entrenador_objetivos_por_mapa(metadata, hojaDeViaje[posHojaDeViaje]);
 
-		while(estado != OBJETIVO_CUMPLIDO){
+		while(estado != OBJETIVO_CUMPLIDO && !flag_reinicio && !flag_reconexion){
 			switch(estado){
 				case UBICACION_POKENEST:
 					//solicitar_posicion_pokenest(metadata, hojaDeViaje[posHojaDeViaje], posHojaDeViaje);
@@ -342,6 +341,18 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 			}
 		}
 
+		if (flag_reinicio){
+			estado = CONECTARSE_MAPA;
+			posHojaDeViaje = 0;
+			flag_reinicio = false;
+		}
+		else {
+
+		if (flag_reconexion){
+			flag_reconexion = false;
+			estado = CONECTARSE_MAPA;
+		}
+		else{
 		//Espera la Medalla por Parte del Mapa
 		terminarObjetivo();
 
@@ -355,18 +366,14 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado);
 				//TODO DESCONECTARSE
 		} else {
-			/*socket_mapa = conectar_mapa(ruta_pokedex, hojaDeViaje[posHojaDeViaje]);
-			if(socket_mapa == 0){
-				perror("Ocurrio un error al intentarse conectar al Mapa.");
-				exit(1);
-			}
-			handshake();*/
+
 			estado = CONECTARSE_MAPA;
 		}
+
+		}
+}
 	}
 }
-
-
 void handshake(){
 
 		enviarInt(socket_mapa, SOY_ENTRENADOR);
@@ -407,7 +414,10 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		// Borrar pokemones obtenidos;
 		borrar_pokemon();
 		// Reiniciar hoja de viaje;
-		recorrer_hojaDeViaje(posHojaDeViaje);
+		close(socket_mapa);
+		sleep(2);
+		log_info(entrenador_log, "Reinicia el recorrido de ruta de viaje ");
+		flag_reinicio = true;
 		break;
 	case 'N':
 	case 'n':
@@ -415,6 +425,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		printf("Abandonaste el juego, se cerrará la conexión y terminará el proceso");
 		close(socket_mapa);
 		flag_fin_prog = true;
+		exit(1);
 		break;
 	default:
 		break;
@@ -426,7 +437,6 @@ void borrar_medallas(void){
 	char* medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
 	DIR* dir_medalla = opendir(medalla);
 	char* contenido = ".jpg";
-
 	borrar(dir_medalla,contenido);
 
 }
