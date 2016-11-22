@@ -222,6 +222,7 @@ int Crear(char * path, int state)
 
 int osada_rmdir (const char* filename){
 
+
 	osada_file *indice_tabla_archivos = tabla_archivos;
 	int * directoryId = malloc(sizeof(char)*4);
 
@@ -936,7 +937,7 @@ int BuscaPrimerEspacioDisponibleEnTablaArchivos()
 	int index = 0;
 	bool hayEspacio = false;
 
-	while(!hayEspacio && index < OSADA_CANTIDAD_MAXIMA_ARCHIVOS - 1)
+	while(!hayEspacio && index < OSADA_CANTIDAD_MAXIMA_ARCHIVOS)
 	{
 		if ((indice_tabla_archivos+index)->state == 0)
 			hayEspacio = true;
@@ -1156,7 +1157,7 @@ void ImprimirTablaDeArchivos()
 
 	for (j = 0 ; j < OSADA_CANTIDAD_MAXIMA_ARCHIVOS ; j++)
 	{
-		if ((int)indice_tabla_archivos->state != 0)
+		//if ((int)indice_tabla_archivos->state != 0)
 		{
 			log_info(osada_log, " ---- Archivo %d ---- ", j);
 			log_info(osada_log, "Estado: %s", TipoDeArchivo((int)indice_tabla_archivos->state));
@@ -1164,9 +1165,9 @@ void ImprimirTablaDeArchivos()
 			log_info(osada_log, "Tamanio: %d bytes - %d bloques", indice_tabla_archivos->file_size, TamanioEnBloques(indice_tabla_archivos->file_size));
 			log_info(osada_log, "Directorio Padre: %04x hexa - %d decimal", indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
 			log_info(osada_log, "Primer Bloque: %04x hexa - %d decimal", indice_tabla_archivos->first_block, indice_tabla_archivos->first_block);
-			ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
+			//ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
 			log_info(osada_log, "Fecha Ultima Modificacion: %d\n", indice_tabla_archivos->lastmod);
-			GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
+			//GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
 		}
 		indice_tabla_archivos++;
 	}
