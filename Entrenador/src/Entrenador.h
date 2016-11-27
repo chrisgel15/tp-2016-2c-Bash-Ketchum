@@ -42,7 +42,7 @@ void solicitar_posicion_pokenest(char *pokemon);
 
 int conectar_mapa(char*, char*);
 
-void capturar_pokemon(char*, t_list*, int);
+void capturar_pokemon(char*, t_list*, int, int*);
 
 int avanzar_hacia_pokenest();
 
@@ -50,7 +50,7 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest);
 
 void terminarObjetivo();
 
-void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado);
+void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado, int );
 
 void recorrer_hojaDeViaje(int posHojaDeViaje);
 
@@ -63,5 +63,7 @@ void handshake();
 void borrar_medallas();
 
 void borrar_pokemon();
+
+void borrar_pokemons_de_un_mapa(t_list * pokemons);
 
 #endif /* ENTRENADOR_H_ */
