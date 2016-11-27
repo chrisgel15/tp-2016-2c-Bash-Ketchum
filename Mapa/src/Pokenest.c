@@ -49,7 +49,7 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 						  t_config *metadata_pokemon = get_pokemon_information(pokenest_pokemon_path, ent_pokenest_pokemon->d_name);
 						  pokemon->nivel = get_nivel_pokemon(metadata_pokemon);
 						  pokemon->nombre = pokenest->nombre;
-						  pokemon->nombre_archivo = ent_pokenest_pokemon->d_name;
+						  pokemon->nombre_archivo = string_duplicate(ent_pokenest_pokemon->d_name);
 						  pokemon->pokenest_id = pokenest->caracter;
 						  queue_push(pokenest->pokemons, pokemon);
 					  }
@@ -99,7 +99,7 @@ t_pokemon_mapa *get_pokemon_by_identificador(t_list *lista_pokenest, char identi
 
 		if(tamanio_cola_pokemons > 0){
 			pokenest->cantPokemons = pokenest->cantPokemons - 1;
-			return queue_pop(pokenest->pokemons);
+			return (t_pokemon_mapa *)queue_pop(pokenest->pokemons);
 		}
 	}
 

@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
 
 	//Inicializamos el Listado de los Pokenests con sus respectivos Pokemons
 	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
-//
+
 	//Inicializamos Estructuras
 	inicializar_estructuras();
 
@@ -201,21 +201,24 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 }
 
 void remover_entrenador_de_bloqueados(t_entrenador *entrenador){
-	pthread_mutex_lock(&mutex_cola_bloqueados);
+	//pthread_mutex_lock(&mutex_cola_bloqueados);
 	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
 	t_list *entrenadores = bloqueados->entrenadores->elements;
 	int i, entrenadores_size = list_size(entrenadores);
 
+	log_info(mapa_log, "Voy a ver los entrenadores que se encuentran en %s.", entrenador->pokemon_bloqueado);
 	for(i = 0; i < entrenadores_size; i++){
 		t_entrenador *entrenador_bloqueado = list_get(entrenadores, i);
-		if(entrenador_bloqueado == entrenador){
-			list_remove(entrenadores, entrenador);
+		log_info(mapa_log, "Hola entrenador Bloqueado %s.", entrenador_bloqueado->nombre);
+		if(entrenador_bloqueado->id == entrenador->id){
+			log_info(mapa_log, "Se encontro coincidencia!!!.");
+			t_entrenador *entrenador_bloqueado = (t_entrenador *)list_remove(entrenadores, i);
 		}
 	}
 
 	sem_wait(&sem_entrenadores_bloqueados[bloqueados->sem_index]); //Decremento el Semaforo
 
-	pthread_mutex_unlock(&mutex_cola_bloqueados);
+	//pthread_mutex_unlock(&mutex_cola_bloqueados);
 	log_info(mapa_log, "El Entrenador %s fue eliminado de la Lista de Bloqueados.", entrenador->nombre);
 }
 
@@ -680,15 +683,10 @@ void liberar_recursos_entrenador(t_entrenador *entrenador){
 
 /* Funciones para la Gestion de Entrenadores Interbloqueados */
 void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados){
-	log_trace(mapa_log, "Voy a agrearl los entrenadores bloqueados del Pokenest %s.", key);
 	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *) entrenadores_bloqueados;
 	t_list *entrenadores = (t_list *) bloqueados->entrenadores->elements;
-	log_trace(mapa_log, "Veo que onda con la cola de entrenadores");
-	log_trace(mapa_log, "quedo cola de entrenadores");
 	int cant_entrenadores = list_size(entrenadores);
-	log_trace(mapa_log, "quedo size de entrenadores");
 	int cant_pokenets = list_size(lista_pokenests);
-	log_trace(mapa_log, "quedo size de pkenest");
 	int i, j, cant_pokemons, pokenest_index;
 
 	log_trace(mapa_log, "Arranco a ver agregar los entrenadores bloqueados del Pokenest %s.", key);
@@ -730,7 +728,7 @@ void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados){
 void chequear_interbloqueados(){
 	while(1){
 		sleep(interbloqueo);
-
+		pthread_mutex_lock(&mutex_cola_bloqueados);
 		int cant_pokenets = list_size(lista_pokenests);
 		int i, cant_entrenadores;
 		int *disponibles = malloc(cant_pokenets * sizeof(int));
@@ -750,13 +748,15 @@ void chequear_interbloqueados(){
 		log_trace(mapa_log, "Prepare los disponibles.");
 
 		//Preparo la estructura de Entrenadores
-		pthread_mutex_lock(&mutex_cola_bloqueados);
+		//pthread_mutex_lock(&mutex_cola_bloqueados);
 		dictionary_iterator(entrenadores_bloqueados, add_entrenadores_interbloqueados_iterator);
-		pthread_mutex_unlock(&mutex_cola_bloqueados);
+		//pthread_mutex_unlock(&mutex_cola_bloqueados);
 
 		log_info(mapa_log, "Prepare el Listado.");
 
 		cant_entrenadores = list_size(lista_interbloqueo);
+
+		log_info(mapa_log, "Cantidad de Entrenadores Bloqueados: %d.", cant_entrenadores);
 
 		if(cant_entrenadores > 0){
 			//Marcos los entrenadores que no tienen recursos asignados
@@ -812,10 +812,16 @@ void chequear_interbloqueados(){
 		}
 
 		list_destroy(lista_interbloqueo);
+
+		pthread_mutex_unlock(&mutex_cola_bloqueados);
 	}
 }
 
 void batalla_pokemon(t_list *entrenadores){
+
+	int entrenadores_size = list_size(entrenadores);
+	log_info(mapa_log, "Se enfrentarán %d Entrenadores Pokemon!.", entrenadores_size);
+
 	t_entrenador *victima = (t_entrenador *)list_remove(entrenadores, 0);
 
 	while(list_size(entrenadores) > 0){
@@ -830,12 +836,15 @@ void batalla_pokemon(t_list *entrenadores){
 
 	log_info(mapa_log, "El Entrenador %s ha resultado el Perdedor de la Batalla Pokemon.", victima->nombre);
 
+	log_info(mapa_log, "Remuevo Entrenador %s de Bloqueados.", victima->nombre);
 	//Remuevo de los Entrenadores Bloqueados
 	remover_entrenador_de_bloqueados(victima);
 
+	log_info(mapa_log, "Envio el aviso de MUERTE al Entrenador %s.", victima->nombre);
 	//Informo de la Muerte al Entrenador
 	enviarInt(victima->fd, MUERTE);
 
+	log_info(mapa_log, "Libero los recursos del Entrenador %s.", victima->nombre);
 	//Libero los Recursos del Mismo
 	liberar_recursos_entrenador(victima);
 }
