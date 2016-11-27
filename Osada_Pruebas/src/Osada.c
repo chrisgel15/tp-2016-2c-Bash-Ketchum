@@ -173,6 +173,7 @@ static int osada_truncate(const char * filename , off_t length)
 	DeleteBlocks(cantBloques,*directoryId);
 
 	indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
+	indice_tabla_archivos->file_size = 0;
 
 	return 0;
 }
