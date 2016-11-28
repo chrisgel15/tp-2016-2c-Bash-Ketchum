@@ -46,7 +46,7 @@ void inicializar_estructuras();
 void atender_entrenador(int fd_entrenador, int codigo_instruccion);
 void recibir_nuevo_entrenador(int fd);
 void recibir_mensaje_entrenador(int fd);
-void despedir_entrenador(int fd_entrenador, int codigo_instruccion);
+void despedir_entrenador(int fd_entrenador);
 
 t_entrenador *buscar_entrenador(int fd);
 

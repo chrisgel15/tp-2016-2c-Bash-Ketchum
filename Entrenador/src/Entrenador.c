@@ -237,6 +237,7 @@ void terminarObjetivo(){
 	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
 	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
+	log_info(entrenador_log, "Recibi la Medalla %s.", ruta_medalla);
 
 }
 

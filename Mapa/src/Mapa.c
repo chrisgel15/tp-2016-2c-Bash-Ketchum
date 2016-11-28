@@ -27,7 +27,7 @@ t_list *lista_pokenests;
 
 //lista de items a dibujar en el mapa
 t_list* items;
-t_datos_mapa* datos_mapa;
+//t_datos_mapa* datos_mapa;
 
 //Log
 t_log *mapa_log;
@@ -98,11 +98,6 @@ int main(int argc, char **argv) {
 
 	//Inicializamos Estructuras
 	inicializar_estructuras();
-
-	//t_pokemon_mapa *pokemon1 = get_pokemon_by_identificador(lista_pokenests, 'P');
-	//t_pokemon_mapa *pokemon2 = get_pokemon_by_identificador(lista_pokenests, 'C');
-
-	//test_batalla(pokemon1, pokemon2);
 
 	//Manejo de System Calls
 	signal(SIGUSR2, system_call_catch);
@@ -247,10 +242,10 @@ void inicializar_estructuras(){
 	items = list_create();
 	mensajes_entrenadores = list_create();
 
-	datos_mapa = malloc(sizeof(t_datos_mapa));
+	//datos_mapa = malloc(sizeof(t_datos_mapa));
 	algoritmo=malloc(sizeof(char)*4);
-	datos_mapa->items = items;
-	datos_mapa->entrenador = NULL;
+	//datos_mapa->items = items;
+	//datos_mapa->entrenador = NULL;
 
 	//Semaforos
 	inicializar_semaforo_mensajes();
@@ -318,9 +313,9 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 			}
 			break;
 		default:
-			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador");
+			log_error(mapa_log, "Se ha producido un error al intentar atender a la peticion del Entrenador N° %d. Código recibido: %d", fd_entrenador, codigo_instruccion);
 			break;
-		}
+	}
 }
 
 void recibir_nuevo_entrenador(int fd){
@@ -355,9 +350,11 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->pokemons = list_create();
 	entrenador->tiempo_ingreso = time(NULL);
 
+	free(result);
+
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d.", entrenador->nombre, fd);
 
-	datos_mapa->entrenador = entrenador;
+	//datos_mapa->entrenador = entrenador;
 
 	//Creamos la estructura donde van a ir los mensajes
 	inicializar_mensajes_entrenador(mensajes_entrenadores, fd, mapa_log);
@@ -405,8 +402,9 @@ void recibir_mensaje_entrenador(int fd){
 	free(texto_enviar);
 }
 
-void despedir_entrenador(int fd_entrenador, int codigo_instruccion){
-
+//void despedir_entrenador(int fd_entrenador, int codigo_instruccion){
+void despedir_entrenador(int fd_entrenador){
+	log_info(mapa_log, "Se despide el Entrenador N° %d del Mapa.", fd_entrenador);
 }
 
 t_entrenador *buscar_entrenador(int fd){
@@ -435,9 +433,11 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
 		liberar_recursos_entrenador(entrenador, NULL);
 	} else {
+		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
+		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
+		agregar_entrenador_a_listos(entrenador);
 		//Resto el Recurso de la Interfaz de Mapa
 		disminuir_recursos_de_pokenest(items, pokenest_id, nombre_mapa);
-		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
 	}
 }
 
@@ -631,9 +631,9 @@ void administrar_bloqueados(char *pokenest_id){
 		//Entregamos el Pokemon al Entrenador
 		entregar_pokemon(entrenador, pokemon, *pokenest_id);
 
-		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
+		//log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
 
-		agregar_entrenador_a_listos(entrenador);
+		//agregar_entrenador_a_listos(entrenador);
 	}
 }
 
@@ -704,7 +704,7 @@ void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje){
 			enviarInt(fd, MUERTE);
 	}
 
-	close(fd);
+	//close(fd); //TODO: Ver como es este tema
 }
 
 /* Funciones para la Gestion de Entrenadores Interbloqueados */

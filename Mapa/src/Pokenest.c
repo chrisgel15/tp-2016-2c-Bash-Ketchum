@@ -70,6 +70,11 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 
 	  }
 	  closedir (dir_pokenest);
+	  free(punto_simple);
+	  free(punto_doble);
+	  free(metada_file_name);
+	  free(pokenest_path);
+	  free(pokenest_pokemon_path);
 
 	  return pokenest_list;
 
