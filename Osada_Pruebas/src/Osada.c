@@ -301,6 +301,7 @@ static int osada_mkdir (const char * path, mode_t mode)
 static int osada_write (const char * path, const char * buf, size_t size, off_t off,
 		      struct fuse_file_info * fi)
 {
+	pthread_mutex_lock(&mutex_escritura_disco);
 	int res = 0;
 	int * directoryId = malloc(sizeof(char)*4);
 	*directoryId = -1;
@@ -337,7 +338,7 @@ static int osada_write (const char * path, const char * buf, size_t size, off_t 
 
 
 
-
+	pthread_mutex_unlock(&mutex_escritura_disco);
 	return res;
 }
 
@@ -471,158 +472,9 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId){
 	return 0;
 }
 
-int WriteBytesFromOffset(off_t offset_from, size_t bytes_to_write, int directoryId, char * buf)
-{
-	//	pthread_mutex_lock(&mutex_escritura_disco);
-	//	char * aux_buf = malloc(sizeof(char)*bytes_to_write);
-	//	char * indice_aux_buf = aux_buf;
-
-		// Ubico un puntero a la tabla de archivos para averiguar el primer bloque.
-		osada_file * indice_tabla_archivos = tabla_archivos;
-		indice_tabla_archivos+=directoryId;
-
-		int * indice_tabla_asignaciones = tabla_asignaciones;
-		char * indice_tabla_datos = tabla_datos;
-
-		int bloque_actual, bloque_anterior;
-
-		if (indice_tabla_archivos->first_block != SIN_BLOQUES_ASIGNADOS)
-			bloque_actual = indice_tabla_archivos->first_block;
-		else
-		{// No tiene bloque inicial, asignarlo.
-			bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
-			indice_tabla_archivos->first_block = bloque_actual;
-			SeteaBitEnBitMap(bloque_actual);
-		}
-
-
-
-//	// Para no leer mas que el tamaño del archivo... // Esto para escribir me parece que es al pedo...
-//		if (bytes_to_write > (indice_tabla_archivos->file_size-offset_from))
-//			bytes_to_write = (indice_tabla_archivos->file_size-offset_from);
-
-		int bytes_remaining = bytes_to_write;
-
-		// Ubico el bloque donde comenzar a escribir.
-		while(offset_from > OSADA_BLOCK_SIZE)
-		{
-			bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
-			offset_from -= OSADA_BLOCK_SIZE;
-		}
-
-//		// Ubico el indice de los datos en el byte a comenzar a leer.
-		indice_tabla_datos += bloque_actual*OSADA_BLOCK_SIZE;
-		indice_tabla_datos += offset_from;
-
-		int bytes_a_escribir = 0;
-
-		while (bytes_remaining > 0)
-		{
-			if (bytes_remaining > OSADA_BLOCK_SIZE)
-				bytes_a_escribir = OSADA_BLOCK_SIZE - offset_from;
-			else
-				bytes_a_escribir = bytes_remaining;
-
-			memcpy((void *)indice_tabla_datos,buf,(bytes_a_escribir));
-			buf += bytes_a_escribir;
-			indice_tabla_datos += bytes_a_escribir;
-			offset_from += bytes_a_escribir;
-			bytes_remaining -= bytes_a_escribir;
-
-//			// Si llegue al final de un bloque, muevo el puntero de la tabla de asignaciones...
-			if (offset_from == (OSADA_BLOCK_SIZE))
-			{
-				bloque_anterior = bloque_actual;
-				bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
-				//bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
-				SeteaBitEnBitMap(bloque_actual);
-				*(indice_tabla_asignaciones + bloque_anterior) = bloque_actual;
-				indice_tabla_datos = tabla_datos;
-				indice_tabla_datos += bloque_actual*OSADA_BLOCK_SIZE;
-				offset_from = 0;
-			}
-
-
-		}
-
-		// Marco el fin de los bloques.
-		*(indice_tabla_asignaciones + bloque_actual) = 0xFFFFFFFF;
-		indice_tabla_archivos->file_size += bytes_to_write;
-
-//		memcpy(buf,((char*)aux_buf),bytes_to_write);
-
-	//	pthread_mutex_unlock(&mutex_escritura_disco);
-		return bytes_to_write;
-}
-
-int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf)
-{
-//	pthread_mutex_lock(&mutex_escritura_disco);
-	char * aux_buf = malloc(sizeof(char)*bytes_to_read);
-	char * indice_aux_buf = aux_buf;
-
-	// Ubico un puntero a la tabla de archivos para averiguar el primer bloque.
-	osada_file * indice_tabla_archivos = tabla_archivos;
-	indice_tabla_archivos+=directoryId;
-
-	int * indice_tabla_asignaciones = tabla_asignaciones;
-	char * indice_tabla_datos = tabla_datos;
-
-	int bloque_actual = indice_tabla_archivos->first_block;
-
-
-// Para no leer mas que el tamaño del archivo...
-	if (bytes_to_read > (indice_tabla_archivos->file_size-offset_from))
-		bytes_to_read = (indice_tabla_archivos->file_size-offset_from);
-
-	int bytes_remaining = bytes_to_read;
-
-	// Ubico el bloque donde comenzar a leer.
-	while(offset_from > OSADA_BLOCK_SIZE)
-	{
-		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
-		offset_from -= OSADA_BLOCK_SIZE;
-	}
-
-	// Ubico el indice de los datos en el byte a comenzar a leer.
-	indice_tabla_datos += bloque_actual*OSADA_BLOCK_SIZE;
-	indice_tabla_datos += offset_from;
-
-	int bytes_a_leer = 0;
-
-	while (bytes_remaining > 0)
-	{
-		if (bytes_remaining > OSADA_BLOCK_SIZE)
-			bytes_a_leer = OSADA_BLOCK_SIZE - offset_from;
-		else
-			bytes_a_leer = bytes_remaining;
-
-		memcpy((void *)indice_aux_buf,indice_tabla_datos,(bytes_a_leer));
-		indice_aux_buf += bytes_a_leer;
-		indice_tabla_datos += bytes_a_leer;
-		offset_from += bytes_a_leer;
-		bytes_remaining -= bytes_a_leer;
-
-		// Si llegue al final de un bloque, muevo el puntero de la tabla de asignaciones...
-		if (offset_from == (OSADA_BLOCK_SIZE))
-		{
-			bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
-			indice_tabla_datos = tabla_datos;
-			indice_tabla_datos += bloque_actual*OSADA_BLOCK_SIZE;
-			offset_from = 0;
-		}
-
-
-	}
-
-	memcpy(buf,((char*)aux_buf),bytes_to_read);
-
-//	pthread_mutex_unlock(&mutex_escritura_disco);
-	return bytes_to_read;
-}
-
 int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int directoryId, char * buf, int operacion)
 {
+
 	// Solo para la lectura
 	char * aux_buf = malloc(sizeof(char) * bytes_to_rw);
 	char * indice_aux_buf = aux_buf;
@@ -703,8 +555,6 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		memcpy(buf, ((char*)aux_buf), bytes_to_rw);
 	}
 
-
-//	pthread_mutex_unlock(&mutex_escritura_disco);
 	return bytes_to_rw;
 }
 
