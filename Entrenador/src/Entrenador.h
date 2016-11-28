@@ -70,4 +70,6 @@ void borrar_pokemon();
 
 void borrar_pokemons_de_un_mapa(t_list * pokemons);
 
+void liberar_recursos();
+
 #endif /* ENTRENADOR_H_ */
