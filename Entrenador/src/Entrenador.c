@@ -26,6 +26,8 @@ t_posicion_mapa *posicion_mapa;
 
 // Funciones utilitarias //
 //void init_datos_entrenador(void);
+void borrar(DIR*, char*, char*);
+void borrar_del_mapa(char*, char*);
 
 
 int main(int argc, char **argv) {
@@ -65,32 +67,9 @@ int main(int argc, char **argv) {
 	signal(SIGUSR1, system_call_catch);
 	signal(SIGKILL,system_call_catch);
 
-
-
-	//printf("Bienvenido Entrenador %s! \n", nombre_entrendor);
-
-	/*socket_mapa = conectar_mapa(ruta_pokedex,hojaDeViaje[0]);
-	if(socket_mapa == 0){
-		perror("Ocurrio un error al intentarse conectar al Mapa.");
-		exit(1);
-	}*/
-
-	//handshake(nombre_entrendor);
-
-	//Creo el Hilo que va a esperar los mensajes del Servidor
-	//pthread_t chat_entrenadores;
-	//pthread_create(&chat_entrenadores, NULL, (void *) recibir_mensajes, NULL);
-
-	//Hilo para recorrer Hoja de Viaje
-	//pthread_t entrenador_hojaDeViaje;
-	//pthread_create(&entrenador_hojaDeViaje, NULL, (void *) recorrer_hojaDeViaje, ruta_pokedex);
-
 	//Comieza el viaje del Entreandor
 	recorrer_hojaDeViaje(0);
 
-
-
-	//printf("Adios Entrenador Pokemon!. \n");
 	//Liberar memoria dinamica -> TODO: encapsular en funcion
 	liberar_recursos();
 	return EXIT_SUCCESS;
@@ -125,25 +104,7 @@ void system_call_catch(int signal){
 	}
 }
 
-//Funcion para primer Check Point que se va a encargar de recibir mensajes del Servidor
-//void recibir_mensajes(){
-//	int tamanio_mensaje_recibido;
-//	int *result = malloc(sizeof(u_int32_t));
-//	char *mensaje_recibio = NULL;
-//
-//	//A la espera de recibir mensajes del servidor
-//	while(1){
-//		tamanio_mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
-//		if(*result > 0){
-//			mensaje_recibio = malloc(sizeof(char) * tamanio_mensaje_recibido);
-//			recibirMensaje(socket_mapa, mensaje_recibio, tamanio_mensaje_recibido, entrenador_log);
-//			printf("%s \n", mensaje_recibio);
-//		} else {
-//			perror("Ocurrio un error al intentar recibir un mensaje del Servidor. FIN!.");
-//			exit(0);
-//		}
-//	}
-//}
+
 
 int conectar_mapa(char* ruta_pokedex, char *mapa){
 	ltn_sock_addinfo *ltn_cliente_entrenador;
@@ -442,10 +403,13 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 
 
 void borrar_medallas(void){
-	char* medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
-	DIR* dir_medalla = opendir(medalla);
-	char* contenido = ".jpg";
-	borrar(dir_medalla,contenido);
+	char* path_medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
+	DIR* dir_medalla = opendir(path_medalla);
+	char *contenido = string_new();
+	string_append(&contenido,".jpeg");
+	borrar(dir_medalla,contenido,path_medalla);
+	closedir(dir_medalla);
+	free(contenido);
 
 }
 
@@ -459,29 +423,68 @@ void liberar_recursos(){
 }
 
 void borrar_pokemon(void){
-	char* bill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
-	DIR* dir_bill = opendir(bill);
-	char * contenido = ".dat";
-	borrar(dir_bill,contenido);
+	char* path_pokemon = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+	DIR* dir_bill = opendir(path_pokemon);
+	char *contenido = string_new();
+	string_append(&contenido,".dat");
+	borrar(dir_bill,contenido,path_pokemon);
+	closedir(dir_bill);
+	free(contenido);
 
 }
 
-void borrar(DIR* deDirectorio, char* contenido){
-	struct dirent *ep;
-	if(deDirectorio != NULL){
-		while(ep = readdir(deDirectorio)){
-			if(strstr((char*)deDirectorio,contenido) != NULL)
-				remove((char*)deDirectorio);
+void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
+	char* archivo = string_new();
+	char* path_total = string_new();
+	char* ret = string_new();
+	int rem;
+	int cant_archivos = 0; //variable para verificar la cantidad de archivos en el directorio
+						   //durante debug
+	struct dirent *ep = malloc(sizeof(struct dirent));
+
+	memset(ep->d_name, '\0', sizeof(ep->d_name));
+
+	if (deDirectorio != NULL) {
+		while ((ep = readdir(deDirectorio)) != NULL) {
+			if ((strcmp(ep->d_name, ".") != 0)
+					&& (strcmp(ep->d_name, "..") != 0)) {
+				cant_archivos++;
+				string_append(&ret, strstr(ep->d_name, contenido));
+				if (*ret != '\0') {
+					string_append(&archivo, ep->d_name);
+					string_append(&path_total, path_dir);
+					string_append(&path_total, "/");
+					string_append(&path_total, archivo);
+					rem = remove(path_total);
+					ret = strcpy(ret, "");
+					archivo = strcpy(archivo, "");
+					path_total = strcpy(path_total, "");
+				}
+			}
 		}
 	}
 }
 
 
 void borrar_pokemons_de_un_mapa(t_list * pokemons){
-	char* bill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
-	DIR* dir_bill = opendir(bill);
+	char* path_pokemon = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
 	int i;
 	for (i=0;i<list_size(pokemons);i++) {
-	borrar(dir_bill, list_get(pokemons,i));
+		borrar_del_mapa(path_pokemon, list_get(pokemons,i));
 	}
+}
+
+void borrar_del_mapa(char* directorio, char* archivo) {
+	char* path_total = string_new();
+	int rem;
+
+	string_append(&path_total, directorio);
+	string_append(&path_total, "/");
+	string_append(&path_total, archivo);
+	rem = remove(path_total);
+
+	archivo = strcpy(archivo, "");
+	path_total = strcpy(path_total, "");
+
+	free(path_total);
 }

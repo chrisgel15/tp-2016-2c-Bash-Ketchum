@@ -36,7 +36,8 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador);
 t_entrenador *remover_entrenador_listo_por_RR();
 t_entrenador *remover_entrenador_listo_por_SRDF();
 void agregar_entrenador_a_bloqueados(t_entrenador *);
-void remover_entrenador_de_bloqueados(t_entrenador *entrenador);
+void sumar_recurso_pokemon(t_pokemon_mapa *pokemon);
+t_entrenador * remover_entrenador_de_bloqueados(t_entrenador *entrenador);
 
 /********* FUNCIONES DE INICIALIZACION *********/
 void inicializar_estructuras();
@@ -79,7 +80,7 @@ void set_quantum();
 void set_retardo();
 void set_interbloqueo();
 
-void liberar_recursos_entrenador(t_entrenador *entrenador);
+void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje);
 
 /* Funciones para la Gestion de Entrenadores Interbloqueados */
 void add_entrenadores_interbloqueados(char *key, void *entrenadores);
