@@ -35,7 +35,8 @@ int doBind(ltn_sock_addinfo * sockAddrInfo) {
 	//returnSock->socketNumber = sockAddrInfo->sockNum->socketNumber;
 
 	freeaddrinfo(sockAddrInfo->serverinfo); // free the linked-list
-	free(sockAddrInfo);
+	//free(sockAddrInfo);
+	myFree((void *)sockAddrInfo, "sockAddrInfo", mySocketLog);
 
 	return returnSock;
 
