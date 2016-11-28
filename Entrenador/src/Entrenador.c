@@ -26,6 +26,8 @@ t_posicion_mapa *posicion_mapa;
 
 // Funciones utilitarias //
 //void init_datos_entrenador(void);
+void borrar(DIR*, char*, char*);
+void borrar_del_mapa(char*, char*);
 
 
 int main(int argc, char **argv) {
@@ -433,18 +435,21 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	memset(ep->d_name, '\0', sizeof(ep->d_name));
 
 	if (deDirectorio != NULL) {
-		if ((strcmp(ep->d_name, ".") != 0) && (strcmp(ep->d_name, "..") != 0)) {
-			cant_archivos++;
-			string_append(&ret, strstr(ep->d_name, contenido));
-			if (*ret != '\0') {
-				string_append(&archivo, ep->d_name);
-				string_append(&path_total, path_dir);
-				string_append(&path_total, "/");
-				string_append(&path_total, archivo);
-				rem = remove(path_total);
-				ret = strcpy(ret, "");
-				archivo = strcpy(archivo, "");
-				path_total = strcpy(path_total, "");
+		while ((ep = readdir(deDirectorio)) != NULL) {
+			if ((strcmp(ep->d_name, ".") != 0)
+					&& (strcmp(ep->d_name, "..") != 0)) {
+				cant_archivos++;
+				string_append(&ret, strstr(ep->d_name, contenido));
+				if (*ret != '\0') {
+					string_append(&archivo, ep->d_name);
+					string_append(&path_total, path_dir);
+					string_append(&path_total, "/");
+					string_append(&path_total, archivo);
+					rem = remove(path_total);
+					ret = strcpy(ret, "");
+					archivo = strcpy(archivo, "");
+					path_total = strcpy(path_total, "");
+				}
 			}
 		}
 	}
@@ -452,11 +457,25 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 
 
 void borrar_pokemons_de_un_mapa(t_list * pokemons){
-	char* bill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
-	DIR* dir_bill = opendir(bill);
+	char* path_pokemon = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
 	int i;
 	for (i=0;i<list_size(pokemons);i++) {
-	borrar(dir_bill, list_get(pokemons,i));
+		borrar_del_mapa(path_pokemon, list_get(pokemons,i));
 	}
 
+}
+
+void borrar_del_mapa(char* directorio, char* archivo) {
+	char* path_total = string_new();
+	int rem;
+
+	string_append(&path_total, directorio);
+	string_append(&path_total, "/");
+	string_append(&path_total, archivo);
+	rem = remove(path_total);
+
+	archivo = strcpy(archivo, "");
+	path_total = strcpy(path_total, "");
+
+	free(path_total);
 }
