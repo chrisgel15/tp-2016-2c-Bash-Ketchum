@@ -92,11 +92,7 @@ int main(int argc, char **argv) {
 
 	//printf("Adios Entrenador Pokemon!. \n");
 	//Liberar memoria dinamica -> TODO: encapsular en funcion
-	free(entrenador);
-	free(nombre_entrendor);
-	free(ruta_pokedex);
-	free(posicion_pokenest);
-	free(posicion_mapa);
+	liberar_recursos();
 	return EXIT_SUCCESS;
 }
 
@@ -152,7 +148,7 @@ void system_call_catch(int signal){
 int conectar_mapa(char* ruta_pokedex, char *mapa){
 	ltn_sock_addinfo *ltn_cliente_entrenador;
 	t_config * metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
-	char *mapa_puerto =string_itoa(get_mapa_puerto(metadata_mapa));
+	char *mapa_puerto = string_itoa(get_mapa_puerto(metadata_mapa));
 	char *mapa_ip = get_mapa_ip( metadata_mapa);
 	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
 	int socket_mapa = doConnect(ltn_cliente_entrenador);
@@ -160,6 +156,8 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 	free(metadata_mapa);
 	free(mapa_puerto);
 	free(mapa_ip);
+	//free(ltn_cliente_entrenador);
+	//free(metadata_mapa);
 	return socket_mapa;
 }
 
@@ -183,7 +181,6 @@ void solicitar_posicion_pokenest(char *pokemon){
 void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte){
 	int *result = malloc(sizeof(int));
 	int tamanio_archivo, instruccion;
-	char* nombre_archivo;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, nombre_pokemon);
@@ -191,11 +188,13 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 	switch (instruccion=recibirInt(socket_mapa, result, entrenador_log)) {
 		case POKEMON_CONCEDIDO:
 			tamanio_archivo = recibirInt(socket_mapa, result, entrenador_log);
-			nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
+			char* nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
 			//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
-		log_info(entrenador_log, "%s",nombre_archivo);
+			log_info(entrenador_log, "%s",nombre_archivo);
+			free(result);
+			free(nombre_archivo);
 			break;
 		case MUERTE:
 			printf("Ha muerto en una batalla");
@@ -208,7 +207,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 				borrar_pokemons_de_un_mapa(pokemons);
 				flag_reconexion = true;
 			}
-
+			free(result);
 			break;
 	}
 }
@@ -372,6 +371,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 				total_tiempo_viaje = difftime(fin_De_Viaje,inicio_De_Viaje);
 				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado, cantidad_muerte);
 				close(socket_mapa);
+				free(pokemons_atrapados);
 		} else {
 
 			estado = CONECTARSE_MAPA;
@@ -422,7 +422,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		borrar_pokemon();
 		// Reiniciar hoja de viaje;
 		close(socket_mapa);
-		sleep(2);//PARA HACER PRUEBAS DE RECONEXION CON EL MAPA (SIN SLEEP TIRA ERROR )
+		sleep(2); //PARA HACER PRUEBAS DE RECONEXION CON EL MAPA (SIN SLEEP TIRA ERROR )
 		log_info(entrenador_log, "Reinicia el recorrido de ruta de viaje ");
 		flag_reinicio = true;
 		break;
@@ -432,6 +432,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		printf("Abandonaste el juego, se cerrará la conexión y terminará el proceso");
 		close(socket_mapa);
 		flag_fin_prog = true;
+		liberar_recursos();
 		exit(1);
 		break;
 	default:
@@ -446,6 +447,15 @@ void borrar_medallas(void){
 	char* contenido = ".jpg";
 	borrar(dir_medalla,contenido);
 
+}
+
+void liberar_recursos(){
+		free(entrenador->nombre);
+		free(entrenador);
+		free(nombre_entrendor);
+		free(ruta_pokedex);
+		free(posicion_pokenest);
+		free(posicion_mapa);
 }
 
 void borrar_pokemon(void){
@@ -474,5 +484,4 @@ void borrar_pokemons_de_un_mapa(t_list * pokemons){
 	for (i=0;i<list_size(pokemons);i++) {
 	borrar(dir_bill, list_get(pokemons,i));
 	}
-
 }
