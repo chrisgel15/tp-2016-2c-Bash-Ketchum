@@ -20,6 +20,10 @@
 #include <time.h>
 #include <commons/collections/list.h>
 #include <dirent.h>
+#include <string.h>
+#include <commons/string.h>
+#include <errno.h>
+#include <sys/types.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"
