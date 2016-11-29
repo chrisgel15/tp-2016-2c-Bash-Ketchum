@@ -24,6 +24,9 @@
 #include <commons/string.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "entrenador.log"

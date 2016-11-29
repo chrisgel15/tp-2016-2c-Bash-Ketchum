@@ -155,6 +155,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
 			//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
+			copiar_archivo(nombre_archivo, tamanio_archivo);
 			log_info(entrenador_log, "%s",nombre_archivo);
 			free(result);
 			//free(nombre_archivo);
@@ -515,4 +516,28 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 	path_total = strcpy(path_total, "");
 
 	free(path_total);
+}
+
+void copiar_archivo(char* path, char* nombre){
+	char* path_src = string_new();
+	char* path_dst = string_new();
+	char* mapArchSrc;
+	char* mapArchDst;
+	struct stat buf;
+	string_append(&path_src,path);
+	string_append(&path_src,"/");
+	string_append(&path_src,nombre);
+	string_append(&path_dst,path_src);
+	int fd_src = open(path_src, O_RDWR);
+	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
+	stat(path_src,&buf);
+	int tam = buf.st_size;
+	ftruncate(fd_dst,tam);
+	mapArchSrc = (char*)mmap(0, tam, PROT_READ, MAP_SHARED, fd_src, 0);
+	mapArchDst = (char*)mmap(0, tam, PROT_READ|PROT_WRITE, MAP_SHARED, fd_dst, 0);
+	memcpy(mapArchDst, mapArchSrc, tam);
+	munmap(mapArchSrc, tam);
+	munmap(mapArchDst, tam);
+
+
 }
