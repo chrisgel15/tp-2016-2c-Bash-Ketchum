@@ -36,6 +36,8 @@ int doConnect(ltn_sock_addinfo * sockAddrInfo) {
 
 	myFree(sockAddrInfo, "doConnect - sockAddrInfo", mySocketLog);
 
+	log_destroy(mySocketLog);
+
 	return returnSock;
 
 }

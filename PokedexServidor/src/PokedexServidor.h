@@ -33,11 +33,15 @@ int TamanioEnBloques(int tamanioBytes);
 void RecibirYProcesarPedido(int fdCliente);
 void ProcesarGetAttr(int fd);
 void ProcesarReadDir(int fd);
+void ProcesarRead(int fd);
 void SetAttrByDirectoryId(int directoryId, int fd);
 bool FindDirectoryByName(char * path, int * directoryId);
 bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId);
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler, int fd);
 char ** SplitPath(char * path);
+int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion);
+int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion);
+int BuscaPrimerEspacioDisponibleEnBitMap();
 
 // Test
 void ImprimirHeader();

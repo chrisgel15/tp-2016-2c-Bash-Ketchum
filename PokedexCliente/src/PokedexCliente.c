@@ -64,42 +64,9 @@ int main(int argc, char *argv[]) {
 
 // FUSE OPERATIONS
 static int osada_getattr(const char *path, struct stat *stbuf) {
+	pid_t threadId = syscall(__NR_gettid);
 
-	log_trace(pokedex_cliente_log, "Estoy en GETATTR. FD %d.", clientSocket);
-
-	memset(stbuf, 0, sizeof(struct stat));
-
-	if (strstr(path, ".Trash") != NULL ||
-				strstr(path, ".Trash-1000") != NULL ||
-					strstr(path, "xdg-volume-info") != NULL	||
-						strstr(path, "autorun.inf") != NULL )
-			return -ENOENT;
-
-	if (strcmp(path, "/" )== 0)
-	{
-		log_trace(pokedex_cliente_log, "Entro a '/'");
-		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 2;
-	}
-	else if (strcmp(path, "/directorio") == 0)
-	{
-		log_trace(pokedex_cliente_log, "Entro a '/directorio'");
-		stbuf->st_mode = S_IFDIR | 0755;
-		stbuf->st_nlink = 1;
-		stbuf->st_size = 0;
-	}
-	else
-	{
-		stbuf->st_mode = S_IFREG | 0444;
-		stbuf->st_nlink = 1;
-		stbuf->st_size = 1;
-	}
-
-	return 0;
-
-
-
-	log_trace(pokedex_cliente_log, "Fin GETATTR CORTO. FD %d", clientSocket);
+	log_trace(pokedex_cliente_log, "\nCOMIENZO UN GETATTR. FD %d. THREAD: %d", clientSocket, threadId);
 
 	int res = 0;
 //	int * directoryId = malloc(sizeof(char)*4);
@@ -109,8 +76,7 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 	if (strstr(path, ".Trash") != NULL ||
 			strstr(path, ".Trash-1000") != NULL ||
 				strstr(path, "xdg-volume-info") != NULL	||
-					strstr(path, "autorun.inf") != NULL ||
-						strstr(path, ".directory" != NULL ))
+					strstr(path, "autorun.inf") != NULL 	)
 		return -ENOENT;
 
 	if (strcmp(path, "/" )== 0)
@@ -121,7 +87,7 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 	}
 	else
 	{
-		log_trace(pokedex_cliente_log, "Entro a 'ELSE'. Path: %s", path);
+		log_trace(pokedex_cliente_log, "Entro a GETATTR -> 'ELSE'. Path: %s", path);
 
 		// Envio la señal de GETATTR
 		enviarInt(clientSocket, GETATTR);
@@ -163,9 +129,27 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 		myFree(result, "osada_getattr - result", pokedex_cliente_log);
 	}
 
-	log_trace(pokedex_cliente_log, "FIN GETATTR. FD %d.", clientSocket);
 
 
+
+	// Espera la confirmacion del servidor para continuar...
+	if (strcmp("/", path) != 0)
+	{
+		int * resultFin = myMalloc_int("osada_getattr resultFin", pokedex_cliente_log);
+		int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
+		if (finFlag == FIN_GETATTR)
+		{
+			log_trace(pokedex_cliente_log, "Finalizo el GETATTR - Cliente %d - Path %s", clientSocket, path);
+		}
+		else
+		{
+			log_error(pokedex_cliente_log, "ERROR EN EL GETATTR - Cliente %d - Path %s", clientSocket, path);
+		}
+
+		myFree(resultFin, "osada_getattr resultFin", pokedex_cliente_log);
+	}
+
+	log_trace(pokedex_cliente_log, "\nFINALIZO GETATTR. FD %d.", clientSocket);
 
 	return res;
 
@@ -174,7 +158,7 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
 	// Enviar la señal READDIR
 
-	log_trace(pokedex_cliente_log, "\n\nComienzo un READDIR");
+	log_trace(pokedex_cliente_log, "\nComienzo un READDIR");
 
 	int res = enviarInt(clientSocket, READDIR);
 
@@ -218,14 +202,76 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	//filler(buf, DEFAULT_FILE_NAME, NULL, 0);
-	log_trace(pokedex_cliente_log, "\n\nFINALIZO un READDIR");
+	// Espera la confirmacion del servidor para continuar...
+	int * resultFin = myMalloc_int("osada_getattr finFlag", pokedex_cliente_log);
+	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
+
+	if (finFlag == FIN_READDIR)
+	{
+		log_trace(pokedex_cliente_log, "Finalizo el READDIR - Cliente %d - Path %s", clientSocket, path);
+	}
+	else
+	{
+		log_error(pokedex_cliente_log, "ERROR EN EL READDIR - Cliente %d - Path %s", clientSocket, path);
+	}
+
+	myFree(resultFin, "osada_readdir resultFin", pokedex_cliente_log);
+
+
+	log_trace(pokedex_cliente_log, "\nFINALIZO un READDIR");
+	//filler(buf, "archivo.txt", NULL, 0);
+
+
 	return 0;
 }
 
 static int osada_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {
-	// Enviar al servidor...
-	return 0;
+
+	log_trace(pokedex_cliente_log, "\nComienzo un READ. Archivo: %s", path);
+
+	// Envio el pedido de READ
+	enviarInt(clientSocket, READ);
+
+	// Envio el tamanio del path
+	enviarInt(clientSocket, strlen(path));
+
+	// Envio el path
+	enviarMensaje(clientSocket, path);
+
+	// Envio el size
+	enviarInt(clientSocket, (int)size);
+
+	// Envio el offset
+	enviarInt(clientSocket, (int)offset);
+
+	// Recibir la cantidad de bytes
+	int * result = (int *)myMalloc_int("ProcesarRead - result", pokedex_cliente_log);
+	int cantidadBytes;
+	cantidadBytes = recibirInt(clientSocket , result, pokedex_cliente_log);
+
+	// Llenar el buffer
+	recibirBytesRaw(clientSocket, (void *)buf, cantidadBytes, pokedex_cliente_log);
+
+	myFree(result, "osada_read - Cliente - result", pokedex_cliente_log);
+
+	// Espera la confirmacion del servidor para continuar...
+	int * resultFin = myMalloc_int("osada_read resultFin", pokedex_cliente_log);
+	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
+	if (finFlag == FIN_READ)
+	{
+		log_trace(pokedex_cliente_log, "Finalizo el READ - Cliente %d - Path %s", clientSocket, path);
+	}
+	else
+	{
+		log_error(pokedex_cliente_log, "ERROR EN EL READ - Cliente %d - Path %s", clientSocket, path);
+	}
+
+	myFree(resultFin, "osada_read resultFin", pokedex_cliente_log);
+
+	log_trace(pokedex_cliente_log, "\nFinalizo un read un READ. Archivo: %s. Bytes: %d", path, cantidadBytes);
+
+	return cantidadBytes;
 }
 
 static int osada_write (const char * path, const char * buf, size_t size, off_t off, struct fuse_file_info * fi)

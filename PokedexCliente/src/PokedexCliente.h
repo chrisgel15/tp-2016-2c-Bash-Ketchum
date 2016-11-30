@@ -16,6 +16,8 @@
 #include <commons/log.h>
 #include <commons/string.h>
 #include <communications/ltnCommons.h>
+#include <sys/types.h>
+#include <sys/syscall.h>
 
 #define PUERTO_POKEDEX_SERVIDOR "PUERTO_POKEDEX_SERVIDOR"
 #define IP_POKEDEX_SERVIDOR "IP_POKEDEX_SERVIDOR"

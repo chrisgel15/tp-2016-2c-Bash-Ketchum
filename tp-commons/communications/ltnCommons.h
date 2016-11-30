@@ -7,6 +7,11 @@
 // Protocolo de comunicacion
 #define GETATTR 0
 #define READDIR 1
+#define READ 2
+
+#define FIN_GETATTR 0
+#define FIN_READDIR 1
+#define FIN_READ 2
 
 #define ARCHIVO_NO_ENCONTRADO -2
 #define ARCHIVO_ENCONTRADO 0
@@ -39,6 +44,11 @@ int recibirMensaje(int fd, char * buf, int tamanio, t_log * myLog);
 int recibirInt(int fd , int * result, t_log * myLog);
 int enviarBytes(int clienteFd, void * datos, int tamanio);
 int recibirBytes(int fd, void * buf, int tamanio, t_log * myLog);
+
+
+int recibirBytesRaw(int fd, void * buf, int tamanio, t_log * myLog);
+int enviarOffT(int clientFd, off_t mensaje);
+off_t recibirOffT(int fd, int * result, t_log * myLog);
 
 t_log * CreacionLogWithLevel(char * logName, char * programName, char * logLevel);
 t_log * CreacionLog(char * logName, char * programName);

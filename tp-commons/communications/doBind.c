@@ -38,6 +38,8 @@ int doBind(ltn_sock_addinfo * sockAddrInfo) {
 	//free(sockAddrInfo);
 	myFree((void *)sockAddrInfo, "sockAddrInfo", mySocketLog);
 
+	log_destroy(mySocketLog);
+
 	return returnSock;
 
 }
