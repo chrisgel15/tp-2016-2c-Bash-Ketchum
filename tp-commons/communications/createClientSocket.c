@@ -51,12 +51,12 @@ ltn_sock_addinfo* createClientSocket(const char * serverIP, const char * portNum
 
 	log_info(mySocketLog, "Socket cliente reutilizado. Fin createClientSocket.c");
 
-	log_destroy(mySocketLog);
-
-	ltn_sock_addinfo* returnValue = malloc(sizeof(ltn_sock_addinfo));
+	ltn_sock_addinfo* returnValue = myMalloc_ltn_sock_addinfo("createClientSocket - returnValue",mySocketLog);
 
 	returnValue->socketNumber = socketNumber;
 	returnValue->serverinfo = serverInfo;
+
+	log_destroy(mySocketLog);
 
 	return returnValue;
 }

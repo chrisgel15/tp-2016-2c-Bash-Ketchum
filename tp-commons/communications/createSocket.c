@@ -52,12 +52,15 @@ ltn_sock_addinfo* createSocket(const char * portNumber) {
 
 	log_info(mySocketLog, "Socket reutilizado. Fin createSocket.c ");
 
-	log_destroy(mySocketLog);
 
-	ltn_sock_addinfo* returnValue = malloc(sizeof(ltn_sock_addinfo));
+
+	//ltn_sock_addinfo* returnValue = malloc(sizeof(ltn_sock_addinfo));
+	ltn_sock_addinfo* returnValue = (ltn_sock_addinfo*) myMalloc_ltn_sock_addinfo("createSocket - returnValue", mySocketLog);
 
 	returnValue->socketNumber = socketNumber;
 	returnValue->serverinfo = serverInfo;
+
+	log_destroy(mySocketLog);
 
 	return returnValue;
 }
