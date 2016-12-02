@@ -28,6 +28,7 @@ t_posicion_mapa *posicion_mapa;
 //void init_datos_entrenador(void);
 void borrar(DIR*, char*, char*);
 void borrar_del_mapa(char*, char*);
+void copiar_archivo(char*, char*);
 
 
 int main(int argc, char **argv) {
@@ -36,6 +37,7 @@ int main(int argc, char **argv) {
 	flag_fin_prog = false;
 	flag_reinicio = false;
 	flag_reconexion = false;
+
 
 
 
@@ -143,7 +145,7 @@ void solicitar_posicion_pokenest(char *pokemon){
 void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte){
 	int *result = malloc(sizeof(int));
 	int tamanio_archivo, instruccion;
-	char* nombre_archivo;
+	//char* nombre_archivo;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, nombre_pokemon);
@@ -151,14 +153,15 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 	switch (instruccion=recibirInt(socket_mapa, result, entrenador_log)) {
 		case POKEMON_CONCEDIDO:
 			tamanio_archivo = recibirInt(socket_mapa, result, entrenador_log);
-			char* nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
+			char* nombre_archivo = (char*)malloc(sizeof(char) * tamanio_archivo);
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
-			//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
-			copiar_archivo(nombre_archivo, tamanio_archivo);
+
+			char* dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+			copiar_archivo(nombre_archivo, dirBill);
 			log_info(entrenador_log, "%s",nombre_archivo);
 			free(result);
-			//free(nombre_archivo);
+			free(nombre_archivo);
 			break;
 		case MUERTE:
 			printf("Ha muerto en una batalla");
@@ -188,26 +191,12 @@ int avanzar_hacia_pokenest(){
 	//enviarInt(socket_mapa, movimiento_x);
 	enviarInt(socket_mapa, posicion_mapa->x);
 
-	//mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
 
-//	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
-//		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
-//		exit(0);
-//	}
 
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
 	//enviarInt(socket_mapa, movimiento_y);
 	enviarInt(socket_mapa, posicion_mapa->y);
-
-	//mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
-
-//	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
-//		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
-//		exit(0);
-//	}
-//
-
 
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
 	if(movimiento_x == 0 && movimiento_y == 0){
@@ -235,9 +224,11 @@ void terminarObjetivo(){
 
 	//Recibo la ruta de medalla
 	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
-	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
+	ruta_medalla = (char*)malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
-	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
+
+	char* dirMedalla = get_entrenador_directorio_medallas(ruta_pokedex, nombre_entrendor);
+	copiar_archivo(ruta_medalla, dirMedalla);
 	free(result);
 	free(ruta_medalla);
 
@@ -250,8 +241,8 @@ void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_
 }
 
 
-void recorrer_hojaDeViaje(int posHojaDeViaje) {
-//	int posHojaDeViaje = 0; //Indice para recorrer la Hoja de Viaje
+void recorrer_hojaDeViaje(int pos) {
+	int posHojaDeViaje = pos; //Indice para recorrer la Hoja de Viaje
 	int posObjetivoPorMapa = 0; //Indice para recorrer los Objetivos por Mapa
 	int estado = CONECTARSE_MAPA;
 	char **objetivosPorMapa;
@@ -518,26 +509,37 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 	free(path_total);
 }
 
-void copiar_archivo(char* path, char* nombre){
+void copiar_archivo(char* path_from, char* path_to){
 	char* path_src = string_new();
 	char* path_dst = string_new();
 	char* mapArchSrc;
 	char* mapArchDst;
 	struct stat buf;
-	string_append(&path_src,path);
-	string_append(&path_src,"/");
-	string_append(&path_src,nombre);
-	string_append(&path_dst,path_src);
+	char* nombre_archivo;
+	char** path_split;
+	char i = 0;
+	string_append(&path_src,path_from);
+	path_split = string_split(path_from,"/");
+
+	while(*(path_split + i) != NULL){
+		nombre_archivo = *(path_split + i);
+		i++;
+	}
+
+	//El path destino seria /Entrenadores/[nombre entrenador]/directorio de bill
+	string_append(&path_dst,path_to);
+	string_append(&path_dst,nombre_archivo);
 	int fd_src = open(path_src, O_RDWR);
 	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
 	stat(path_src,&buf);
 	int tam = buf.st_size;
 	ftruncate(fd_dst,tam);
-	mapArchSrc = (char*)mmap(0, tam, PROT_READ, MAP_SHARED, fd_src, 0);
-	mapArchDst = (char*)mmap(0, tam, PROT_READ|PROT_WRITE, MAP_SHARED, fd_dst, 0);
+	mapArchSrc = (char*)mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED, fd_src, 0);
+	mapArchDst = (char*)mmap(0, tam, PROT_WRITE, MAP_SHARED, fd_dst, 0);
 	memcpy(mapArchDst, mapArchSrc, tam);
 	munmap(mapArchSrc, tam);
 	munmap(mapArchDst, tam);
-
+	free(path_src);
+	free(path_dst);
 
 }
