@@ -52,7 +52,6 @@ bool FindDirectoryByNameAndParent(char ** path, int parentId, int * directoryId)
 bool FindDirectoryByName(char * path, int * directoryId);
 void SetAttrByDirectoryId(int directoryId, struct stat *stbuf);
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler);
-int ReadBytesFromOffset(off_t offset_from, size_t bytes_to_read, int directoryId, char * buf);
 void ImprimirBloquesDelBitMap(t_bitarray * bitmap, int size, int * parcial, int * total);
 int CantidadBloquesLibres(int condicion);
 char ** SplitPath(char * path);
@@ -64,6 +63,7 @@ int Crear(char * path, int state);
 int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int directoryId, char * buf, int operacion);
 int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion);
 int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion);
+void InicializarSemaforos(void);
 
 struct stat osadaStat;
 int* pmap_osada;
@@ -79,14 +79,22 @@ int * tabla_asignaciones;
 char * tabla_datos;
 int offset_bitmap_datos; // offset dentro del bitmap que apunta al comienzo de la tabla de datos
 
-pthread_mutex_t mutex_escritura_disco;
+//pthread_mutex_t mutex_escritura_disco;
+pthread_mutex_t mutex_escritura_archivo[OSADA_CANTIDAD_MAXIMA_ARCHIVOS];
 sem_t sem_lectura_disco;
 int cantidad_lectores;
 
+void InicializarSemaforos(){
+	int i = 0;
 
+	for(i=0;i<OSADA_CANTIDAD_MAXIMA_ARCHIVOS;i++){
+		pthread_mutex_init(&(mutex_escritura_archivo[i]), NULL);
+	}
+
+}
 
 static int osada_getattr(const char *path, struct stat *stbuf) {
-	pthread_mutex_lock(&mutex_escritura_disco);
+	//pthread_mutex_lock(&mutex_escritura_disco);
 
 	int res = 0;
 	int * directoryId = malloc(sizeof(char)*4);
@@ -105,18 +113,24 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 		log_trace(osada_log, "Entro a 'ELSE'. Path: %s - DirectoryId: %d", path, *directoryId);
 
 		FindDirectoryByName(path, directoryId);
+		int pos = *directoryId;
 		if (*directoryId < 0)
 			res = -ENOENT;
-		else
+		else {
+			//pthread_mutex_lock(&(mutex_escritura_archivo[pos]));
 			SetAttrByDirectoryId(*directoryId, stbuf);
+			//pthread_mutex_unlock(&(mutex_escritura_archivo[pos]));
+		}
 	}
 
-	pthread_mutex_unlock(&mutex_escritura_disco);
+	free(directoryId);
+
+	//pthread_mutex_unlock(&mutex_escritura_disco);
 	return res;
 }
 
 static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-	pthread_mutex_lock(&mutex_escritura_disco);
+	//pthread_mutex_lock(&mutex_escritura_disco);
 	(void) offset;
 	(void) fi;
 	int * directoryId = malloc(sizeof(char)*4);
@@ -140,7 +154,8 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	filler(buf, ".", NULL, 0);
 	filler(buf, "..", NULL, 0);
 	//filler(buf, DEFAULT_FILE_NAME, NULL, 0);
-	pthread_mutex_unlock(&mutex_escritura_disco);
+	free(directoryId);
+	//pthread_mutex_unlock(&mutex_escritura_disco);
 	return 0;
 }
 
@@ -151,9 +166,15 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 	*directoryId = -1;
 
 	FindDirectoryByName(path , directoryId);
+	int pos = *directoryId;
 
+	//pthread_mutex_lock(&(mutex_escritura_archivo[pos]));
+	int res = LectoEscrituraFromOffset(offset, size, *directoryId, buf, LECTURA);
 	//return ReadBytesFromOffset(offset, size, *directoryId, buf);
-	return LectoEscrituraFromOffset(offset, size, *directoryId, buf, LECTURA);
+
+	//pthread_mutex_unlock(&(mutex_escritura_archivo[pos]));
+	free(directoryId);
+	return res;
 }
 
 static int osada_truncate(const char * filename , off_t length)
@@ -175,12 +196,13 @@ static int osada_truncate(const char * filename , off_t length)
 	indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
 	indice_tabla_archivos->file_size = 0;
 
+	free(directoryId);
 	return 0;
 }
 
 int Crear(char * path, int state)
 {
-	pthread_mutex_lock(&mutex_escritura_disco);
+	//pthread_mutex_lock(&mutex_escritura_disco);
 	// Chequear espacio disponible
 	int returnValue = -1;
 	int tablaArchivosId = BuscaPrimerEspacioDisponibleEnTablaArchivos();
@@ -198,12 +220,16 @@ int Crear(char * path, int state)
 				*parentDirectoryId = -1;
 				if (FindParentDirectoryByName(path, parentDirectoryId))
 				{
+					//pthread_mutex_lock(&(mutex_escritura_archivo[tablaArchivosId]));
 					// Generar la carpeta
 					CrearArchivoDirectorio(path, tablaArchivosId, *parentDirectoryId, state);
 					returnValue = 0;
+					//pthread_mutex_unlock(&(mutex_escritura_archivo[tablaArchivosId]));
 				}
 				else
 					returnValue = -ENOENT;
+
+				free(parentDirectoryId);
 			}
 			else
 				returnValue = -ENOENT;
@@ -214,7 +240,7 @@ int Crear(char * path, int state)
 	else
 		returnValue = -ENOSPC;
 
-	pthread_mutex_unlock(&mutex_escritura_disco);
+	//pthread_mutex_unlock(&mutex_escritura_disco);
 
 	return returnValue;
 
@@ -233,6 +259,7 @@ int osada_rmdir (const char* filename){
 
 	indice_tabla_archivos->state = 0;
 
+	free(directoryId);
 	return 0;
 }
 
@@ -256,6 +283,7 @@ int osada_unlink(const char* filename){
 		indice_tabla_archivos->state=0;
 	}
 
+	free(directoryId);
 	return status;
 }
 
@@ -290,6 +318,7 @@ int osada_rename(const char* oldname, const char* newname){
 	}
 	else returnValue = -EFBIG;
 
+	free(directoryId);
 	return returnValue;
 }
 
@@ -301,8 +330,8 @@ static int osada_mkdir (const char * path, mode_t mode)
 static int osada_write (const char * path, const char * buf, size_t size, off_t off,
 		      struct fuse_file_info * fi)
 {
-	pthread_mutex_lock(&mutex_escritura_disco);
-	int res = 0;
+	//pthread_mutex_lock(&mutex_escritura_disco);
+	int res = 0, pos;
 	int * directoryId = malloc(sizeof(char)*4);
 	*directoryId = -1;
 
@@ -315,6 +344,8 @@ static int osada_write (const char * path, const char * buf, size_t size, off_t 
 	if (*directoryId < 0)
 		res = -ENOENT;
 
+	pos = *directoryId;
+	pthread_mutex_lock(&(mutex_escritura_archivo[pos]));
 	// Apunto a la entrada de la tabla de archivos correspondiente
 	indice_tabla_archivos+=*directoryId;
 
@@ -336,15 +367,42 @@ static int osada_write (const char * path, const char * buf, size_t size, off_t 
 	else
 		res = -ENOSPC;
 
-
-
-	pthread_mutex_unlock(&mutex_escritura_disco);
+	free(directoryId);
+	pthread_mutex_unlock(&(mutex_escritura_archivo[pos]));
+	//pthread_mutex_unlock(&mutex_escritura_disco);
 	return res;
 }
 
 static int osada_create (const char * path, mode_t mode, struct fuse_file_info * fi)
 {
 	return Crear(path, 1);
+}
+
+static int osada_utimens (const char * path, const struct timespec tiempo[2]){
+	int res = 0, pos;
+	int * directoryId = malloc(sizeof(char)*4);
+	*directoryId = -1;
+
+	// Punteros necesarios
+	osada_file * indice_tabla_archivos = tabla_archivos;
+
+	// Busco en la tabla de archivos por path
+	FindDirectoryByName(path, directoryId);
+	if (*directoryId < 0)
+		res = -ENOENT;
+
+	pos = *directoryId;
+
+	// Apunto a la entrada de la tabla de archivos correspondiente
+	pthread_mutex_lock(&(mutex_escritura_archivo[pos]));
+
+	indice_tabla_archivos+=*directoryId;
+
+	indice_tabla_archivos->lastmod = tiempo[1].tv_sec;
+
+	free(directoryId);
+	pthread_mutex_unlock(&(mutex_escritura_archivo[pos]));
+	return res;
 }
 
 static struct fuse_operations osada_oper = {
@@ -363,6 +421,7 @@ static struct fuse_operations osada_oper = {
 		.unlink = osada_unlink,
 		.truncate = osada_truncate,
 		.rename = osada_rename,
+		.utimens = osada_utimens,
 };
 
 /** keys for FUSE_OPT_ options */
@@ -395,6 +454,7 @@ int main(int argc, char *argv[]) {
 //	ImprimirBitMap(bitmap);
 	ImprimirTablaDeArchivos();
 //	CantidadBloquesLibres();
+	InicializarSemaforos();
 
 	// FUSE
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
@@ -409,11 +469,11 @@ int main(int argc, char *argv[]) {
 			return EXIT_FAILURE;
 		}
 
-		pthread_mutex_init(&mutex_escritura_disco,NULL);
+		//pthread_mutex_init(&mutex_escritura_disco,NULL);
 		sem_init(&sem_lectura_disco, 0, 10);
 
 		// Esta es la funcion principal de FUSE, es la que se encarga
-		// de realizar el montaje, comuniscarse con el kernel, delegar todo
+		// de realizar el montaje, comuniscarse con el kernel, delegar
 		// en varios threads
 		return fuse_main(args.argc, args.argv, &osada_oper, NULL);
 
@@ -446,10 +506,11 @@ int TamanioEnBloques(int tamanioBytes)
 
 
 int DeleteBlocks(size_t blocks_to_delete, int directoryId){
-	pthread_mutex_lock(&mutex_escritura_disco);
+	//pthread_mutex_lock(&mutex_escritura_disco);
+	pthread_mutex_lock(&(mutex_escritura_archivo[directoryId]));
 	bool algo;
 	int i = 0;
-	int offset_tabla_datos = 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
+	int offset_tabla_datos = 1 + header->bitmap_blocks + OSADA_TABLA_ARCHIVOS_SIZE + tamanio_tabla_asignaciones_bloques;
 
 	t_bitarray *bitmap_aux = bitmap;
 
@@ -461,14 +522,15 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId){
 	int bloque_actual = indice_tabla_archivos->first_block;
 
 	while(i<blocks_to_delete){
-		algo = bitarray_test_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
+		//algo = bitarray_test_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
 
 		bitarray_clean_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
 		i++;
 		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
 	}
 
-	pthread_mutex_unlock(&mutex_escritura_disco);
+	pthread_mutex_unlock(&(mutex_escritura_archivo[directoryId]));
+	//pthread_mutex_unlock(&mutex_escritura_disco);
 	return 0;
 }
 
@@ -555,6 +617,7 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		memcpy(buf, ((char*)aux_buf), bytes_to_rw);
 	}
 
+	free(aux_buf);
 	return bytes_to_rw;
 }
 
@@ -645,7 +708,11 @@ bool ExistsDirectoryByName(char * path)
 	char ** arr = SplitPath(path);
 	int * directoryId = malloc(sizeof(char)*4);
 	*directoryId = -1;
-	return FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+	bool res = FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+
+	free(directoryId);
+
+	return res;
 }
 
 
@@ -740,6 +807,7 @@ void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler)
 					*(name+OSADA_FILENAME_LENGTH) = '\0';
 					filler(buf, name, NULL, 0);
 					//filler(buf, "asdfgasdfgasdfgas", NULL, 0);
+					free(name);
 				}
 			}
 			indice_tabla_archivos++;
@@ -758,6 +826,7 @@ void SetAttrByDirectoryId(int directoryId, struct stat *stbuf)
 	stbuf->st_mode = esArchivo == 1 ? S_IFREG | 0444 : S_IFDIR | 0755;
 	stbuf->st_nlink = 1;
 	stbuf->st_size = indice_tabla_archivos->file_size;
+	stbuf->st_mtim.tv_sec = indice_tabla_archivos->lastmod;
 }
 
 int CantidadBloquesLibres(int condicion)
