@@ -30,6 +30,10 @@ static int osada_write (const char * path, const char * buf, size_t size, off_t 
 static int osada_create (const char * path, mode_t mode, struct fuse_file_info * fi);
 static int osada_mkdir (const char * path, mode_t mode);
 static int osada_truncate(const char * filename , off_t length);
+static int osada_unlink(const char* path);
+static int osada_rmdir(const char* filename);
+
+int CrearArchivoDirectorio(const char * path, int codigoPedido, int codigoTipo);
 
 /** keys for FUSE_OPT_ options */
 enum {
@@ -53,15 +57,10 @@ static struct fuse_operations osada_oper = {
 		.read = osada_read,
 		.write = osada_write,
 		.create = osada_create,
-//		.mknod = osada_mknod,
-//		.open = osada_open,
-//		.flush = remote_flush,
-//		.release = remote_release,
-//		.unlink = remote_unlink,
+		.unlink = osada_unlink,
 		.mkdir = osada_mkdir,
-//		.rmdir = remote_rmdir,
-		.truncate = osada_truncate
-
+		.truncate = osada_truncate,
+		.rmdir = osada_rmdir
 };
 
 // Variables globales

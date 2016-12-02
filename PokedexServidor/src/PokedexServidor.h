@@ -22,7 +22,7 @@
 #include <commons/temporal.h>
 #include <communications/ltnCommons.h>
 #include <pthread.h>
-//#include <semaphore.h>
+#include <semaphore.h>
 #include "Osada.h"
 
 void UbicarPunteros();
@@ -34,6 +34,12 @@ void RecibirYProcesarPedido(int fdCliente);
 void ProcesarGetAttr(int fd);
 void ProcesarReadDir(int fd);
 void ProcesarRead(int fd);
+void ProcesarMkDir(int fd);
+void ProcesarCreate(int fdCliente);
+void ProcesarWrite(int fdCliente);
+void ProcesarUnlink(int fdCliente);
+void ProcesarTruncate(int fd);
+void ProcesarRmDir(int fd);
 void SetAttrByDirectoryId(int directoryId, int fd);
 bool FindDirectoryByName(char * path, int * directoryId);
 bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId);
@@ -42,6 +48,34 @@ char ** SplitPath(char * path);
 int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion);
 int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion);
 int BuscaPrimerEspacioDisponibleEnBitMap();
+int Crear(char * path, int state);
+int BuscaPrimerEspacioDisponibleEnTablaArchivos();
+bool TamanioNombreAdecuado(char * path);
+bool ExistsDirectoryByName(char * path);
+bool FindParentDirectoryByName(char * path, int * directoryId);
+int LongitudArray(char ** arr);
+void CrearArchivoDirectorio(char * path, int tablaArchivosId, int parentDirectoryId, int state);
+int DeleteBlocks(size_t blocks_to_delete, int directoryId);
+void SeteaBitEnBitMap(int offset);
+
+// Semaforos
+void InicializarSemaforos();
+
+void sComenzarLecturaTablaArchivos();
+void sFinalizarLecturaTablaArchivos();
+void sComenzarEscrituraTablaArchivos();
+void sFinalizarEscrituraTablaArchivos();
+
+void sComenzarLecturaBitmap();
+void sFinalizarLecturaBitMap();
+void sComenzarEscrituraBitMap();
+void sFinalizarEscrituraBitMap();
+
+void sComenzarLecturaArchivo(int idArchivo);
+void sFinalizarLecturaArchivo(int idArchivo);
+void sComenzarEscrituraArchivo(int idArchivo);
+void sFinalizarEscrituraArchivo(int idArchivo);
+
 
 // Test
 void ImprimirHeader();
@@ -85,5 +119,28 @@ osada_file * tabla_archivos;
 int * tabla_asignaciones;
 char * tabla_datos;
 int offset_bitmap_datos; // offset dentro del bitmap que apunta al comienzo de la tabla de datos
+
+// Semaforos
+//pthread_mutex_t mutex_pedido_bloques;
+//sem_t * sem_tabla_archivos;
+//pthread_mutex_t * mutex_escrituras;
+
+// Tabla de archivos
+pthread_mutex_t mutex_escritura_tabla_archivos;
+pthread_mutex_t mutex_cuenta_lectores_tabla_archivos;
+int cuenta_lectores_tabla_archivos;
+
+// Bitmap
+pthread_mutex_t mutex_escritura_bitmap;
+pthread_mutex_t mutex_cuenta_lectores_bitmap;
+int cuenta_lectores_bitmap;
+
+//Archivos
+pthread_mutex_t * mutex_escritura_archivos;
+pthread_mutex_t * mutex_cuenta_lectores_archivos;
+int * cuenta_lectores_archivos;
+
+
+
 
 #endif /* POKEDEXSERVIDOR_H_ */

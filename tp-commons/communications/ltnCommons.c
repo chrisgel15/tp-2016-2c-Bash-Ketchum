@@ -153,6 +153,26 @@ void * myMalloc_ltn_sock_addinfo(char * nombreDeVariable, t_log * myLog)
 	return myMalloc(sizeof(ltn_sock_addinfo), myLog);
 }
 
+void * myMalloc_sem_t(int tamanio, char * nombreDeVariable, t_log * myLog)
+{
+	log_trace(myLog, "Intentando alocar %d bytes para la variable %s", sizeof(sem_t)*tamanio, nombreDeVariable);
+	return myMalloc(sizeof(sem_t)*tamanio, myLog);
+}
+
+void * myMalloc_mutex_t(int tamanio, char * nombreDeVariable, t_log * myLog)
+{
+	log_trace(myLog, "Intentando alocar %d bytes para la variable %s", sizeof(pthread_mutex_t)*tamanio, nombreDeVariable);
+	return myMalloc(sizeof(pthread_mutex_t)*tamanio, myLog);
+}
+
+void * myMalloc_int_array(int tamanio, char * nombreDeVariable, t_log * myLog)
+{
+	log_trace(myLog, "Intentando alocar %d bytes para la variable %s", sizeof(int)*tamanio, nombreDeVariable);
+	return myMalloc(sizeof(int)*tamanio, myLog);
+}
+
+
+
 void myFree(void * ptr, char * nombreDeVariable, t_log * myLog)
 {
 	log_trace(myLog, "Liberando la variable %s en la direccion %04x", nombreDeVariable, ptr);
@@ -169,6 +189,24 @@ void myFreeSplitPath(char ** arr, char * nombreDeVariable, t_log * myLog)
 		index++;
 	}
 	myFree(arr,"SplitPath - arr", myLog);
+}
+
+void myMutexLock(pthread_mutex_t * mutex, char * nombreVariable, t_log * myLog)
+{
+	log_trace(myLog, "Ejecuto un MUTEX LOCK sobre la variable: %s", nombreVariable);
+	pthread_mutex_lock(mutex);
+}
+
+void myMutexUnlock(pthread_mutex_t * mutex, char * nombreVariable, t_log * myLog)
+{
+	log_trace(myLog, "Ejecuto un MUTEX UN-LOCK sobre la variable: %s", nombreVariable);
+	pthread_mutex_unlock(mutex);
+}
+
+void myInitMutex(pthread_mutex_t * mutex, char * nombreVariable, t_log * myLog)
+{
+	log_trace(myLog, "Inicializo un MUTEX en NULL de nombre: %s", nombreVariable);
+	pthread_mutex_init(mutex, NULL);
 }
 
 
