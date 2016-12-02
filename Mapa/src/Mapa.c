@@ -158,9 +158,19 @@ int main(int argc, char **argv) {
 void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	list_add(entrenadores_listos, entrenador);
+	int listos_size = list_size(entrenadores_listos);
+	char *entrenadores = string_new();
+	int i;
+	for(i = 0; i < listos_size; i++){
+		t_entrenador *entrenador_listo = (t_entrenador *) list_get(entrenadores_listos, i);
+		string_append(&entrenadores, entrenador_listo->nombre);
+		string_append(&entrenadores, ", ");
+	}
+
 	sem_post(&sem_listos);
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
-	log_info(mapa_log, "Se agrega al Entrenador %s a la Cola de Listos", entrenador->nombre);
+	log_info(mapa_log, "Se agrega al Entrenador %s a la Cola de Listos. Entrenadores Listos: %s", entrenador->nombre, entrenadores);
+	free(entrenadores);
 }
 
 //Remover entrenador segun Round Robin
@@ -192,9 +202,20 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
 	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
 	queue_push(bloqueados->entrenadores, entrenador);
+	t_list *entrenadores_bloqueados = bloqueados->entrenadores->elements;
+	int bloqueados_size = list_size(entrenadores_bloqueados);
+	char *entrenadores = string_new();
+	int i;
+	for(i = 0; i < bloqueados_size; i++){
+		t_entrenador *entrenador_bloqueado = (t_entrenador *) list_get(entrenadores_bloqueados, i);
+		string_append(&entrenadores, entrenador_bloqueado->nombre);
+		string_append(&entrenadores, ", ");
+	}
+
 	sem_post(&sem_entrenadores_bloqueados[bloqueados->sem_index]);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
-	log_info(mapa_log, "Se agrega al Entrenador %s a la Lista de Bloqueados.", entrenador->nombre);
+	log_info(mapa_log, "Se agrega al Entrenador %s a la Cola de Bloqueados del Pokenest %s. Entrenadores Bloqueados: %s", entrenador->nombre, entrenador->pokemon_bloqueado, entrenadores);
+	free(entrenadores);
 }
 
 void sumar_recurso_pokemon(t_pokemon_mapa *pokemon){
@@ -240,7 +261,7 @@ void inicializar_estructuras(){
 	mensajes_entrenadores = list_create();
 
 	//datos_mapa = malloc(sizeof(t_datos_mapa));
-	algoritmo=malloc(sizeof(char)*4);
+	algoritmo = malloc(sizeof(char)*4);
 	//datos_mapa->items = items;
 	//datos_mapa->entrenador = NULL;
 
