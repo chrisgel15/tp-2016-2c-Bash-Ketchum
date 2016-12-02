@@ -181,20 +181,51 @@ static int osada_truncate(const char * filename , off_t length)
 {
 	int * directoryId = malloc(sizeof(char)*4);
 	int cantBloques = 0, status = 0;
+	int nuevoTam = TamanioEnBloques(length);
+	int res;
 
 	*directoryId = -1;
 
 	FindDirectoryByName(filename , directoryId);
+	if (*directoryId < 0)
+		res = -ENOENT;
 
 	osada_file * indice_tabla_archivos = tabla_archivos;
 	indice_tabla_archivos+=*directoryId;
 
-	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+	int archivoTam = TamanioEnBloques(indice_tabla_archivos->file_size);
 
-	DeleteBlocks(cantBloques,*directoryId);
+	if(nuevoTam < archivoTam){
+		cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
 
-	indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
-	indice_tabla_archivos->file_size = 0;
+		DeleteBlocks(cantBloques,*directoryId);
+
+		indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
+		indice_tabla_archivos->file_size = 0;
+	} else {
+		// Apunto a la entrada de la tabla de archivos correspondiente
+		indice_tabla_archivos+=*directoryId;
+
+		// Comparo cantidad de bloques necesarios vs. Cantidad de bloques asignados
+		int cantBloquesNecesarios = 0, cantBloquesAsignados = 0, cantBloquesAgregar = 0;
+
+		cantBloquesAsignados = TamanioEnBloques(indice_tabla_archivos->file_size);
+		cantBloquesNecesarios = TamanioEnBloques((int)(length));
+
+		cantBloquesAgregar = cantBloquesNecesarios - cantBloquesAsignados;
+
+		// Buscar si tengo esa cantidad de bloques disponibles
+		if (CantidadBloquesLibres(cantBloquesAgregar) == cantBloquesAgregar)
+		{
+			// Agrego los bloques
+			//res = WriteBytesFromOffset(off, size, *directoryId, buf);
+			res = LectoEscrituraFromOffset(indice_tabla_archivos->file_size, length, *directoryId, '\0', ESCRITURA);
+		}
+		else
+			res = -ENOSPC;
+
+		free(directoryId);
+	}
 
 	free(directoryId);
 	return 0;
@@ -248,10 +279,22 @@ int Crear(char * path, int state)
 
 
 int osada_rmdir (const char* filename){
-
-
 	osada_file *indice_tabla_archivos = tabla_archivos;
 	int * directoryId = malloc(sizeof(char)*4);
+
+	osada_file *indice_tabla_archivos_busqueda = tabla_archivos;
+	int i = 0;
+
+	while(i < OSADA_CANTIDAD_MAXIMA_ARCHIVOS)
+	{
+		if ((int)indice_tabla_archivos_busqueda->state != 0)
+		{
+			if (indice_tabla_archivos_busqueda->parent_directory == *filename)
+			{
+				return ENOTEMPTY;
+			}
+		}
+	}
 
 	FindDirectoryByName(filename, directoryId);
 
