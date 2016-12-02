@@ -47,7 +47,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion);
 void recibir_nuevo_entrenador(int fd);
 void recibir_mensaje_entrenador(int fd);
 void despedir_entrenador(int fd_entrenador);
-
+void add_entrenadores_bloqueados(char *key, void *entrenadores_bloqueados);
 t_entrenador *buscar_entrenador(int fd);
 
 void posicionar_entrenador_en_mapa(t_datos_mapa*,char* );

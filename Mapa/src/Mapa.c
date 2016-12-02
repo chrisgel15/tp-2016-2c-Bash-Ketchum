@@ -4,7 +4,6 @@
 //Mutexs de Estructura de Estados
 pthread_mutex_t mutex_entrenadores_listos;
 pthread_mutex_t mutex_cola_bloqueados;
-//pthread_mutex_t mutex_entrenadores_ejecutando;
 pthread_mutex_t mutex_pokenests;
 
 //Semaforos para sincronizar Hilos
@@ -17,17 +16,15 @@ sem_t sem_mensajes;
 //Estructuras para el Manejo de Entrenadores
 t_list *entrenadores_listos;
 t_dictionary *entrenadores_bloqueados;
-//t_list *entrenadores_ejecutando;
 t_list *mensajes_entrenadores;
+t_list *bloqueados; //Esta estrucutra se va a utilizar para buscar entre todos los Entrenadores Bloquedos cuando alguno cierre su conexion
 
-//t_list *pokenests;
 //Lista de nombres de pokenests
 char ** pokenests;
 t_list *lista_pokenests;
 
-//lista de items a dibujar en el mapa
+//Lista de items a dibujar en el Mapa
 t_list* items;
-//t_datos_mapa* datos_mapa;
 
 //Log
 t_log *mapa_log;
@@ -402,9 +399,57 @@ void recibir_mensaje_entrenador(int fd){
 	free(texto_enviar);
 }
 
-//void despedir_entrenador(int fd_entrenador, int codigo_instruccion){
 void despedir_entrenador(int fd_entrenador){
 	log_info(mapa_log, "Se despide el Entrenador N° %d del Mapa.", fd_entrenador);
+
+	pthread_mutex_lock(&mutex_entrenadores_listos);
+	pthread_mutex_lock(&mutex_cola_bloqueados);
+
+	t_entrenador *despedido = NULL;
+	int i;
+
+	//Busco al entrenador en la lista de Entrenadores Listos
+	int listos_size = list_size(entrenadores_listos);
+
+	for(i = 0; i < listos_size; i++){
+		t_entrenador *listo = (t_entrenador *) list_get(entrenadores_listos, i);
+		if(listo->fd == fd_entrenador){
+			despedido = listo;
+		}
+	}
+
+	//Si no encontre al Entrenador busco en los Entrenadores Bloqueados
+	if(despedido == NULL){
+		bloqueados = list_create();
+		void (*add_entrenadores_bloqueados_iterator) (char*, void*) = add_entrenadores_bloqueados;
+		dictionary_iterator(entrenadores_bloqueados, add_entrenadores_bloqueados_iterator);
+		int bloqueados_size = list_size(bloqueados);
+
+		for(i = 0; i < bloqueados_size; i++){
+			t_entrenador *bloqueado = (t_entrenador *) list_get(bloqueados, i);
+			if(bloqueado->fd == fd_entrenador){
+				despedido = bloqueado;
+			}
+		}
+
+		list_destroy(bloqueados);
+	}
+
+	//Si encontre al Entrenador, libero los Recursos
+	if(despedido != NULL){
+		liberar_recursos_entrenador(despedido, NULL);
+	} else {
+		log_info(mapa_log, "No se encontro el Entrenador para Despedir.");
+	}
+
+	pthread_mutex_unlock(&mutex_entrenadores_listos);
+	pthread_mutex_unlock(&mutex_cola_bloqueados);
+}
+
+void add_entrenadores_bloqueados(char *key, void *entrenadores_bloqueados){
+	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *) entrenadores_bloqueados;
+	t_list *entrenadores = (t_list *) bloqueados->entrenadores->elements;
+	list_add_all(bloqueados, entrenadores);
 }
 
 t_entrenador *buscar_entrenador(int fd){
@@ -509,6 +554,8 @@ void administrar_turnos() {
 
 		atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
 	}
+
+	free(round_robin);
 }
 
 void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
