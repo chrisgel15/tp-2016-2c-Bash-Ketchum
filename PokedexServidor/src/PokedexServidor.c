@@ -28,24 +28,22 @@ int main(void) {
 
 	osada_log = CreacionLogWithLevel("osada-server-log", "osada-server", "TRACE");
 
-	fd_osadaDisk = open("/home/utnso/osadaDisks/challenge.bin", O_RDWR);
+	fd_osadaDisk = open("/home/utnso/osadaDisks/test1.bin", O_RDWR);
 	fstat(fd_osadaDisk, &osadaStat);
 	pmap_osada = mmap(0, osadaStat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_osadaDisk, 0);
 
 	UbicarPunteros();
+	InicializarSemaforos();
 
 	if (EXECUTION_MODE)
 	{
-		ImprimirHeader();
-		ImprimirBitMap(bitmap);
+	//	ImprimirHeader();
+	//	ImprimirBitMap(bitmap);
 		ImprimirTablaDeArchivos();
-		CantidadBloquesLibres(CONTAR_TODOS_LOS_BLOQUES);
+	//	CantidadBloquesLibres(CONTAR_TODOS_LOS_BLOQUES);
 	}
 
 
-	// todo: Creacion e inicializacion de semaforos
-
-	// todo: levantarse como servidor
 	ltn_sock_addinfo * ltn_puertoEscucha;
 	int listenerSocket;
 
@@ -59,12 +57,10 @@ int main(void) {
 
 	//free(ltn_puertoEscucha);
 
-	// todo: quedarse a la espera de pedidos
 	int fdCliente;
 	while(1)
 	{
 		fdCliente = doAccept(listenerSocket);
-		// todo: recibe un pedido -> crea un hilo
 		CrearHilo(fdCliente);
 	}
 
@@ -184,8 +180,34 @@ void RecibirYProcesarPedido(int fdCliente)
 				log_trace(osada_log, "El cliente %d pidio un READ.", fdCliente);
 				ProcesarRead(fdCliente);
 				break;
+			case MKDIR:
+				log_trace(osada_log, "El cliente %d pidio un MKDIR.", fdCliente);
+				ProcesarMkDir(fdCliente);
+				break;
+			case CREATE:
+				log_trace(osada_log, "El cliente %d pidio un CREATE.", fdCliente);
+				ProcesarCreate(fdCliente);
+				break;
+			case WRITE:
+				log_trace(osada_log, "El cliente %d pidio un WRITE.", fdCliente);
+				ProcesarWrite(fdCliente);
+				break;
+			case UNLINK:
+				log_trace(osada_log, "El cliente %d pidio un UNLINK.", fdCliente);
+				ProcesarUnlink(fdCliente);
+				break;
+			case TRUNCATE:
+				log_trace(osada_log, "El cliente %d pidio un TRUNCATE.", fdCliente);
+				ProcesarTruncate(fdCliente);
+				break;
+			case RMDIR:
+				log_trace(osada_log,  "El cliente %d pidio un RMDIR.", fdCliente);
+				ProcesarRmDir(fdCliente);
+				break;
 			default:
-				log_error(osada_log, "Mensaje incorrecto. Cliente %", fdCliente);
+				log_error(osada_log, "Mensaje incorrecto. Cliente %d", fdCliente);
+				conexion_terminada = 1;
+				close(fdCliente);
 				break;
 			}
 		}
@@ -204,6 +226,8 @@ void RecibirYProcesarPedido(int fdCliente)
 
 void ProcesarGetAttr(int fd)
 {
+	//Sincronizacion
+	sComenzarLecturaTablaArchivos();
 	// Recibo el tamaño del path
 	int * result = (int *)myMalloc_int("ProcesarGetAttr - result", osada_log);
 	int tamanioPath;
@@ -240,10 +264,15 @@ void ProcesarGetAttr(int fd)
 	// Envio el fin de GETATTR
 	enviarInt(fd, FIN_GETATTR);
 
+	sFinalizarLecturaTablaArchivos();
+
 }
 
 void ProcesarReadDir(int fd)
 {
+	// Sincronizacion
+	sComenzarLecturaTablaArchivos();
+
 		int * result = myMalloc_int("ProcesarReadDir - result", osada_log);
 		int tamanioPath = 0;
 		tamanioPath = recibirInt(fd, result, osada_log);
@@ -276,6 +305,8 @@ void ProcesarReadDir(int fd)
 		// Envio el fin del readdir
 		enviarInt(fd, FIN_READDIR);
 
+		sFinalizarLecturaTablaArchivos();
+
 }
 
 void ProcesarRead(int fd)
@@ -305,9 +336,17 @@ void ProcesarRead(int fd)
 	char * buf = (char *)myMalloc_char(size, "ProcesarRead - buffer", osada_log);
 	memset((void *)buf, 0, size);
 
+	sComenzarLecturaTablaArchivos();
+	sComenzarLecturaBitmap();
+
 	FindDirectoryByName(path , directoryId);
 
+	sComenzarLecturaArchivo(*directoryId);
 	int bytes_leidos_escritos = LectoEscrituraFromOffset((off_t)offset, (size_t)size, *directoryId, buf, LECTURA);
+	sFinalizarEscrituraArchivo(*directoryId);
+
+	sFinalizarLecturaBitMap();
+	sFinalizarLecturaTablaArchivos();
 
 	// Enviar el tamaño de los bytes a enviar
 	enviarInt(fd, bytes_leidos_escritos);
@@ -322,6 +361,247 @@ void ProcesarRead(int fd)
 
 	// Envio el fin del read
 	enviarInt(fd, FIN_READ);
+
+}
+
+void ProcesarMkDir(int fd)
+{
+	sComenzarEscrituraTablaArchivos();
+	// Recibo el tamaño del path
+	int * result = (int *)myMalloc_int("ProcesarMkDir - result", osada_log);
+	int tamanioPath;
+	tamanioPath = recibirInt(fd , result, osada_log);
+
+	// Recibo el path
+	char * path = myMalloc_char((tamanioPath+1), "ProcesarMkDir - path", osada_log);
+	recibirMensaje(fd, path, tamanioPath, osada_log);
+
+	// Recibir el codigo (entero)
+	int codigoOperacion;
+	codigoOperacion = recibirInt(fd , result, osada_log);
+
+	int resultado = Crear(path, codigoOperacion);
+
+	// Envio el resultado
+	enviarInt(fd, resultado);
+
+	// Envio el fin de la operacion
+	enviarInt(fd, FIN_MKDIR);
+
+	// Libero las variables
+	myFree(result, "ProcesarMkDir - result", osada_log);
+	myFree(path, "ProcesarMkDir - path", osada_log);
+
+	sFinalizarEscrituraTablaArchivos();
+
+}
+
+void ProcesarCreate(int fd)
+{
+	sComenzarEscrituraTablaArchivos();
+	// Recibo el tamaño del path
+	int * result = (int *)myMalloc_int("ProcesarCreate - result", osada_log);
+	int tamanioPath;
+	tamanioPath = recibirInt(fd , result, osada_log);
+
+	// Recibo el path
+	char * path = myMalloc_char((tamanioPath+1), "ProcesarCreate - path", osada_log);
+	recibirMensaje(fd, path, tamanioPath, osada_log);
+
+	// Recibir el codigo (entero)
+	int codigoOperacion;
+	codigoOperacion = recibirInt(fd , result, osada_log);
+
+	int resultado = Crear(path, codigoOperacion);
+
+	// Envio el resultado
+	enviarInt(fd, resultado);
+
+	// Envio el fin de la operacion
+	enviarInt(fd, FIN_CREATE);
+
+	// Libero las variables
+	myFree(result, "ProcesarCreate - result", osada_log);
+	myFree(path, "ProcesarCreate - path", osada_log);
+
+	sFinalizarEscrituraTablaArchivos();
+
+}
+
+void ProcesarWrite(int fd)
+{
+
+	// Recibo el tamaño del path
+	int * result = (int *)myMalloc_int("ProcesarWrite - result", osada_log);
+	int tamanioPath;
+	tamanioPath = recibirInt(fd , result, osada_log);
+
+	// Recibo el path
+	char * path = myMalloc_char((tamanioPath+1), "ProcesarWrite - path", osada_log);
+	recibirMensaje(fd, path, tamanioPath, osada_log);
+
+	// Recibir el size (entero)
+	int size;
+	size = recibirInt(fd , result, osada_log);
+
+	// Recibir el offset (entero)
+	int offset;
+	offset = recibirInt(fd , result, osada_log);
+
+	// Genero mi buffer y lo inicializo
+	char * buf = (char *)myMalloc_char(size, "ProcesarWrite - buffer", osada_log);
+	memset((void *)buf, 0, size);
+
+	// Llenar el buffer
+	recibirBytesRaw(fd, (void *)buf, (int)size, osada_log);
+
+	// Declaro mi variable para la entrada de la tabla de archivos
+	int * directoryId = (int *)myMalloc_int("ProcesarWrite - directoryId", osada_log);
+	*directoryId = -1;
+
+	sComenzarEscrituraTablaArchivos();
+	sComenzarEscrituraBitMap();
+	FindDirectoryByName(path , directoryId);
+
+	sComenzarEscrituraArchivo(*directoryId);
+	int bytes_leidos_escritos = LectoEscrituraFromOffset((off_t)offset, (size_t)size, *directoryId, buf, ESCRITURA);
+	sFinalizarEscrituraArchivo(*directoryId);
+
+	sFinalizarEscrituraBitMap();
+	sFinalizarEscrituraTablaArchivos();
+
+	// Enviar la cantidad de bytes escritos
+	enviarInt(fd, bytes_leidos_escritos);
+
+	myFree(result, "ProcesarWrite - result", osada_log);
+	myFree(path, "ProcesarWrite - path", osada_log);
+	myFree(directoryId, "ProcesarWrite - directoryId", osada_log);
+	myFree(buf, "ProcesarWrite - buf", osada_log);
+
+	// Envio el fin del read
+	enviarInt(fd, FIN_WRITE);
+
+}
+
+void ProcesarUnlink(int fd)
+{
+	// Recibo el tamaño del path
+	int * result = (int *)myMalloc_int("ProcesarUnlink - result", osada_log);
+	int tamanioPath;
+	tamanioPath = recibirInt(fd , result, osada_log);
+
+	// Recibo el path
+	char * path = myMalloc_char((tamanioPath+1), "ProcesarUnlink - path", osada_log);
+	recibirMensaje(fd, path, tamanioPath, osada_log);
+
+	int * directoryId = myMalloc_int("ProcesarUnlink - directoryId", osada_log);
+	int cantBloques = 0, status = 0;
+
+	*directoryId = -1;
+
+	sComenzarEscrituraTablaArchivos();
+	sComenzarEscrituraBitMap();
+
+	FindDirectoryByName(path , directoryId);
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=*directoryId;
+
+	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+
+	status = DeleteBlocks(cantBloques,*directoryId);
+
+	if(!status){
+		indice_tabla_archivos->state=0;
+	}
+
+	sFinalizarEscrituraBitMap();
+	sFinalizarEscrituraTablaArchivos();
+
+	// Enviar Status al cliente...
+	enviarInt(fd, status);
+
+	// Liberar las variables
+	myFree(result, "ProcesarUnlink - result", osada_log);
+	myFree(path, "ProcesarUnlink - path", osada_log);
+	myFree(directoryId, "ProcesarUnlink - directoryId", osada_log);
+
+	// Enviar el fin de UNLINK
+	enviarInt(fd, FIN_UNLINK);
+}
+
+void ProcesarTruncate(int fd)
+{
+	// Recibo el tamaño del path
+	int * result = (int *)myMalloc_int("ProcesarTruncate - result", osada_log);
+	int tamanioPath;
+	tamanioPath = recibirInt(fd , result, osada_log);
+
+	// Recibo el path
+	char * path = myMalloc_char((tamanioPath+1), "ProcesarTruncate - path", osada_log);
+	recibirMensaje(fd, path, tamanioPath, osada_log);
+
+	int * directoryId = myMalloc_int("ProcesarTruncate - directoryId", osada_log);
+	int cantBloques = 0, status = 0;
+
+	*directoryId = -1;
+
+	sComenzarEscrituraTablaArchivos();
+	sComenzarEscrituraBitMap();
+
+	FindDirectoryByName(path , directoryId);
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=*directoryId;
+
+	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+
+	DeleteBlocks(cantBloques,*directoryId);
+
+	indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
+	indice_tabla_archivos->file_size = 0;
+
+	sFinalizarEscrituraBitMap();
+	sFinalizarEscrituraTablaArchivos();
+
+	myFree(result, "ProcesarTruncate - result", osada_log);
+	myFree(path, "ProcesarTruncate - path", osada_log);
+	myFree(directoryId, "ProcesarTruncate - directoryId", osada_log);
+
+	enviarInt(fd, FIN_TRUNCATE);
+
+}
+
+void ProcesarRmDir(int fd)
+{
+	// Recibo el tamaño del path
+	int * result = (int *)myMalloc_int("ProcesarRmDir - result", osada_log);
+	int tamanioPath;
+	tamanioPath = recibirInt(fd , result, osada_log);
+
+	// Recibo el path
+	char * path = myMalloc_char((tamanioPath+1), "ProcesarRmDir - path", osada_log);
+	recibirMensaje(fd, path, tamanioPath, osada_log);
+
+	int * directoryId = myMalloc_int("ProcesarRmDir - directoryId", osada_log);
+	*directoryId = -1;
+
+	osada_file *indice_tabla_archivos = tabla_archivos;
+
+	sComenzarEscrituraTablaArchivos();
+	FindDirectoryByName(path, directoryId);
+
+	indice_tabla_archivos+=*directoryId;
+
+	indice_tabla_archivos->state = 0;
+
+	sFinalizarEscrituraTablaArchivos();
+
+	myFree(result, "ProcesarRmDir - result", osada_log);
+	myFree(path, "ProcesarRmDir - path", osada_log);
+	myFree(directoryId, "ProcesarRmDir - directoryId", osada_log);
+
+	enviarInt(fd, FIN_RMDIR);
 
 }
 
@@ -521,7 +801,7 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 	}
 
 	myFree(aux_buf, "LectoEscrituraFromOffset - auxbuf", osada_log);
-//	pthread_mutex_unlock(&mutex_escritura_disco);
+
 	return bytes_to_rw;
 }
 
@@ -569,6 +849,7 @@ int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int op
 
 int BuscaPrimerEspacioDisponibleEnBitMap()
 {
+	// todo: setear el bit aca como en la tabla de archivos, para reservarlo...
 	int index = 0;
 	bool hayEspacio = false;
 	t_bitarray * bm = bitmap;
@@ -578,7 +859,10 @@ int BuscaPrimerEspacioDisponibleEnBitMap()
 		int bit_value = (int)bitarray_test_bit(bm, offset_bitmap_datos + index);
 
 		if (bit_value == 0)
+		{
 			hayEspacio = true;
+			SeteaBitEnBitMap(index);
+		}
 		else
 			index++;
 	}
@@ -592,6 +876,370 @@ void SeteaBitEnBitMap(int offset)
 	bitarray_set_bit(bm, offset_bitmap_datos + offset);
 }
 
+int Crear(char * path, int state)
+{
+	// Chequear espacio disponible
+	int returnValue = -1;
+
+		// Chequear longitud del nombre
+		if (TamanioNombreAdecuado(path))
+		{
+			// Chequear que no exista otro igual
+			if (!ExistsDirectoryByName(path))
+			{
+				// Ubicar el ID del directorio padre
+				int * parentDirectoryId = myMalloc_int("Crear - parentDirectoryId", osada_log);
+				*parentDirectoryId = -1;
+				if (FindParentDirectoryByName(path, parentDirectoryId))
+				{
+					// Chequear espacio disponible
+					int tablaArchivosId = BuscaPrimerEspacioDisponibleEnTablaArchivos();
+
+					if (tablaArchivosId > NO_HAY_ESPACIO_TABLA_ARCHIVOS)
+					{
+						// Generar la carpeta
+						CrearArchivoDirectorio(path, tablaArchivosId, *parentDirectoryId, state);
+						returnValue = 0;
+					}
+					else
+						returnValue = -ENOSPC;
+				}
+				else
+					returnValue = -ENOENT;
+
+				myFree(parentDirectoryId, "Crear - parentDirectoryId", osada_log);
+			}
+			else
+				returnValue = -ENOENT;
+		}
+		else
+			returnValue = -EFBIG;
+
+	return returnValue;
+
+}
+
+int BuscaPrimerEspacioDisponibleEnTablaArchivos()
+{
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	int index = 0;
+	bool hayEspacio = false;
+
+	while(!hayEspacio && index < OSADA_CANTIDAD_MAXIMA_ARCHIVOS)
+	{
+		if ((indice_tabla_archivos+index)->state == 0)
+		{
+			hayEspacio = true;
+			(indice_tabla_archivos+index)->state = 1; // Esto lo pongo para reservar el lugar, luego en la creacion
+										// se corrige dependiendo si es ARCHIVO o DIRECTORIO.
+		}
+		else
+			index++;
+	}
+
+	return hayEspacio ? index : NO_HAY_ESPACIO_TABLA_ARCHIVOS;
+
+}
+
+bool TamanioNombreAdecuado(char * path)
+{
+	char ** splitPath = SplitPath(path);
+
+	bool returnValue = (strlen(splitPath[LongitudArray(splitPath)-1]) <= TAMANIO_MAXIMO_NOMBRE_ARCHIVO);
+
+	log_trace(osada_log, "Voy a liberar el path: %s", path);
+	myFreeSplitPath(splitPath, "FindDirectoryByName - arr", osada_log);
+
+	return returnValue;
+}
+
+bool ExistsDirectoryByName(char * path)
+{
+	char ** arr = SplitPath(path);
+	int * directoryId = myMalloc_int("ExistsDirectoryByName - directoryId", osada_log);
+	*directoryId = -1;
+	bool returnValue = FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+
+	// Libero las variables
+	log_trace(osada_log, "Voy a liberar el path: %s", path);
+	myFreeSplitPath(arr, "ExistsDirectoryByName - arr", osada_log);
+	myFree(directoryId, "ExistsDirectoryByName - directoryId", osada_log);
+
+	return returnValue;
+}
+
+bool FindParentDirectoryByName(char * path, int * directoryId)
+{
+	char ** arr = SplitPath(path);
+	int lArray = LongitudArray(arr);
+	bool returnValue;
+
+	if (lArray == 1)
+		returnValue = 0xffff; // Es un directorio en el directorio raiz.
+	else
+	{
+		arr[lArray - 1] = NULL;
+		log_trace(osada_log, arr[0]);
+		returnValue = FindDirectoryByNameAndParent(arr, 0xffff, directoryId);
+	}
+
+	// Libero las variables
+	log_trace(osada_log, "Voy a liberar el path: %s", path);
+	myFreeSplitPath(arr, "FindParentDirectoryByName - arr", osada_log);
+
+	return returnValue;
+}
+
+int LongitudArray(char ** arr)
+{
+	int index = 0;
+
+	while(arr[index] != NULL)
+		index++;
+
+	return index;
+}
+
+void CrearArchivoDirectorio(char * path, int tablaArchivosId, int parentDirectoryId, int state)
+{
+	log_trace(osada_log, "Comienzo a Crear el directorio...%s", path);
+	osada_file * indice_tabla_archivos = tabla_archivos;
+
+	char ** splitPath = SplitPath(path);
+
+	int name = 0;
+	while(splitPath[name] != NULL)
+	{
+		log_trace(osada_log, "nombre PARCIAL: %s", splitPath[name]);
+		name++;
+	}
+
+	// TODO: ver si aca tengo que asignar memoria...
+	char * nombre_archivo = myMalloc_char(OSADA_FILENAME_LENGTH, "CrearArchivoDirectorio - nombre_archivo", osada_log);
+	memset((void *)nombre_archivo, '\0', OSADA_FILENAME_LENGTH);
+	memcpy((void *)nombre_archivo, (void *)splitPath[name-1], strlen(splitPath[name-1]));
+
+	log_trace(osada_log, "nombre: %s", nombre_archivo);
+
+	int index = 0;
+
+	while (index < 17)
+	{
+		if ((nombre_archivo[index]) != '\0')
+			(indice_tabla_archivos+tablaArchivosId)->fname[index] = (nombre_archivo[index]);
+		else
+			(indice_tabla_archivos+tablaArchivosId)->fname[index] = '\0';
+		//(indice_tabla_archivos+tablaArchivosId)->fname[index] = *((splitPath[LongitudArray(splitPath)-1])+index);
+		index++;
+	}
+
+	if (parentDirectoryId == -1)
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = (uint16_t)0xffff;
+	else
+		(indice_tabla_archivos+tablaArchivosId)->parent_directory = parentDirectoryId;
+	(indice_tabla_archivos+tablaArchivosId)->state = state;
+
+	(indice_tabla_archivos+tablaArchivosId)->file_size = 0;
+	(indice_tabla_archivos+tablaArchivosId)->first_block = SIN_BLOQUES_ASIGNADOS; // todo: check!
+//
+//	log_trace(osada_log, "Fin creacion del directorio...%s - con padre id: %04x", path, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
+//	if (parentDirectoryId == -1)
+//	log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", 0xffff, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
+//	else
+//		log_trace(osada_log, "Padre Original: %04x - Padre Guardado: %04x", parentDirectoryId, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
+//
+//	log_trace(osada_log, "File Size: %d", (indice_tabla_archivos+tablaArchivosId)->file_size);
+
+	log_trace(osada_log, "Voy a liberar el path: %s", path);
+	myFreeSplitPath(splitPath, "CrearArchivoDirectorio - splitPath", osada_log);
+	myFree(nombre_archivo, "CrearArchivoDirectorio - nombre_archivo", osada_log);
+}
+
+int DeleteBlocks(size_t blocks_to_delete, int directoryId)
+{
+
+	bool algo;
+	int i = 0;
+	int offset_tabla_datos = 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
+
+	t_bitarray *bitmap_aux = bitmap;
+
+	osada_file * indice_tabla_archivos = tabla_archivos;
+	indice_tabla_archivos+=directoryId;
+
+	int * indice_tabla_asignaciones = tabla_asignaciones;
+
+	int bloque_actual = indice_tabla_archivos->first_block;
+
+	while(i<blocks_to_delete){
+		algo = bitarray_test_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
+
+		bitarray_clean_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
+		i++;
+		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+	}
+
+	return 0;
+}
+
+
+// Sincronizacion
+void InicializarSemaforos()
+{
+//	// todo: chequear que permitan accederse la primera vez que se consultan...
+//	pthread_mutex_init(&mutex_pedido_bloques, NULL);
+//
+//	sem_tabla_archivos = (sem_t *) myMalloc_sem_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - sem_tabla_archivos", osada_log);
+//	mutex_escrituras = (pthread_mutex_t *)myMalloc_mutex_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - mutex escrituras", osada_log);
+//
+//
+//
+//	for (index = 0 ; index < OSADA_CANTIDAD_MAXIMA_ARCHIVOS ; index++)
+//	{
+//		sem_init(&(sem_tabla_archivos[index]), 0 , 0);
+//		pthread_mutex_init(&(mutex_escrituras[index]), NULL);
+//		index++;
+//	}
+
+	int index = 0;
+	// Tabla de archivos
+	myInitMutex(&mutex_escritura_tabla_archivos, "mutex_escritura_tabla_archivos", osada_log);
+	myInitMutex(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
+	int cuenta_lectores_tabla_archivos = 0;
+
+	// Bitmap
+	myInitMutex(&mutex_escritura_bitmap, "mutex_escritura_bitmap", osada_log);
+	myInitMutex(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
+	int cuenta_lectores_bitmap = 0;
+
+	//Archivos
+	mutex_escritura_archivos = (pthread_mutex_t *)myMalloc_mutex_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - mutex_escritura_archivos", osada_log);
+	mutex_cuenta_lectores_archivos = (pthread_mutex_t *)myMalloc_mutex_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - mutex_cuenta_lectores_archivos", osada_log);
+	cuenta_lectores_archivos = (int *)myMalloc_int_array(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Int Array - cuenta_lectores_archivos", osada_log);
+
+	for (index = 0 ; index < OSADA_CANTIDAD_MAXIMA_ARCHIVOS ; index++)
+	{
+		myInitMutex(&(mutex_escritura_archivos[index]),"mutex_escritura_archivos[index]", osada_log);
+		myInitMutex(&(mutex_escritura_archivos[index]),"mutex_escritura_archivos[index]", osada_log);
+		cuenta_lectores_archivos[index] = 0;
+	}
+
+}
+
+void sComenzarLecturaTablaArchivos()
+{
+	log_info(osada_log, "**** SINCRO: COMENZAR LECTURA TABLA ARCHIVOS");
+	myMutexLock(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
+	cuenta_lectores_tabla_archivos++;
+	log_trace(osada_log, "Cantidad Lectores: %d", cuenta_lectores_tabla_archivos);
+	if (cuenta_lectores_tabla_archivos == 1)
+		myMutexLock(&mutex_escritura_tabla_archivos, "mutex_escritura_tabla_archivos", osada_log);
+
+	myMutexUnlock(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
+}
+
+void sFinalizarLecturaTablaArchivos()
+{
+	log_info(osada_log, "**** SINCRO: FINALIZAR LECTURA TABLA ARCHIVOS");
+	myMutexLock(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
+	cuenta_lectores_tabla_archivos--;
+	log_trace(osada_log, "Cantidad Lectores: %d", cuenta_lectores_tabla_archivos);
+	if (cuenta_lectores_tabla_archivos == 0)
+		myMutexUnlock(&mutex_escritura_tabla_archivos, "mutex_escritura_tabla_archivos", osada_log);
+
+	myMutexUnlock(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
+}
+
+void sComenzarEscrituraTablaArchivos()
+{
+	log_info(osada_log, "**** SINCRO: COMENZAR ESCRITURA TABLA ARCHIVOS");
+	myMutexLock(&mutex_escritura_tabla_archivos, "mutex_escritura_tabla_archivos", osada_log);
+
+}
+
+void sFinalizarEscrituraTablaArchivos()
+{
+	log_info(osada_log, "**** SINCRO: FINALIZAR ESCRITURA TABLA ARCHIVOS");
+	myMutexUnlock(&mutex_escritura_tabla_archivos, "mutex_escritura_tabla_archivos", osada_log);
+}
+
+
+void sComenzarLecturaBitmap()
+{
+	log_info(osada_log, "**** SINCRO: COMENZAR LECTURA BITMAP");
+	myMutexLock(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
+	cuenta_lectores_bitmap++;
+	log_trace(osada_log, "Cantidad Lectores BitMap: %d", cuenta_lectores_bitmap);
+	if (cuenta_lectores_bitmap == 1)
+		myMutexLock(&mutex_escritura_bitmap, "mutex_escritura_bitmap", osada_log);
+
+	myMutexUnlock(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
+
+}
+
+void sFinalizarLecturaBitMap()
+{
+	log_info(osada_log, "**** SINCRO: FINALIZAR LECTURA BITMAP");
+	myMutexLock(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
+	cuenta_lectores_bitmap--;
+	log_trace(osada_log, "Cantidad Lectores: %d", mutex_cuenta_lectores_bitmap);
+	if (cuenta_lectores_bitmap == 0)
+		myMutexUnlock(&mutex_escritura_bitmap, "mutex_escritura_bitmap", osada_log);
+
+	myMutexUnlock(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
+}
+
+void sComenzarEscrituraBitMap()
+{
+	log_info(osada_log, "**** SINCRO: COMENZAR ESCRITURA BITMAP");
+	myMutexLock(&mutex_escritura_bitmap, "mutex_escritura_bitmap", osada_log);
+
+}
+
+void sFinalizarEscrituraBitMap()
+{
+	log_info(osada_log, "**** SINCRO: FINALIZAR ESCRITURA BITMAP");
+	myMutexUnlock(&mutex_escritura_bitmap, "mutex_escritura_bitmap", osada_log);
+}
+
+void sComenzarLecturaArchivo(int idArchivo)
+{
+	log_info(osada_log, "**** SINCRO: COMENZAR LECTURA ARCHIVO: %d", idArchivo);
+	myMutexLock(&mutex_cuenta_lectores_archivos[idArchivo], "mutex_cuenta_lectores_archivos", osada_log);
+	cuenta_lectores_archivos[idArchivo] += 1;
+	log_trace(osada_log, "Cantidad Lectores Archivo %d: %d", idArchivo, (cuenta_lectores_archivos[idArchivo]));
+	if (cuenta_lectores_archivos[idArchivo] == 1)
+		myMutexLock(&mutex_escritura_archivos[idArchivo], "mutex_escritura_archivos[idArchivo]", osada_log);
+
+	myMutexUnlock(&mutex_cuenta_lectores_archivos[idArchivo], "mutex_cuenta_lectores_archivos[idArchivo]", osada_log);
+
+}
+
+void sFinalizarLecturaArchivo(int idArchivo)
+{
+	log_info(osada_log, "**** SINCRO: FINALIZAR LECTURA ARCHIVO: %d", idArchivo);
+	myMutexLock(&mutex_cuenta_lectores_archivos[idArchivo], "mutex_cuenta_lectores_archivos", osada_log);
+	cuenta_lectores_archivos[idArchivo] -= 1;
+	log_trace(osada_log, "Cantidad Lectores Archivo %d: %d", idArchivo, cuenta_lectores_archivos[idArchivo]);
+	if (cuenta_lectores_archivos[idArchivo] == 0)
+		myMutexUnlock(&mutex_escritura_archivos[idArchivo], "mutex_escritura_archivos[idArchivo]", osada_log);
+
+	myMutexUnlock(&mutex_cuenta_lectores_archivos[idArchivo], "mutex_cuenta_lectores_archivos[idArchivo]", osada_log);
+
+
+}
+
+void sComenzarEscrituraArchivo(int idArchivo)
+{
+	log_info(osada_log, "**** SINCRO: COMENZAR ESCRITURA ARCHIVO: %d ", idArchivo);
+	myMutexLock(&mutex_escritura_archivos[idArchivo], "mutex_escritura_archivos[idArchivo]", osada_log);
+}
+
+void sFinalizarEscrituraArchivo(int idArchivo)
+{
+	log_info(osada_log, "**** SINCRO: FINALIZAR ESCRITURA ARCHIVO: %d", idArchivo);
+	myMutexUnlock(&mutex_escritura_archivos[idArchivo], "mutex_escritura_archivos[idArchivo]", osada_log);
+}
 
 // Metodos para test
 void ImprimirHeader()
@@ -662,23 +1310,22 @@ void ImprimirTablaDeArchivos()
 
 	for (j = 0 ; j < OSADA_CANTIDAD_MAXIMA_ARCHIVOS ; j++)
 	{
-		if ((int)indice_tabla_archivos->state != 0)
-		{
+//		if ((int)indice_tabla_archivos->state != 0)
+//		{
 			log_info(osada_log, " ---- Archivo %d ---- ", j);
 			log_info(osada_log, "Estado: %s", TipoDeArchivo((int)indice_tabla_archivos->state));
 			log_info(osada_log, "Nombre: %s", indice_tabla_archivos->fname);
 			log_info(osada_log, "Tamanio: %d bytes - %d bloques", indice_tabla_archivos->file_size, TamanioEnBloques(indice_tabla_archivos->file_size));
 			log_info(osada_log, "Directorio Padre: %04x hexa - %d decimal", indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
 			log_info(osada_log, "Primer Bloque: %04x hexa - %d decimal", indice_tabla_archivos->first_block, indice_tabla_archivos->first_block);
-			ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
+		//	ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
 			log_info(osada_log, "Fecha Ultima Modificacion: %d\n", indice_tabla_archivos->lastmod);
-			GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
-		}
+		//	GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
+//		}
 		indice_tabla_archivos++;
 	}
 
 }
-
 
 void ImprimirBloquesDelBitMap(t_bitarray * bitmap, int size, int * parcial, int * total)
 {
