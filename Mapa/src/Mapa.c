@@ -487,17 +487,42 @@ t_entrenador *buscar_entrenador(int fd){
 	return NULL;
 }
 
-void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
-	int tamanio_nombre_archivo = string_length(pokemon->nombre_archivo);
-	list_add(entrenador->pokemons, pokemon);
+//void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
+//	int tamanio_nombre_archivo = string_length(pokemon->nombre_archivo);
+//	list_add(entrenador->pokemons, pokemon);
+//
+//	//Envio el nombre del archivo al Entrenador
+//	enviarInt(entrenador->fd, POKEMON_CONCEDIDO);
+//	enviarInt(entrenador->fd, (sizeof(char) * tamanio_nombre_archivo));
+//	if(enviarMensaje(entrenador->fd, pokemon->nombre_archivo) < 0){
+//		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
+//		liberar_recursos_entrenador(entrenador, NULL);
+//	} else {
+//		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
+//		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
+//		agregar_entrenador_a_listos(entrenador);
+//		//Resto el Recurso de la Interfaz de Mapa
+//		disminuir_recursos_de_pokenest(items, pokenest_id, nombre_mapa);
+//	}
+//}
 
-	//Envio el nombre del archivo al Entrenador
+void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
+	t_list* pokenests = get_listado_pokenest(ruta_pokedex, nombre_mapa);
+	t_pokenest* pokenest = get_pokenest_by_identificador(pokenests, pokenest_id);
+	char* pokenest_dir = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
+	char* pokemon_path = string_new();
+	string_append(&pokemon_path, pokenest_dir);
+	string_append(&pokemon_path,"/");
+	string_append(&pokemon_path,pokenest->nombre);
+	string_append(&pokemon_path,"/");
+	string_append(&pokemon_path, pokemon->nombre_archivo);
+	int tamanio_nombre_archivo = string_length(pokemon_path);
 	enviarInt(entrenador->fd, POKEMON_CONCEDIDO);
 	enviarInt(entrenador->fd, (sizeof(char) * tamanio_nombre_archivo));
-	if(enviarMensaje(entrenador->fd, pokemon->nombre_archivo) < 0){
+	if(enviarMensaje(entrenador->fd, pokemon_path) < 0){
 		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
 		liberar_recursos_entrenador(entrenador, NULL);
-	} else {
+	}else {
 		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
 		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
 		agregar_entrenador_a_listos(entrenador);
