@@ -155,7 +155,8 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
 			//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
-			copiar_archivo(nombre_archivo, tamanio_archivo);
+			char* dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+			copiar_archivo(nombre_archivo, dirBill);
 			log_info(entrenador_log, "%s",nombre_archivo);
 			free(result);
 			//free(nombre_archivo);
@@ -238,6 +239,8 @@ void terminarObjetivo(){
 	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
 	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
+	char* dirMedalla = get_entrenador_directorio_medallas(ruta_pokedex, nombre_entrendor);
+	copiar_archivo(ruta_medalla, dirMedalla);
 	free(result);
 	free(ruta_medalla);
 
@@ -518,26 +521,39 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 	free(path_total);
 }
 
-void copiar_archivo(char* path, char* nombre){
+
+
+void copiar_archivo(char* path_from, char* path_to){
 	char* path_src = string_new();
 	char* path_dst = string_new();
 	char* mapArchSrc;
 	char* mapArchDst;
 	struct stat buf;
-	string_append(&path_src,path);
-	string_append(&path_src,"/");
-	string_append(&path_src,nombre);
-	string_append(&path_dst,path_src);
+	char* nombre_archivo;
+	char** path_split;
+	char i = 0;
+	string_append(&path_src,path_from);
+	path_split = string_split(path_from,"/");
+
+	while(*(path_split + i) != NULL){
+		nombre_archivo = *(path_split + i);
+		i++;
+	}
+
+	//El path destino seria /Entrenadores/[nombre entrenador]/directorio de bill
+	string_append(&path_dst,path_to);
+	string_append(&path_dst,nombre_archivo);
 	int fd_src = open(path_src, O_RDWR);
 	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
 	stat(path_src,&buf);
 	int tam = buf.st_size;
 	ftruncate(fd_dst,tam);
-	mapArchSrc = (char*)mmap(0, tam, PROT_READ, MAP_SHARED, fd_src, 0);
-	mapArchDst = (char*)mmap(0, tam, PROT_READ|PROT_WRITE, MAP_SHARED, fd_dst, 0);
+	mapArchSrc = (char*)mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED, fd_src, 0);
+	mapArchDst = (char*)mmap(0, tam, PROT_WRITE, MAP_SHARED, fd_dst, 0);
 	memcpy(mapArchDst, mapArchSrc, tam);
 	munmap(mapArchSrc, tam);
 	munmap(mapArchDst, tam);
-
+	free(path_src);
+	free(path_dst);
 
 }
