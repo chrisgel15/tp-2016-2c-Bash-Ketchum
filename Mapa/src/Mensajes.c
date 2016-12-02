@@ -208,3 +208,16 @@ void eliminar_cola_mensajes_entrenador(t_list *mensajes, int fd, t_log *log){
 
 	pthread_mutex_unlock(&mutex_mensajes);
 }
+
+void entrenador_desconectado(t_list *mensajes_entrenadores, int fd){
+	t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, fd);
+
+	if(mensajes_entrenador != NULL){
+		t_queue *cola_mensajes = mensajes_entrenador->mensajes;
+		int accion = DESCONECTADO;
+
+		pthread_mutex_lock(&mutex_mensajes);
+		queue_push(cola_mensajes, accion);
+		pthread_mutex_unlock(&mutex_mensajes);
+	}
+}

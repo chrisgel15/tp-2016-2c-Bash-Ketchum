@@ -35,6 +35,7 @@
 #define MUERTE			 		208
 #define VICTORIA				209
 #define DERROTA					210
+#define DESCONECTADO 			9999
 
 //Definciones entre Pokedex Clientes y Pokedex Servidor
 

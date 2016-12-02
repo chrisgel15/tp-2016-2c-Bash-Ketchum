@@ -260,10 +260,7 @@ void inicializar_estructuras(){
 	items = list_create();
 	mensajes_entrenadores = list_create();
 
-	//datos_mapa = malloc(sizeof(t_datos_mapa));
 	algoritmo = malloc(sizeof(char)*4);
-	//datos_mapa->items = items;
-	//datos_mapa->entrenador = NULL;
 
 	//Semaforos
 	inicializar_semaforo_mensajes();
@@ -460,7 +457,9 @@ void despedir_entrenador(int fd_entrenador){
 	if(despedido != NULL){
 		liberar_recursos_entrenador(despedido, NULL);
 	} else {
-		log_info(mapa_log, "No se encontro el Entrenador para Despedir.");
+		log_info(mapa_log, "No se encontro el Entrenador para Despedir. Se procedera a Enviarle un Mensaje.");
+		entrenador_desconectado(mensajes_entrenadores, fd_entrenador);
+		sem_post(&sem_mensajes);
 	}
 
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
@@ -515,6 +514,7 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 	enviarMensaje(entrenador->fd, ruta_medalla);
 
 	//Libero Entrenador
+	free(ruta_medalla);
 	liberar_recursos_entrenador(entrenador, NULL);
 }
 
@@ -570,10 +570,16 @@ void administrar_turnos() {
 			es_algoritmo_rr = TRUE;
 		} else {
 			entrenador = remover_entrenador_listo_por_SRDF();
-			es_algoritmo_rr = FALSE;;
+			es_algoritmo_rr = FALSE;
 		}
 
-		atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
+		//Verifico si el entrenador no se desconecto
+		if(fcntl(entrenador->fd, F_GETFL) != -1){
+			atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
+		} else {
+			log_info(mapa_log, "El Entrenador %s se ha desconectado del Mapa.", entrenador->nombre);
+			liberar_recursos_entrenador(entrenador, NULL);
+		}
 	}
 
 	free(round_robin);
@@ -583,9 +589,10 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	int turnos = 0;
 	bool bloqueado = FALSE; //Flag utilizado para saber si un Entrenador se Bloqueo
 	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
+	bool desconectado = FALSE; //Falg utilizado para saber si el Entrenador se Desconecto
 	int instruccion;
 
-	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo){
+	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo && !desconectado){
 		sem_wait(&sem_mensajes);
 
 		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
@@ -608,6 +615,10 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				entregar_medalla(entrenador, nombre_mapa);
 				finalizo = TRUE;
 				break;
+			case DESCONECTADO:
+				log_info(mapa_log, "El Entrenador %s se ha desconectado del Mapa.", entrenador->nombre);
+				desconectado = TRUE;
+				break;
 			default:
 				log_error(mapa_log, "Se ha producido un error al tratar de atender instruccion del Entrenador.");
 				break;
@@ -623,6 +634,11 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 		if(!finalizo){
 			agregar_entrenador_a_listos(entrenador);
 		}
+
+		if(desconectado){
+			liberar_recursos_entrenador(entrenador, NULL);
+		}
+
 	} else {
 		log_info(mapa_log, "Se va a Bloquear al Entrenador %s.", entrenador->nombre);
 		agregar_entrenador_a_bloqueados(entrenador);
@@ -771,8 +787,6 @@ void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje){
 			//Informo de la Muerte al Entrenador
 			enviarInt(fd, MUERTE);
 	}
-
-	//close(fd); //TODO: Ver como es este tema
 }
 
 /* Funciones para la Gestion de Entrenadores Interbloqueados */
