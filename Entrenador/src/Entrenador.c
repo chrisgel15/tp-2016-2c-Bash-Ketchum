@@ -152,7 +152,8 @@ void solicitar_posicion_pokenest(char *pokemon){
 void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte, int *cantidad_deadlocks){
 	int *result = malloc(sizeof(int));
 	int tamanio_mensaje, instruccion;
-	char* mensaje;
+	char* mensaje1;
+	char* mensaje2;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, nombre_pokemon);
@@ -161,10 +162,10 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 
 	while (*result>0 && instruccion!=MUERTE && instruccion!=POKEMON_CONCEDIDO ){
 		tamanio_mensaje = recibirInt(socket_mapa, result,entrenador_log);
-		mensaje = malloc(sizeof(char) * tamanio_mensaje);
-		recibirMensaje(socket_mapa, mensaje,tamanio_mensaje,entrenador_log);
+		mensaje1 = malloc(sizeof(char) * tamanio_mensaje);
+		recibirMensaje(socket_mapa, mensaje1,tamanio_mensaje,entrenador_log);
 		instruccion = recibirInt(socket_mapa, result, entrenador_log);
-		free(mensaje);
+		free(mensaje1);
 		*cantidad_deadlocks +=1 ;
 	}
 
@@ -172,15 +173,15 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 
 		case POKEMON_CONCEDIDO:
 			tamanio_mensaje= recibirInt(socket_mapa, result, entrenador_log);
-			mensaje = malloc(sizeof(char) * tamanio_mensaje);
-			recibirMensaje(socket_mapa, mensaje, tamanio_mensaje, entrenador_log);
-			list_add(pokemons, mensaje);
+			mensaje2 = malloc(sizeof(char) * tamanio_mensaje);
+			recibirMensaje(socket_mapa, mensaje2, tamanio_mensaje, entrenador_log);
+			list_add(pokemons, mensaje2);
 			pthread_mutex_lock(&mutex_archivo);
-			copiar_archivo(mensaje, dirBill);
+			copiar_archivo(mensaje2, dirBill);
 			pthread_mutex_unlock(&mutex_archivo);
-			log_info(entrenador_log, "%s",mensaje);
+			log_info(entrenador_log, "%s",mensaje2);
 			free(result);
-			free(mensaje);
+			free(mensaje2);
 			break;
 
 		case MUERTE:
