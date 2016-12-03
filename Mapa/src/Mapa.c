@@ -232,6 +232,7 @@ void sumar_recurso_pokemon(t_pokemon_mapa *pokemon){
 
 t_entrenador *remover_entrenador_de_bloqueados(t_entrenador *entrenador){
 	//pthread_mutex_lock(&mutex_cola_bloqueados);
+	log_info(mapa_log, "Entre a remover al Entrenador %s de los Bloqueados.", entrenador->nombre);
 	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
 	t_list *entrenadores = bloqueados->entrenadores->elements;
 	int i, entrenadores_size = list_size(entrenadores);
@@ -943,7 +944,7 @@ void batalla_pokemon(t_list *entrenadores){
 		}
 
 		log_info(mapa_log, "El Entrenador %s ha perdido contra el Entrenador %s.", perdedor->nombre, ganador->nombre);
-		//enviar_resultado_batalla(perdedor, ganador); //TODO: Descomentar para mandar el aviso
+		enviar_resultado_batalla(perdedor, ganador); //TODO: Descomentar para mandar el aviso
 		victima = perdedor; //Preparo al perdedor para el Siguiente enfrentamiento
 	}
 
