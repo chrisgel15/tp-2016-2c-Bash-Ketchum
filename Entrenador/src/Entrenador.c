@@ -103,6 +103,7 @@ void system_call_catch(int signal){
 
 	case SIGKILL:
 		//flag_fin_prog = true;
+
 		close(socket_mapa);
 		break;
 
@@ -148,7 +149,7 @@ void solicitar_posicion_pokenest(char *pokemon){
 }
 
 
-void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte){
+void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte, int *cantidad_deadlocks){
 	int *result = malloc(sizeof(int));
 	int tamanio_mensaje, instruccion;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
@@ -163,6 +164,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 		recibirMensaje(socket_mapa, mensaje,tamanio_mensaje,entrenador_log);
 		instruccion = recibirInt(socket_mapa, result, entrenador_log);
 		free(mensaje);
+		*cantidad_deadlocks +=1 ;
 	}
 
 	switch (instruccion) {
@@ -196,6 +198,10 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 
 		default :
 			log_info(entrenador_log, "No se recibio instruccion del Mapa, posible desconexion ");
+			// Borrar medallas obtenidas;
+			borrar_medallas();
+			// Borrar pokemones obtenidos;
+			borrar_pokemon();
 			exit(1);
 			break;
 	}
@@ -254,10 +260,11 @@ void terminarObjetivo(){
 
 }
 
-void convertirseEnMaestroPokemon(double tiempo_total_Viaje, double tiempo_total_bloqueado, int cantidad_muerte){
+void convertirseEnMaestroPokemon(double tiempo_total_Viaje, double tiempo_total_bloqueado, int cantidad_muerte, int cantidad_deadlocks){
 	printf("Tiempo del Viaje:  %f s.\n" , tiempo_total_bloqueado);
 	printf("Tiempo bloqueado en Pokenest:  %f s.\n" , tiempo_total_Viaje);
 	printf("Cantidad de veces que murio:  %d \n" , cantidad_muerte);
+	printf("Cantidad de veces que murio:  %d \n" , cantidad_deadlocks);
 
 }
 
@@ -268,6 +275,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 	int estado = CONECTARSE_MAPA;
 	char **objetivosPorMapa;
 	int cantidad_muerte=0;
+	int cantidad_deadlocks = 0;
 	time_t inicio_De_Viaje, inicio_bloqueado, fin_bloqueado, fin_De_Viaje;
 	double tiempo_total_bloqueado, total_tiempo_viaje;
 	tiempo_total_bloqueado=0;
@@ -304,7 +312,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 					break;
 				case ATRAPAR_POKEMON:
 					inicio_bloqueado=time(NULL);
-					capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa],pokemons_atrapados,posHojaDeViaje, &cantidad_muerte);
+					capturar_pokemon(/*"P"*/objetivosPorMapa[posObjetivoPorMapa],pokemons_atrapados,posHojaDeViaje, &cantidad_muerte, &cantidad_deadlocks);
 					fin_bloqueado = time(NULL);
 					tiempo_total_bloqueado+=difftime(fin_bloqueado,inicio_bloqueado);
 					if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
@@ -325,6 +333,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 			posHojaDeViaje = 0;
 			flag_reinicio = false;
 			cantidad_muerte=0;
+			cantidad_deadlocks=0;
 			tiempo_total_bloqueado=0;
 			inicio_De_Viaje=0;
 		}
@@ -344,7 +353,11 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 				printf("TE CONVERTISTE EN UN ENTRENADOR POKEMON!. \n");
 				fin_De_Viaje = time(NULL);
 				total_tiempo_viaje = difftime(fin_De_Viaje,inicio_De_Viaje);
-				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado, cantidad_muerte);
+				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado, cantidad_muerte, cantidad_deadlocks);
+				// Borrar medallas obtenidas;
+				borrar_medallas();
+				// Borrar pokemones obtenidos;
+				borrar_pokemon();
 				close(socket_mapa);
 				list_destroy(pokemons_atrapados);
 
@@ -409,6 +422,10 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		printf("Abandonaste el juego, se cerrará la conexión y terminará el proceso");
 		close(socket_mapa);
 		flag_fin_prog = true;
+		// Borrar medallas obtenidas;
+		borrar_medallas();
+		// Borrar pokemones obtenidos;
+		borrar_pokemon();
 		liberar_recursos();
 		exit(1);
 		break;

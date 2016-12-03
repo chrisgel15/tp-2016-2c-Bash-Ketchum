@@ -49,7 +49,7 @@ void solicitar_posicion_pokenest(char *pokemon);
 
 int conectar_mapa(char*, char*);
 
-void capturar_pokemon(char*, t_list*, int, int*);
+void capturar_pokemon(char*, t_list*, int, int*, int*);
 
 int avanzar_hacia_pokenest();
 
@@ -57,7 +57,7 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest);
 
 void terminarObjetivo();
 
-void convertirseEnMaestroPokemon(double, double, int );
+void convertirseEnMaestroPokemon(double, double, int , int );
 
 void recorrer_hojaDeViaje(int posHojaDeViaje);
 
