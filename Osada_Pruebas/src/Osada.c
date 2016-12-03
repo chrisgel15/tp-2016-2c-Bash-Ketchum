@@ -203,9 +203,6 @@ static int osada_truncate(const char * filename , off_t length)
 		indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
 		indice_tabla_archivos->file_size = 0;
 	} else {
-		// Apunto a la entrada de la tabla de archivos correspondiente
-		indice_tabla_archivos+=*directoryId;
-
 		// Comparo cantidad de bloques necesarios vs. Cantidad de bloques asignados
 		int cantBloquesNecesarios = 0, cantBloquesAsignados = 0, cantBloquesAgregar = 0;
 
@@ -218,13 +215,10 @@ static int osada_truncate(const char * filename , off_t length)
 		if (CantidadBloquesLibres(cantBloquesAgregar) == cantBloquesAgregar)
 		{
 			// Agrego los bloques
-			//res = WriteBytesFromOffset(off, size, *directoryId, buf);
-			res = LectoEscrituraFromOffset(indice_tabla_archivos->file_size, length, *directoryId, '\0', ESCRITURA);
+			res = LectoEscrituraFromOffset(indice_tabla_archivos->file_size, length, *directoryId, "\0", ESCRITURA);
 		}
 		else
 			res = -ENOSPC;
-
-		free(directoryId);
 	}
 
 	free(directoryId);
@@ -282,6 +276,8 @@ int osada_rmdir (const char* filename){
 	osada_file *indice_tabla_archivos = tabla_archivos;
 	int * directoryId = malloc(sizeof(char)*4);
 
+	FindDirectoryByName(filename, directoryId);
+
 	osada_file *indice_tabla_archivos_busqueda = tabla_archivos;
 	int i = 0;
 
@@ -289,14 +285,14 @@ int osada_rmdir (const char* filename){
 	{
 		if ((int)indice_tabla_archivos_busqueda->state != 0)
 		{
-			if (indice_tabla_archivos_busqueda->parent_directory == *filename)
+			if (indice_tabla_archivos_busqueda->parent_directory == *directoryId)
 			{
 				return ENOTEMPTY;
 			}
 		}
+		indice_tabla_archivos_busqueda++;
+		i++;
 	}
-
-	FindDirectoryByName(filename, directoryId);
 
 	indice_tabla_archivos+=*directoryId;
 
