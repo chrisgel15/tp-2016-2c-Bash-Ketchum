@@ -103,8 +103,12 @@ void system_call_catch(int signal){
 
 	case SIGKILL:
 		//flag_fin_prog = true;
-
 		close(socket_mapa);
+		borrar_medallas();
+		log_info(entrenador_log, "Se borraron las medallas para finalizar el programa ");
+		// Borrar pokemones obtenidos;
+		borrar_pokemon();
+		log_info(entrenador_log, "Se borraron los pokemons para finalizar el programa ");
 		break;
 
 	default:
@@ -179,7 +183,9 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			pthread_mutex_lock(&mutex_archivo);
 			copiar_archivo(mensaje2, dirBill);
 			pthread_mutex_unlock(&mutex_archivo);
-			log_info(entrenador_log, "%s",mensaje2);
+
+			log_info(entrenador_log, "Copio archivo %s a directorio bill ", mensaje2 );
+
 			free(result);
 			free(mensaje2);
 			break;
@@ -202,8 +208,10 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			log_info(entrenador_log, "No se recibio instruccion del Mapa, posible desconexion ");
 			// Borrar medallas obtenidas;
 			borrar_medallas();
+			log_info(entrenador_log, "Se borraron las medallas para finalizar el programa ");
 			// Borrar pokemones obtenidos;
 			borrar_pokemon();
+			log_info(entrenador_log, "Se borraron los pokemons para finalizar el programa ");
 			exit(1);
 			break;
 	}
@@ -256,6 +264,7 @@ void terminarObjetivo(){
 
 	pthread_mutex_lock(&mutex_archivo);
 	copiar_archivo(ruta_medalla, dirMedalla);
+	log_info (entrenador_log, "Se copio %s al directorio medallas ", ruta_medalla);
 	pthread_mutex_unlock(&mutex_archivo);
 	free(result);
 	free(ruta_medalla);
@@ -358,8 +367,10 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado, cantidad_muerte, cantidad_deadlocks);
 				// Borrar medallas obtenidas;
 				borrar_medallas();
+				log_info(entrenador_log, "Se borraron las medallas para finalizar la Hoja de Viaje ");
 				// Borrar pokemones obtenidos;
 				borrar_pokemon();
+				log_info(entrenador_log, "Se borraron los pokemons para finalizar la Hoja de Viaje");
 				close(socket_mapa);
 				list_destroy(pokemons_atrapados);
 
@@ -410,8 +421,10 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 
 		// Borrar medallas obtenidas;
 		borrar_medallas();
+		log_info(entrenador_log, "Se borraron las medallas para reiniciar la Hoja de Viaje ");
 		// Borrar pokemones obtenidos;
 		borrar_pokemon();
+		log_info(entrenador_log, "Se borraron los pokemons para reiniciar la Hoja de Viaje  ");
 		// Reiniciar hoja de viaje;
 		close(socket_mapa);
 		sleep(2); //PARA HACER PRUEBAS DE RECONEXION CON EL MAPA (SIN SLEEP TIRA ERROR )
@@ -426,8 +439,10 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		flag_fin_prog = true;
 		// Borrar medallas obtenidas;
 		borrar_medallas();
+		log_info(entrenador_log, "Se borraron las medallas para finalizar el programa ");
 		// Borrar pokemones obtenidos;
 		borrar_pokemon();
+		log_info(entrenador_log, "Se borraron los pokemons para finalizar el programa ");
 		liberar_recursos();
 		exit(1);
 		break;
