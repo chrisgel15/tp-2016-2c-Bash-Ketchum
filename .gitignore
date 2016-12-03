@@ -37,8 +37,16 @@
 /.metadata/
 */Release/
 
+Debug/src/**
+Debug/config/**
+*.log
+
+**/Debug/**/*.d
+**/Debug/
+**/.gitignore
+
 #CDT
 #*.project
 #*.cproject
 
-*.log
+#*.log
