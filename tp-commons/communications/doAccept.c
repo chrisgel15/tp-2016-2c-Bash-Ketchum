@@ -31,6 +31,8 @@ int doAccept(int socketNumber) {
 
 	log_info(mySocketLog, "Finalizado el Accept");
 
+	log_destroy(mySocketLog);
+
 	return returnSocket;
 
 }
