@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 //#include <signal.h>
 #include <fuse.h>
 #include <commons/bitarray.h>

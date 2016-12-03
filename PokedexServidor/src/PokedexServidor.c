@@ -955,6 +955,10 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		// Marco el fin de los bloques.
 		*(indice_tabla_asignaciones + bloque_actual) = 0xFFFFFFFF;
 		indice_tabla_archivos->file_size += bytes_to_rw;
+
+		// Ultima fecha de modificación
+		time_t ahora = time(0);
+		indice_tabla_archivos->lastmod = ahora;
 	}
 	else
 	{
