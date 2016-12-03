@@ -152,6 +152,7 @@ void solicitar_posicion_pokenest(char *pokemon){
 void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte, int *cantidad_deadlocks){
 	int *result = malloc(sizeof(int));
 	int tamanio_mensaje, instruccion;
+	char* mensaje;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, nombre_pokemon);
@@ -160,7 +161,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 
 	while (*result>0 && instruccion!=MUERTE && instruccion!=POKEMON_CONCEDIDO ){
 		tamanio_mensaje = recibirInt(socket_mapa, result,entrenador_log);
-		char* mensaje = malloc(sizeof(char) * tamanio_mensaje);
+		mensaje = malloc(sizeof(char) * tamanio_mensaje);
 		recibirMensaje(socket_mapa, mensaje,tamanio_mensaje,entrenador_log);
 		instruccion = recibirInt(socket_mapa, result, entrenador_log);
 		free(mensaje);
@@ -171,7 +172,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 
 		case POKEMON_CONCEDIDO:
 			tamanio_mensaje= recibirInt(socket_mapa, result, entrenador_log);
-			char* mensaje = malloc(sizeof(char) * tamanio_mensaje);
+			mensaje = malloc(sizeof(char) * tamanio_mensaje);
 			recibirMensaje(socket_mapa, mensaje, tamanio_mensaje, entrenador_log);
 			list_add(pokemons, mensaje);
 			pthread_mutex_lock(&mutex_archivo);
@@ -439,12 +440,13 @@ void borrar_medallas(void){
 	char* path_medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
 	DIR* dir_medalla = opendir(path_medalla);
 	char *contenido = string_new();
-	string_append(&contenido,".jpeg");
+	string_append(&contenido,".jpg");
 	pthread_mutex_lock(&mutex_archivo);
 	borrar(dir_medalla,contenido,path_medalla);
 	pthread_mutex_unlock(&mutex_archivo);
 	closedir(dir_medalla);
 	free(contenido);
+	free(path_medalla);
 
 }
 
@@ -500,6 +502,7 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	free(archivo);
 	free(path_total);
 	free(ret);
+	free(ep);
 }
 
 
