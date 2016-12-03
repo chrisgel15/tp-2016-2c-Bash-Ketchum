@@ -77,10 +77,8 @@ t_entrenador *liberar_batalla(t_entrenador *entrenador1, t_entrenador *entrenado
 	log_info(log, "El Entrenador %s usará al Pokemon %s de nivel %d.", adversario->nombre, adversario_pokemon_mapa->nombre, adversario_pokemon_mapa->nivel);
 	t_pokemon *adversario_pokemon = create_pokemon(pokemon_factory, adversario_pokemon_mapa->nombre, adversario_pokemon_mapa->nivel);
 
-	log_info(log, "Se enfrentaran los pokemons.");
 	//Enfrentamiento
 	t_pokemon *loser = pkmn_battle(victima_pokemon, adversario_pokemon);
-	log_info(log, "Se enfrentaron los pokemons.");
 
 	if(adversario_pokemon == loser){
 		victima = adversario;
