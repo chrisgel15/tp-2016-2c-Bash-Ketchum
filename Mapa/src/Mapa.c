@@ -232,24 +232,25 @@ void sumar_recurso_pokemon(t_pokemon_mapa *pokemon){
 
 t_entrenador *remover_entrenador_de_bloqueados(t_entrenador *entrenador){
 	//pthread_mutex_lock(&mutex_cola_bloqueados);
-	log_info(mapa_log, "Entre a remover al Entrenador %s de los Bloqueados.", entrenador->nombre);
-	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
-	t_list *entrenadores = bloqueados->entrenadores->elements;
+	t_entrenadores_bloqueados *bloqueados_3 = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
+	t_list *entrenadores = bloqueados_3->entrenadores->elements;
 	int i, entrenadores_size = list_size(entrenadores);
 	t_entrenador *entrenador_bloqueado = NULL;
-
+	int index_encontrado;
 	for(i = 0; i < entrenadores_size; i++){
 		entrenador_bloqueado = list_get(entrenadores, i);
 		if(entrenador_bloqueado->id == entrenador->id){
-			entrenador_bloqueado = (t_entrenador *)list_remove(entrenadores, i);
+			index_encontrado = i;
 		}
 	}
 
-	sem_wait(&sem_entrenadores_bloqueados[bloqueados->sem_index]); //Decremento el Semaforo
+	entrenador = (t_entrenador *)list_remove(entrenadores, index_encontrado);
+	//int bloqueados_size = queue_size(bloqueados->entrenadores);
+	sem_wait(&sem_entrenadores_bloqueados[bloqueados_3->sem_index]); //Decremento el Semaforo
 
 	//pthread_mutex_unlock(&mutex_cola_bloqueados);
 	log_info(mapa_log, "El Entrenador %s fue eliminado de la Lista de Bloqueados.", entrenador->nombre);
-	return entrenador_bloqueado;
+	return entrenador;
 }
 
 /********* FUNCIONES DE INICIALIZACION *********/
@@ -383,35 +384,45 @@ void despedir_entrenador(int fd_entrenador){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
 
 	t_entrenador *despedido = NULL;
-	int i;
+	int i, index_listado;
 
 	//Busco al entrenador en la lista de Entrenadores Listos
 	int listos_size = list_size(entrenadores_listos);
-
+	log_info(mapa_log, "Busco al entrenador en la lista de Entrenadores Listos.");
 	for(i = 0; i < listos_size; i++){
 		t_entrenador *listo = (t_entrenador *) list_get(entrenadores_listos, i);
 		if(listo->fd == fd_entrenador){
 			despedido = listo;
+			index_listado = i;
 		}
 	}
 
 	//Si no encontre al Entrenador busco en los Entrenadores Bloqueados
 	if(despedido == NULL){
+		log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueados.");
 		bloqueados = list_create();
+		log_info(mapa_log, "Creo la Lista de Entrenadores Bloqueados");
 		void (*add_entrenadores_bloqueados_iterator) (char*, void*) = add_entrenadores_bloqueados;
 		dictionary_iterator(entrenadores_bloqueados, add_entrenadores_bloqueados_iterator);
 		int bloqueados_size = list_size(bloqueados);
-
+		log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueadoss.Pas2");
 		for(i = 0; i < bloqueados_size; i++){
 			t_entrenador *bloqueado = (t_entrenador *) list_get(bloqueados, i);
 			if(bloqueado->fd == fd_entrenador){
 				despedido = bloqueado;
 			}
 		}
-
+		log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueadoss.Pas3");
 		list_destroy(bloqueados);
-	}
 
+		if(despedido != NULL){
+			despedido = remover_entrenador_de_bloqueados(despedido);
+		}
+
+	} else {
+		despedido = (t_entrenador *) list_remove(entrenadores_listos, index_listado);
+	}
+	log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueadoss.Pas4");
 	//Si encontre al Entrenador, libero los Recursos
 	if(despedido != NULL){
 		liberar_recursos_entrenador(despedido, NULL);
@@ -426,29 +437,13 @@ void despedir_entrenador(int fd_entrenador){
 }
 
 void add_entrenadores_bloqueados(char *key, void *entrenadores_bloqueados){
-	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *) entrenadores_bloqueados;
-	t_list *entrenadores = (t_list *) bloqueados->entrenadores->elements;
-	list_add_all(bloqueados, entrenadores);
+	t_entrenadores_bloqueados *bloqueados_2 = (t_entrenadores_bloqueados *) entrenadores_bloqueados;
+	int size = queue_size(bloqueados_2->entrenadores);
+	log_info(mapa_log, "Entrenadores Bloqueados del Pokenest %s: %d.", key, size);
+	t_list *entrenadores_list = (t_list *) bloqueados_2->entrenadores->elements;
+	list_add_all(bloqueados, entrenadores_list);
+	log_info(mapa_log, "Agregue los Entrenadores Bloqueados del Pokenest %s.", key);
 }
-
-
-t_entrenador *buscar_entrenador(int fd){
-	int cantidad_entrenadores = list_size(entrenadores_listos);
-	int i;
-
-	for(i = 0; i < cantidad_entrenadores; i++){
-		t_entrenador * entrenador = (t_entrenador *)list_get(entrenadores_listos, i);
-
-		if(entrenador->fd == fd){
-			return entrenador;
-		}
-	}
-
-	return NULL;
-}
-
-
-
 
 void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
 	list_add(entrenador->pokemons, pokemon);
