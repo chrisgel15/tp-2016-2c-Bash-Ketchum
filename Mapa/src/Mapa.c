@@ -388,7 +388,6 @@ void despedir_entrenador(int fd_entrenador){
 
 	//Busco al entrenador en la lista de Entrenadores Listos
 	int listos_size = list_size(entrenadores_listos);
-	log_info(mapa_log, "Busco al entrenador en la lista de Entrenadores Listos.");
 	for(i = 0; i < listos_size; i++){
 		t_entrenador *listo = (t_entrenador *) list_get(entrenadores_listos, i);
 		if(listo->fd == fd_entrenador){
@@ -399,20 +398,16 @@ void despedir_entrenador(int fd_entrenador){
 
 	//Si no encontre al Entrenador busco en los Entrenadores Bloqueados
 	if(despedido == NULL){
-		log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueados.");
 		bloqueados = list_create();
-		log_info(mapa_log, "Creo la Lista de Entrenadores Bloqueados");
 		void (*add_entrenadores_bloqueados_iterator) (char*, void*) = add_entrenadores_bloqueados;
 		dictionary_iterator(entrenadores_bloqueados, add_entrenadores_bloqueados_iterator);
 		int bloqueados_size = list_size(bloqueados);
-		log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueadoss.Pas2");
 		for(i = 0; i < bloqueados_size; i++){
 			t_entrenador *bloqueado = (t_entrenador *) list_get(bloqueados, i);
 			if(bloqueado->fd == fd_entrenador){
 				despedido = bloqueado;
 			}
 		}
-		log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueadoss.Pas3");
 		list_destroy(bloqueados);
 
 		if(despedido != NULL){
@@ -422,10 +417,10 @@ void despedir_entrenador(int fd_entrenador){
 	} else {
 		despedido = (t_entrenador *) list_remove(entrenadores_listos, index_listado);
 	}
-	log_info(mapa_log, "Busco al entrenador en los Entrenadores Bloqueadoss.Pas4");
+
 	//Si encontre al Entrenador, libero los Recursos
 	if(despedido != NULL){
-		liberar_recursos_entrenador(despedido, NULL);
+		liberar_recursos_entrenador(despedido, 0);
 	} else {
 		log_info(mapa_log, "No se encontro el Entrenador para Despedir. Se procedera a Enviarle un Mensaje.");
 		entrenador_desconectado(mensajes_entrenadores, fd_entrenador);
@@ -461,7 +456,7 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 	enviarInt(entrenador->fd, (sizeof(char) * tamanio_nombre_archivo));
 	if(enviarMensaje(entrenador->fd, pokemon_path) < 0){
 		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
-		liberar_recursos_entrenador(entrenador, NULL);
+		liberar_recursos_entrenador(entrenador, 0);
 	} else {
 		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
 		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
@@ -476,7 +471,7 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 	log_info(mapa_log, "Se va a Entregar la Medalla a %s.", entrenador->nombre);
 	//int fd = entrenador->fd;
-	//liberar_recursos_entrenador(entrenador, NULL);
+	//liberar_recursos_entrenador(entrenador, 0);
 	char *ruta_medalla = get_medalla_path(ruta_pokedex, nombre_mapa);
 	log_info(mapa_log, "La ruta de la Medalla es %s.", ruta_medalla);
 	//enviarInt(fd, strlen(ruta_medalla));
@@ -486,7 +481,7 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 
 	//Libero Entrenador
 	free(ruta_medalla);
-	liberar_recursos_entrenador(entrenador, NULL);
+	liberar_recursos_entrenador(entrenador, 0);
 }
 
 void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
@@ -551,7 +546,7 @@ void administrar_turnos() {
 			atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
 		} else {
 			log_info(mapa_log, "El Entrenador %s se ha desconectado del Mapa.", entrenador->nombre);
-			liberar_recursos_entrenador(entrenador, NULL);
+			liberar_recursos_entrenador(entrenador, 0);
 		}
 	}
 
@@ -609,7 +604,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 		}
 
 		if(desconectado){
-			liberar_recursos_entrenador(entrenador, NULL);
+			liberar_recursos_entrenador(entrenador, 0);
 		}
 
 	} else {
@@ -838,7 +833,7 @@ void chequear_interbloqueados(){
 		//pthread_mutex_unlock(&mutex_cola_bloqueados);
 
 		cant_entrenadores = list_size(lista_interbloqueo);
-
+		//Verifico si el Entrenador no Esta Marcado
 		log_info(mapa_log, "Cantidad de Entrenadores Bloqueados: %d.", cant_entrenadores);
 
 		if(cant_entrenadores > 0){
@@ -858,8 +853,8 @@ void chequear_interbloqueados(){
 			//Busco los Entrenadores que no fueron marcados usando su matriz de solicitud
 			int termino_ciclo = 0;
 
-			while(!termino_ciclo){
-				if(!recorrer_solicitudes(lista_interbloqueo, cant_pokenets, cant_entrenadores, disponibles)){
+			while(termino_ciclo != 1){
+				if(recorrer_solicitudes(lista_interbloqueo, cant_pokenets, cant_entrenadores, disponibles) == 0){
 					termino_ciclo = 1;
 				}
 			}
@@ -869,7 +864,8 @@ void chequear_interbloqueados(){
 			//Libero la lista de Chequeo de Interbloqueo
 			for(i = 0; i < cant_entrenadores; i++){
 				t_entrenador_interbloqueado *entrenador = (t_entrenador_interbloqueado *) list_remove(lista_interbloqueo, 0);
-				if(!entrenador->marcado){
+
+				if(entrenador->marcado == 0){
 					list_add(entrenadores_interbloqueados, entrenador->entrenador);
 				}
 
