@@ -91,7 +91,6 @@ int main(int argc, char **argv) {
 	mapa_log->is_active_console = false;
 	log_info(mapa_log, "Se ha creado el Log para el Mapa.");
 
-
 	//Inicializamos el Listado de los Pokenests con sus respectivos Pokemons
 	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
 	pokenest_dir = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
@@ -103,7 +102,7 @@ int main(int argc, char **argv) {
 	signal(SIGUSR2, system_call_catch);
 
 	//Creamos el Servidor de Entrenadores
-	int puerto_entrenadores= get_mapa_puerto(metadata);
+	int puerto_entrenadores = get_mapa_puerto(metadata);
 	int listener_entrenadores;
 	ltn_sock_addinfo* ltn_entrenadores;
 
@@ -157,7 +156,7 @@ int main(int argc, char **argv) {
 
 /********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
 
-//Agrega un nuevo programa a la Cola de Listos
+//Agrega un Nuevo Entrenador a la Cola de Listos
 void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	list_add(entrenadores_listos, entrenador);
@@ -176,7 +175,7 @@ void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	free(entrenadores);
 }
 
-//Remover entrenador segun Round Robin
+//Remover Entrenador segun Round Robin
 t_entrenador *remover_entrenador_listo_por_RR(){
 	t_entrenador *entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
@@ -187,7 +186,7 @@ t_entrenador *remover_entrenador_listo_por_RR(){
 	return entrenador;
 }
 
-//Remover entrenador segun Algoritmo Shortest Remaining Distance First
+//Remover Entrenador segun Algoritmo Shortest Remaining Distance First
 t_entrenador *remover_entrenador_listo_por_SRDF(){
 	t_entrenador* entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
@@ -287,9 +286,6 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 		case SOY_ENTRENADOR:
 			recibir_nuevo_entrenador(fd_entrenador);
 			break;
-		case ENVIAR_MENSAJE:
-			recibir_mensaje_entrenador(fd_entrenador);
-			break;
 		case UBICACION_POKENEST:
 			if(!recibir_mensaje_ubicacion_pokenest(mensajes_entrenadores, fd_entrenador, mapa_log)){
 				log_info(mapa_log, "El Entrenador del FD %d se Desconecto, se procedera a liberar sus recursos.", fd_entrenador);
@@ -364,58 +360,20 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->posicion->x = POSICION_INICIAL_X;
 	entrenador->posicion->y = POSICION_INICIAL_Y;
 	entrenador->pokemons = list_create();
-	entrenador->tiempo_ingreso = time(NULL);
+	entrenador->tiempo_ingreso = time(0); //Guardo la Fecha y Hora de Ingreso del Entrenador al Mapa
 
 	free(result);
+	free(caracter);
 
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d.", entrenador->nombre, fd);
-
-	//datos_mapa->entrenador = entrenador;
 
 	//Creamos la estructura donde van a ir los mensajes
 	inicializar_mensajes_entrenador(mensajes_entrenadores, fd, mapa_log);
 
 	agregar_entrenador_a_listos(entrenador);
 
-	/* Muestro en el Mapa al Entrenador */
+	//Muestro en el Mapa al Entrenador
 	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
-}
-
-void recibir_mensaje_entrenador(int fd){
-	int tamanio_texto;
-	int *result = malloc(sizeof(int));
-	char *texto = NULL;
-	char *texto_enviar = NULL;
-	t_entrenador *entrenador_origen = buscar_entrenador(fd);
-	int cantidad_entrenadores = list_size(entrenadores_listos);
-
-	//Recibo el mensaje
-	tamanio_texto = recibirInt(fd, result, mapa_log);
-	texto = malloc(sizeof(char) * tamanio_texto);
-	recibirMensaje(fd, texto, tamanio_texto, mapa_log);
-
-	//printf("Mensaje recibido del socket %d: %s", fd, texto);
-	log_info(mapa_log, "Mensaje recibido del socket %d: %s", fd, texto);
-
-	//Enviamos el mensaje a todos los Entrenadores
-	int i;
-	for(i = 0; i < cantidad_entrenadores; i++){
-		t_entrenador *entrenador = (t_entrenador *)list_get(entrenadores_listos, i);
-
-		if(entrenador->fd != fd){
-			texto_enviar = string_new();
-			string_append(&texto_enviar, entrenador_origen->nombre);
-			string_append(&texto_enviar, ": ");
-			string_append(&texto_enviar, texto);
-			tamanio_texto = (int) strlen(texto_enviar);
-			enviarInt(entrenador->fd, tamanio_texto);
-			enviarMensaje(entrenador->fd, texto_enviar);
-		}
-	}
-
-	free(result);
-	free(texto);
-	free(texto_enviar);
 }
 
 void despedir_entrenador(int fd_entrenador){
@@ -473,6 +431,7 @@ void add_entrenadores_bloqueados(char *key, void *entrenadores_bloqueados){
 	list_add_all(bloqueados, entrenadores);
 }
 
+
 t_entrenador *buscar_entrenador(int fd){
 	int cantidad_entrenadores = list_size(entrenadores_listos);
 	int i;
@@ -490,8 +449,8 @@ t_entrenador *buscar_entrenador(int fd){
 
 
 
+
 void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
-	log_info(mapa_log, "veo que onda con entregar el pokemon que rompen.");
 	list_add(entrenador->pokemons, pokemon);
 	//t_list* pokenests = get_listado_pokenest(ruta_pokedex, nombre_mapa);
 	t_pokenest* pokenest = get_pokenest_by_identificador(lista_pokenests, pokenest_id);
@@ -543,6 +502,8 @@ void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
 	log_info(mapa_log, "Se envia posicion del Pokenest: %s", pokenest->nombre);
 	enviarInt(fd,pokenest->posicion->x);
 	enviarInt(fd,pokenest->posicion->y);
+
+	free(nombre_pokenest);
 }
 
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
@@ -703,7 +664,6 @@ void set_interbloqueo(){
 	interbloqueo = get_mapa_tiempo_deadlock(metadata);
 }
 
-
 void administrar_bloqueados(char *pokenest_id){
 	//Obtengo la Estructura de Cola de Entrenadores Bloqueados
 	pthread_mutex_lock(&mutex_cola_bloqueados);
@@ -811,7 +771,7 @@ void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados){
 	int cant_pokenets = list_size(lista_pokenests);
 	int i, j, cant_pokemons, pokenest_index;
 
-	log_trace(mapa_log, "Arranco a ver agregar los entrenadores bloqueados del Pokenest %s.", key);
+	log_trace(mapa_log, "Se agregan los Entrenadores Bloqueados del Pokenest %s.", key);
 
 	for(i = 0; i < cant_entrenadores; i++){
 		t_entrenador_interbloqueado *interbloqueado = malloc(sizeof(t_entrenador_interbloqueado));
@@ -884,8 +844,6 @@ void chequear_interbloqueados(){
 		dictionary_iterator(entrenadores_bloqueados, add_entrenadores_interbloqueados_iterator);
 		//pthread_mutex_unlock(&mutex_cola_bloqueados);
 
-		log_info(mapa_log, "Prepare el Listado.");
-
 		cant_entrenadores = list_size(lista_interbloqueo);
 
 		log_info(mapa_log, "Cantidad de Entrenadores Bloqueados: %d.", cant_entrenadores);
@@ -902,7 +860,7 @@ void chequear_interbloqueados(){
 				}
 			}
 
-			log_info(mapa_log, "Se marcaron a los Entrenadores que no tienen Recursos asignados");
+			log_info(mapa_log, "Se marcaron a los Entrenadores que no tienen Recursos asignados.");
 
 			//Busco los Entrenadores que no fueron marcados usando su matriz de solicitud
 			int termino_ciclo = 0;
@@ -913,7 +871,7 @@ void chequear_interbloqueados(){
 				}
 			}
 
-			log_info(mapa_log, "Se busca los Entrenadores que no fueron marcados");
+			log_info(mapa_log, "Se busca los Entrenadores que no fueron marcados.");
 
 			//Libero la lista de Chequeo de Interbloqueo
 			for(i = 0; i < cant_entrenadores; i++){
@@ -941,7 +899,7 @@ void chequear_interbloqueados(){
 				free(entrenador);
 			}
 
-			log_info(mapa_log, "Se va a verificar la cantidad de entrenadores intebloqueados");
+			log_info(mapa_log, "Se va a verificar la cantidad de Entrenadores Intebloqueados.");
 			if(list_size(entrenadores_interbloqueados) > 1){
 				ordenar_entrenadores_interbloqueados(entrenadores_interbloqueados);
 
@@ -961,10 +919,8 @@ void chequear_interbloqueados(){
 			log_info(mapa_log, "No se registran Entrenadores Bloqueados.");
 		}
 
-		log_info(mapa_log, "Voy a Liberar todo.");
 		list_destroy(lista_interbloqueo);
 		free(disponibles);
-		log_info(mapa_log, "Libere.");
 
 		pthread_mutex_unlock(&mutex_cola_bloqueados);
 	}
