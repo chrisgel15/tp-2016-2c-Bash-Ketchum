@@ -632,13 +632,7 @@ void ProcesarRmDir(int fd)
 	osada_file *indice_tabla_archivos = tabla_archivos;
 
 	sComenzarEscrituraTablaArchivos();
-	/*
-	FindDirectoryByName(path, directoryId);
 
-	indice_tabla_archivos+=*directoryId;
-
-	indice_tabla_archivos->state = 0;
-*/
 	FindDirectoryByName(path, directoryId);
 
 	osada_file *indice_tabla_archivos_busqueda = tabla_archivos;
@@ -657,11 +651,10 @@ void ProcesarRmDir(int fd)
 		i++;
 	}
 
-	indice_tabla_archivos+=*directoryId;
+	if(i == OSADA_CANTIDAD_MAXIMA_ARCHIVOS){
+		indice_tabla_archivos+=*directoryId;
 
-	indice_tabla_archivos->state = 0;
-
-	if(status != -ENOTEMPTY){
+		indice_tabla_archivos->state = 0;
 		status = FIN_RMDIR;
 	}
 
@@ -765,17 +758,16 @@ void ProcesarUtimens(int fd)
 	sComenzarEscrituraTablaArchivos();
 
 	FindDirectoryByName(path, directoryId);
-	if (*directoryId < 0)
+	if (*directoryId < 0){
 		status = -ENOENT;
-
+	}else{
 	indice_tabla_archivos+=*directoryId;
 
 	indice_tabla_archivos->lastmod = time;
 
 	sFinalizarEscrituraTablaArchivos();
 
-	if(status!=-ENOENT){
-		status = FIN_UTIME;
+	status = FIN_UTIME;
 	}
 
 	myFree(result, "ProcesarUtimens - result", osada_log);
