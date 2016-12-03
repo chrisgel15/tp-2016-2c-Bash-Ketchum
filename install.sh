@@ -9,7 +9,7 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/so-commons-library
 
-cd /so-commons-library
+cd so-commons-library
 
 sudo make install
 
@@ -37,7 +37,7 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/massive-file-creator
 
-cd /massive-file-creator
+cd massive-file-creator
 
 make
 
