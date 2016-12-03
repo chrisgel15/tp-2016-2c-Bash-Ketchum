@@ -20,10 +20,13 @@ int posHojaDeViaje = 0;
 //Nombre del entrenador
 char *nombre_entrendor;
 char* dirBill;
+char* dirMedalla;
 
 //Estructuras para el manejo de la posicion
 t_posicion_pokenest *posicion_pokenest;
 t_posicion_mapa *posicion_mapa;
+
+pthread_mutex_t mutex_archivo;
 
 
 // Funciones utilitarias //
@@ -56,6 +59,7 @@ int main(int argc, char **argv) {
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
 	init_datos_entrenador();
 	dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+	dirMedalla = get_entrenador_directorio_medallas(ruta_pokedex, nombre_entrendor);
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
 	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
@@ -160,7 +164,9 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			list_add(pokemons, nombre_archivo);
 
 			//char* dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+			pthread_mutex_lock(&mutex_archivo);
 			copiar_archivo(nombre_archivo, dirBill);
+			pthread_mutex_unlock(&mutex_archivo);
 			log_info(entrenador_log, "%s",nombre_archivo);
 			free(result);
 			//free(nombre_archivo);
@@ -242,9 +248,11 @@ void terminarObjetivo(){
 	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
 	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
-	//TODO COPIAR MEDALLA AL DIRECTORIO /ENTRENADOR/NOMBRE/MEDALLAS/
-	char* dirMedalla = get_entrenador_directorio_medallas(ruta_pokedex, nombre_entrendor);
+
+	//char* dirMedalla = get_entrenador_directorio_medallas(ruta_pokedex, nombre_entrendor);
+	pthread_mutex_lock(&mutex_archivo);
 	copiar_archivo(ruta_medalla, dirMedalla);
+	pthread_mutex_unlock(&mutex_archivo);
 	free(result);
 	free(ruta_medalla);
 
@@ -429,7 +437,9 @@ void borrar_medallas(void){
 	DIR* dir_medalla = opendir(path_medalla);
 	char *contenido = string_new();
 	string_append(&contenido,".jpeg");
+	pthread_mutex_lock(&mutex_archivo);
 	borrar(dir_medalla,contenido,path_medalla);
+	pthread_mutex_unlock(&mutex_archivo);
 	closedir(dir_medalla);
 	free(contenido);
 
