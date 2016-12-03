@@ -49,6 +49,8 @@ t_list *lista_interbloqueo;
 char *nombre_mapa;
 char *ruta_pokedex;
 
+char* pokenest_dir;
+
 //Ids de Entrenadores
 int entrenador_id = 0;
 
@@ -91,6 +93,7 @@ int main(int argc, char **argv) {
 
 	//Inicializamos el Listado de los Pokenests con sus respectivos Pokemons
 	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
+	pokenest_dir = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
 
 	//Inicializamos Estructuras
 	inicializar_estructuras();
@@ -147,7 +150,7 @@ int main(int argc, char **argv) {
 		}
 		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);
 	}
-
+	free(pokenest_dir);
 	return EXIT_SUCCESS;
 }
 
@@ -428,11 +431,30 @@ void add_entrenadores_bloqueados(char *key, void *entrenadores_bloqueados){
 	list_add_all(bloqueados, entrenadores);
 }
 
+
+t_entrenador *buscar_entrenador(int fd){
+	int cantidad_entrenadores = list_size(entrenadores_listos);
+	int i;
+
+	for(i = 0; i < cantidad_entrenadores; i++){
+		t_entrenador * entrenador = (t_entrenador *)list_get(entrenadores_listos, i);
+
+		if(entrenador->fd == fd){
+			return entrenador;
+		}
+	}
+
+	return NULL;
+}
+
+
+
+
 void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id){
 	list_add(entrenador->pokemons, pokemon);
-	t_list* pokenests = get_listado_pokenest(ruta_pokedex, nombre_mapa);
-	t_pokenest* pokenest = get_pokenest_by_identificador(pokenests, pokenest_id);
-	char* pokenest_dir = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
+	//t_list* pokenests = get_listado_pokenest(ruta_pokedex, nombre_mapa);
+	t_pokenest* pokenest = get_pokenest_by_identificador(lista_pokenests, pokenest_id);
+	//char* pokenest_dir = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
 	char* pokemon_path = string_new();
 	string_append(&pokemon_path, pokenest_dir);
 	string_append(&pokemon_path,"/");
@@ -452,7 +474,7 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 		//Resto el Recurso de la Interfaz de Mapa
 		disminuir_recursos_de_pokenest(items, pokenest_id, nombre_mapa);
 	}
-	free(pokenest_dir);
+	//free(pokenest_dir);
 	free(pokemon_path);
 }
 
