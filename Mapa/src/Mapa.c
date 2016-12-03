@@ -193,7 +193,6 @@ t_entrenador *remover_entrenador_listo_por_SRDF(){
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se remueve el Entrenador %s de la Cola de Listos.", entrenador->nombre);
 	return entrenador;
-
 }
 
 //Agrega un entrenador a la cola bloqueados
@@ -445,7 +444,7 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 	if(enviarMensaje(entrenador->fd, pokemon_path) < 0){
 		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
 		liberar_recursos_entrenador(entrenador, NULL);
-	}else {
+	} else {
 		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
 		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
 		agregar_entrenador_a_listos(entrenador);
@@ -656,9 +655,7 @@ void administrar_bloqueados(char *pokenest_id){
 		log_info(mapa_log, "Ejecuto Hilo Bloqueado de Pokenest %s.", pokenest_id);
 		//Obtengo el Entrenador Bloqueado
 		pthread_mutex_lock(&mutex_cola_bloqueados);
-		log_info(mapa_log, "Se va a remover Entrenador de Bloqueado.");
 		t_entrenador *entrenador = queue_pop(entrenadores);
-		log_info(mapa_log, "Se removio al Entrenador de la Cola de Bloqueados.");
 		pthread_mutex_unlock(&mutex_cola_bloqueados);
 		log_info(mapa_log, "Se removio al Entrenador %s de la Cola de Bloqueados.", entrenador->nombre);
 
