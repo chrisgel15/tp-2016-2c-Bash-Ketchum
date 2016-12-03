@@ -29,7 +29,7 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/osada-utils
 
-sudo ./osada-format /home/utnso/osadaDisks/test1.bin
+#sudo ./osada-format /home/utnso/osadaDisks/test1.bin
 
 # Instalacion de massive-file-decriptor
 
@@ -46,6 +46,8 @@ make
 cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/tp-2016-2c-Bash-Ketchum
+
+git checkout desarrollo
 
 cd /home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug
 
