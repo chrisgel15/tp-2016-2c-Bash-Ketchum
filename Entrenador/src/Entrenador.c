@@ -150,26 +150,36 @@ void solicitar_posicion_pokenest(char *pokemon){
 
 void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje , int *cantidad_muerte){
 	int *result = malloc(sizeof(int));
-	int tamanio_archivo, instruccion;
-	char* nombre_archivo;
+	int tamanio_mensaje, instruccion;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 	enviarInt(socket_mapa, 2);
 	enviarMensaje(socket_mapa, nombre_pokemon);
 
-	switch (instruccion=recibirInt(socket_mapa, result, entrenador_log)) {
+	instruccion=recibirInt(socket_mapa, result, entrenador_log);
+
+	while (*result>0 && instruccion!=MUERTE && instruccion!=POKEMON_CONCEDIDO ){
+		tamanio_mensaje = recibirInt(socket_mapa, result,entrenador_log);
+		char* mensaje = malloc(sizeof(char) * tamanio_mensaje);
+		recibirMensaje(socket_mapa, mensaje,tamanio_mensaje,entrenador_log);
+		instruccion = recibirInt(socket_mapa, result, entrenador_log);
+		free(mensaje);
+	}
+
+	switch (instruccion) {
+
 		case POKEMON_CONCEDIDO:
-			tamanio_archivo = recibirInt(socket_mapa, result, entrenador_log);
-			char* nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
-			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
-			list_add(pokemons, nombre_archivo);
-
+			tamanio_mensaje= recibirInt(socket_mapa, result, entrenador_log);
+			char* mensaje = malloc(sizeof(char) * tamanio_mensaje);
+			recibirMensaje(socket_mapa, mensaje, tamanio_mensaje, entrenador_log);
+			list_add(pokemons, mensaje);
 			pthread_mutex_lock(&mutex_archivo);
-			copiar_archivo(nombre_archivo, dirBill);
+			copiar_archivo(mensaje, dirBill);
 			pthread_mutex_unlock(&mutex_archivo);
-			log_info(entrenador_log, "%s",nombre_archivo);
+			log_info(entrenador_log, "%s",mensaje);
 			free(result);
-
+			free(mensaje);
 			break;
+
 		case MUERTE:
 			printf("Ha muerto en una batalla");
 			*cantidad_muerte +=1;
@@ -183,7 +193,13 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			}
 			free(result);
 			break;
+
+		default :
+			log_info(entrenador_log, "No se recibio instruccion del Mapa, posible desconexion ");
+			exit(1);
+			break;
 	}
+
 }
 
 
