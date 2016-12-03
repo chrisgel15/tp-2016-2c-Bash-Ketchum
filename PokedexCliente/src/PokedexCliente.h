@@ -32,8 +32,8 @@ static int osada_mkdir (const char * path, mode_t mode);
 static int osada_truncate(const char * filename , off_t length);
 static int osada_unlink(const char* path);
 static int osada_rmdir(const char* filename);
-static int osada_rename(const char* oldPath, const char* newPath);
 static int osada_utimens (const char * path, const struct timespec tiempo[2]);
+static int osada_rename(const char* oldPath, const char* newPath);
 
 int CrearArchivoDirectorio(const char * path, int codigoPedido, int codigoTipo);
 
@@ -63,8 +63,8 @@ static struct fuse_operations osada_oper = {
 		.mkdir = osada_mkdir,
 		.truncate = osada_truncate,
 		.rmdir = osada_rmdir,
-		.rename = osada_rename,
 		.utimens = osada_utimens,
+		.rename = osada_rename
 };
 
 // Variables globales

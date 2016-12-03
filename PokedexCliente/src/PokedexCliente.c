@@ -122,6 +122,9 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 
 			valores = recibirInt(clientSocket, result, pokedex_cliente_log);
 			stbuf->st_size = valores;
+
+			valores = recibirInt(clientSocket, result, pokedex_cliente_log);
+			stbuf->st_mtim.tv_sec = valores;
 		}
 		myFree(result, "osada_getattr - result", pokedex_cliente_log);
 	}
@@ -456,6 +459,9 @@ static int osada_rmdir(const char* path)
 	// Envio el path
 	enviarMensaje(clientSocket, path);
 
+	int * resultado = myMalloc_int("osada_rmdir resultado", pokedex_cliente_log);
+	int status = recibirInt(clientSocket, resultado, pokedex_cliente_log);
+
 	// Espera la confirmacion del servidor para continuar...
 	int * resultFin = myMalloc_int("osada_rmdir resultFin", pokedex_cliente_log);
 	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
@@ -469,10 +475,11 @@ static int osada_rmdir(const char* path)
 	}
 
 	myFree(resultFin, "osada_rmdir resultFin", pokedex_cliente_log);
+	myFree(resultado, "osada_rename resultado", pokedex_cliente_log);
 
 	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un RMDIR. Archivo: %s. *****", path);
 
-	return 0;
+	return status;
 
 }
 
@@ -532,7 +539,12 @@ static int osada_rename(const char* oldPath, const char* newPath)
 	enviarMensaje(clientSocket, newPath);
 
 	// Espera la confirmacion del servidor para continuar...
-	int * resultFin = myMalloc_int("osada_rmdir resultFin", pokedex_cliente_log);
+	int * resultado = myMalloc_int("osada_rename resultado", pokedex_cliente_log);
+	int status = recibirInt(clientSocket, resultado, pokedex_cliente_log);
+
+	// Espera la confirmacion del servidor para continuar...
+	int * resultFin = myMalloc_int("osada_rename resultFin", pokedex_cliente_log);
+
 	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
 	if (finFlag == FIN_RENAME)
 	{
@@ -545,9 +557,11 @@ static int osada_rename(const char* oldPath, const char* newPath)
 
 	myFree(resultFin, "osada_rename resultFin", pokedex_cliente_log);
 
+	myFree(resultado, "osada_rename resultado", pokedex_cliente_log);
+
 	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un RENAME. Archivo: %s. *****", newPath);
 
-	return 0;
+	return status;
 
 }
 
