@@ -32,7 +32,11 @@ int doConnect(ltn_sock_addinfo * sockAddrInfo) {
 	int returnSock = sockAddrInfo->socketNumber;
 
 	freeaddrinfo(sockAddrInfo->serverinfo); // free the linked-list
-	free(sockAddrInfo);
+	//free(sockAddrInfo);
+
+	myFree(sockAddrInfo, "doConnect - sockAddrInfo", mySocketLog);
+
+	log_destroy(mySocketLog);
 
 	return returnSock;
 
