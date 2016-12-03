@@ -88,5 +88,6 @@ void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje);
 void add_entrenadores_interbloqueados(char *key, void *entrenadores);
 void chequear_interbloqueados();
 void batalla_pokemon(t_list *entrenadores);
+void enviar_resultado_batalla(t_entrenador *perdedor, t_entrenador *ganador);
 
 #endif /* MAPA_H_ */

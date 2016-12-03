@@ -979,7 +979,7 @@ void batalla_pokemon(t_list *entrenadores){
 		t_entrenador *ganador = (perdedor->id == victima->id) ? adversario : victima;
 
 		log_info(mapa_log, "El Entrenador %s ha perdido contra el Entrenador %s.", perdedor->nombre, ganador->nombre);
-		//Informar Victoria y Derrota a los entrenadores
+		enviar_resultado_batalla(perdedor, ganador);
 		victima = perdedor; //Preparo al perdedor para el Siguiente enfrentamiento
 	}
 
@@ -994,5 +994,30 @@ void batalla_pokemon(t_list *entrenadores){
 	liberar_recursos_entrenador(victima, MUERTE);
 }
 
+void enviar_resultado_batalla(t_entrenador *perdedor, t_entrenador *ganador){
+	char *mensaje_ganador = string_new();
+	char *mensaje_perdedor = string_new();
 
+	string_append(&mensaje_ganador, "Ganaste la Batalla contra el Entrenador ");
+	string_append(&mensaje_perdedor, "Perdiste la Batalla contra el Entrenador ");
+
+	string_append(&mensaje_ganador, perdedor->nombre);
+	string_append(&mensaje_perdedor, ganador->nombre);
+
+	int mensaje_ganador_size = string_length(mensaje_ganador);
+	int mensaje_perdedor_size = string_length(mensaje_perdedor);
+
+	//Envio el Mensaje al Ganador
+	enviarInt(ganador->fd, VICTORIA);
+	enviarInt(ganador->fd, mensaje_ganador_size);
+	enviarMensaje(ganador->fd, mensaje_ganador);
+
+	//Envio el Mensaje al Perdedor
+	enviarInt(perdedor->fd, DERROTA);
+	enviarInt(perdedor->fd, mensaje_perdedor_size);
+	enviarMensaje(perdedor->fd, mensaje_perdedor);
+
+	free(mensaje_ganador);
+	free(mensaje_perdedor);
+}
 
