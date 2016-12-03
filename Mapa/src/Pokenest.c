@@ -155,5 +155,3 @@ int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id){
 
 	return NULL;
 }
-
-
