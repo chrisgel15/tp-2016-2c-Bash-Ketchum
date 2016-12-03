@@ -201,9 +201,9 @@ t_entrenador *remover_entrenador_listo_por_SRDF(){
 //Agrega un entrenador a la cola bloqueados
 void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
-	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
-	queue_push(bloqueados->entrenadores, entrenador);
-	t_list *entrenadores_bloqueados = bloqueados->entrenadores->elements;
+	t_entrenadores_bloqueados *cola_bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
+	queue_push(cola_bloqueados->entrenadores, entrenador);
+	t_list *entrenadores_bloqueados = cola_bloqueados->entrenadores->elements;
 	int bloqueados_size = list_size(entrenadores_bloqueados);
 	char *entrenadores = string_new();
 	int i;
@@ -213,7 +213,7 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 		string_append(&entrenadores, entrenador_bloqueado->nombre);
 	}
 
-	sem_post(&sem_entrenadores_bloqueados[bloqueados->sem_index]);
+	sem_post(&sem_entrenadores_bloqueados[cola_bloqueados->sem_index]);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
 	log_info(mapa_log, "Se agrega al Entrenador %s a la Cola de Bloqueados del Pokenest %s. Entrenadores Bloqueados:%s", entrenador->nombre, entrenador->pokemon_bloqueado, entrenadores);
 	free(entrenadores);
@@ -224,9 +224,9 @@ void sumar_recurso_pokemon(t_pokemon_mapa *pokemon){
 	pokenest_id = string_repeat(pokemon->pokenest_id, 1);
 	//Sumo el el recurso al Pokenest
 	add_pokemon_pokenest(lista_pokenests, pokemon);
-	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, pokenest_id);
+	t_entrenadores_bloqueados *bloqueados_4 = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, pokenest_id);
 	//Aumento el Semaforo
-	sem_post(&sem_pokemones_disponibles[bloqueados->sem_index]);
+	sem_post(&sem_pokemones_disponibles[bloqueados_4->sem_index]);
 	free(pokenest_id);
 }
 
@@ -662,14 +662,14 @@ void set_interbloqueo(){
 void administrar_bloqueados(char *pokenest_id){
 	//Obtengo la Estructura de Cola de Entrenadores Bloqueados
 	pthread_mutex_lock(&mutex_cola_bloqueados);
-	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *) dictionary_get(entrenadores_bloqueados, pokenest_id);
+	t_entrenadores_bloqueados *entrenadores_bloqueados = (t_entrenadores_bloqueados *) dictionary_get(entrenadores_bloqueados, pokenest_id);
 	pthread_mutex_unlock(&mutex_cola_bloqueados);
 
-	t_queue *entrenadores = bloqueados->entrenadores;
+	t_queue *entrenadores = entrenadores_bloqueados->entrenadores;
 
 	while(1){
-		sem_wait(&sem_pokemones_disponibles[bloqueados->sem_index]);
-		sem_wait(&sem_entrenadores_bloqueados[bloqueados->sem_index]);
+		sem_wait(&sem_pokemones_disponibles[entrenadores_bloqueados->sem_index]);
+		sem_wait(&sem_entrenadores_bloqueados[entrenadores_bloqueados->sem_index]);
 		log_info(mapa_log, "Ejecuto Hilo Bloqueado de Pokenest %s.", pokenest_id);
 		//Obtengo el Entrenador Bloqueado
 		pthread_mutex_lock(&mutex_cola_bloqueados);
@@ -758,8 +758,8 @@ void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje){
 
 /* Funciones para la Gestion de Entrenadores Interbloqueados */
 void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados){
-	t_entrenadores_bloqueados *bloqueados = (t_entrenadores_bloqueados *) entrenadores_bloqueados;
-	t_list *entrenadores = (t_list *) bloqueados->entrenadores->elements;
+	t_entrenadores_bloqueados *pokenest_bloqueados = (t_entrenadores_bloqueados *) entrenadores_bloqueados;
+	t_list *entrenadores = (t_list *) pokenest_bloqueados->entrenadores->elements;
 	int cant_entrenadores = list_size(entrenadores);
 	int cant_pokenets = list_size(lista_pokenests);
 	int i, j, cant_pokemons, pokenest_index;
