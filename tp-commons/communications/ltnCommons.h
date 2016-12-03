@@ -16,6 +16,8 @@
 #define UNLINK 6
 #define TRUNCATE 7
 #define RMDIR 8
+#define RENAME 9
+#define UTIME 10
 
 #define FIN_GETATTR 0
 #define FIN_READDIR 1
@@ -26,6 +28,8 @@
 #define FIN_UNLINK 6
 #define FIN_TRUNCATE 7
 #define FIN_RMDIR 8
+#define FIN_RENAME 9
+#define FIN_UTIME 10
 
 #define ARCHIVO_NO_ENCONTRADO -2
 #define ARCHIVO_ENCONTRADO 0

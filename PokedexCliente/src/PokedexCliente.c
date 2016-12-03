@@ -382,6 +382,9 @@ static int osada_truncate(const char * path , off_t length)
 	// Envio el path
 	enviarMensaje(clientSocket, path);
 
+	// Envio length
+	enviarInt(clientSocket,length);
+
 	// Espera la confirmacion del servidor para continuar...
 	int * resultFin = myMalloc_int("osada_truncate resultFin", pokedex_cliente_log);
 	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
@@ -468,6 +471,81 @@ static int osada_rmdir(const char* path)
 	myFree(resultFin, "osada_rmdir resultFin", pokedex_cliente_log);
 
 	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un RMDIR. Archivo: %s. *****", path);
+
+	return 0;
+
+}
+
+static int osada_utimens (const char * path, const struct timespec tiempo[2])
+{
+
+	log_trace(pokedex_cliente_log, "\t***** Comienzo un UTIMENS. Path: %s *****", path);
+	// Envio el pedido de RMDIR
+	enviarInt(clientSocket, RMDIR);
+
+	// Envio el tamanio del path
+	enviarInt(clientSocket, strlen(path));
+
+	// Envio el path
+	enviarMensaje(clientSocket, path);
+
+	// Envio el tiempo de modificacion
+	enviarInt(clientSocket, tiempo[1].tv_sec);
+
+	// Espera la confirmacion del servidor para continuar...
+	int * resultFin = myMalloc_int("osada_utimens resultFin", pokedex_cliente_log);
+	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
+	if (finFlag == FIN_RMDIR)
+	{
+		log_trace(pokedex_cliente_log, "Finalizo el UTIMENS - Cliente %d - Path %s", clientSocket, path);
+	}
+	else
+	{
+		log_error(pokedex_cliente_log, "ERROR EN EL UTIMENS - Cliente %d - Path %s", clientSocket, path);
+	}
+
+	myFree(resultFin, "osada_utimens resultFin", pokedex_cliente_log);
+
+	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un UTIMENS. Archivo: %s. *****", path);
+
+	return 0;
+
+}
+
+static int osada_rename(const char* oldPath, const char* newPath)
+{
+
+	log_trace(pokedex_cliente_log, "\t***** Comienzo un Rename. oldPath: %s *****", oldPath);
+	// Envio el pedido de RMDIR
+	enviarInt(clientSocket, RENAME);
+
+	// Envio el tamanio del path
+	enviarInt(clientSocket, strlen(oldPath));
+
+	// Envio el path
+	enviarMensaje(clientSocket, oldPath);
+
+	// Envio el tamanio del path
+	enviarInt(clientSocket, strlen(newPath));
+
+	// Envio el path
+	enviarMensaje(clientSocket, newPath);
+
+	// Espera la confirmacion del servidor para continuar...
+	int * resultFin = myMalloc_int("osada_rmdir resultFin", pokedex_cliente_log);
+	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
+	if (finFlag == FIN_RMDIR)
+	{
+		log_trace(pokedex_cliente_log, "Finalizo el RENAME - Cliente %d - Path %s", clientSocket, oldPath);
+	}
+	else
+	{
+		log_error(pokedex_cliente_log, "ERROR EN EL RENAME - Cliente %d - Path %s", clientSocket, oldPath);
+	}
+
+	myFree(resultFin, "osada_rename resultFin", pokedex_cliente_log);
+
+	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un RENAME. Archivo: %s. *****", newPath);
 
 	return 0;
 

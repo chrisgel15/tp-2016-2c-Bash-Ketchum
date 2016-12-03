@@ -40,6 +40,7 @@ void ProcesarWrite(int fdCliente);
 void ProcesarUnlink(int fdCliente);
 void ProcesarTruncate(int fd);
 void ProcesarRmDir(int fd);
+void ProcesarRename(int fdCliente);
 void SetAttrByDirectoryId(int directoryId, int fd);
 bool FindDirectoryByName(char * path, int * directoryId);
 bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId);
