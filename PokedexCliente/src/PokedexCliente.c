@@ -495,7 +495,7 @@ static int osada_utimens (const char * path, const struct timespec tiempo[2])
 	// Espera la confirmacion del servidor para continuar...
 	int * resultFin = myMalloc_int("osada_utimens resultFin", pokedex_cliente_log);
 	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
-	if (finFlag == FIN_RMDIR)
+	if (finFlag == FIN_UTIME)
 	{
 		log_trace(pokedex_cliente_log, "Finalizo el UTIMENS - Cliente %d - Path %s", clientSocket, path);
 	}
@@ -534,7 +534,7 @@ static int osada_rename(const char* oldPath, const char* newPath)
 	// Espera la confirmacion del servidor para continuar...
 	int * resultFin = myMalloc_int("osada_rmdir resultFin", pokedex_cliente_log);
 	int finFlag = recibirInt(clientSocket, resultFin, pokedex_cliente_log);
-	if (finFlag == FIN_RMDIR)
+	if (finFlag == FIN_RENAME)
 	{
 		log_trace(pokedex_cliente_log, "Finalizo el RENAME - Cliente %d - Path %s", clientSocket, oldPath);
 	}
