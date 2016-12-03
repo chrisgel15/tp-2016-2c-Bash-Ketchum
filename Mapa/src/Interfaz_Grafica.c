@@ -10,8 +10,8 @@
 
 int distancia_A_RecursoH(int);
 int distancia_A_RecursoY(int);
-void mover_eje_x(t_datos_mapa*,int);
-void mover_eje_y(t_datos_mapa*,int);
+void mover_eje_x(t_datos_mapa*,int,char*);
+void mover_eje_y(t_datos_mapa*,int,char*);
 
 int distancia_A_RecursoH(int posx){
 	int dist = RECURSO_POSX - posx;
@@ -27,6 +27,7 @@ int distancia_A_RecursoY(int posy){
 
 extern pthread_mutex_t mutex_desplaza_x;
 extern pthread_mutex_t mutex_desplaza_y;
+pthread_mutex_t mutex_interfaz;
 
 /*F:MANDRI => funcion dibujar_mapa(): ejemplo para ver como mover un personaje hacia un recurso
  * para probar se puede armar un proyecto separado (fuera del repo mejor)
@@ -109,6 +110,69 @@ void dibujar_mapa_vacio(t_list* items){
 //	nivel_gui_terminar();
 }
 
+void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa){
+	int filas = 50;
+	int columnas = 50;
+	int i = 0;
+	int cantidad_pokenest = list_size(pokenest_list);
+	pthread_mutex_init(&mutex_interfaz, NULL); //Inicializo Mutex Para La Interfaz
+
+	for(i = 0; i < cantidad_pokenest; i++){
+		t_pokenest *pokenest = (t_pokenest *) list_get(pokenest_list, i);
+		CrearCaja(items, pokenest->caracter, pokenest->posicion->x, pokenest->posicion->y, pokenest->cantPokemons);
+	}
+	nivel_gui_inicializar();
+	nivel_gui_get_area_nivel(&filas, &columnas);
+	nivel_gui_dibujar(items, nombre_mapa);
+}
+
+void ingreso_nuevo_entrenador(t_list* items, t_entrenador* entrenador, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+	CrearPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
+	nivel_gui_dibujar(items, nombre_mapa);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
+
+void mover_entrenador_en_mapa(t_list* items, t_entrenador* entrenador, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+	MoverPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
+	nivel_gui_dibujar(items, nombre_mapa);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
+
+void disminuir_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+	restarRecurso(items, pokenest_id);
+	nivel_gui_dibujar(items, nombre_mapa);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
+
+void aumentar_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+
+	ITEM_NIVEL* item = _search_item_by_id(items, pokenest_id);
+
+	if (item != NULL) {
+		item->quantity = item->quantity + 1;
+	} else {
+		printf("WARN: Item %c no existente\n", pokenest_id);
+	}
+
+	nivel_gui_dibujar(items, nombre_mapa);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
+
+void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa){
+	pthread_mutex_lock(&mutex_interfaz);
+	BorrarItem(items, entrenador_id);
+	nivel_gui_dibujar(items, nombre_mapa);
+	sleep(1);
+	pthread_mutex_unlock(&mutex_interfaz);
+}
 
 //TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
 //		CrearCaja y CrearPersonaje que implementan CrearItem.
@@ -124,18 +188,18 @@ void CrearEntrenador (t_list* items, char id, int x , int y){
 	CrearItem(items, id, x, y, ENTRENADOR_ITEM_TYPE,0);
 }
 
-void posicionar_entrenador_en_mapa(t_datos_mapa* datos){
+void posicionar_entrenador_en_mapa(t_datos_mapa* datos, char * nombre_mapa){
 	CrearEntrenador(datos->items,datos->entrenador->caracter,
 			datos->entrenador->posicion->x,datos->entrenador->posicion->y);
-	nivel_gui_dibujar(datos->items,"Mapa Checkpoint I");
+	nivel_gui_dibujar(datos->items,nombre_mapa);
 }
 
-void posicionar_pokenest_en_mapa(t_datos_mapa* datos){
-	nivel_gui_dibujar(datos->items,"Mapa Checkpoint I");
+void posicionar_pokenest_en_mapa(t_datos_mapa* datos, char * nombre_mapa){
+	nivel_gui_dibujar(datos->items,nombre_mapa);
 }
 
 
-void mover_entrenador_hacia_recurso(t_datos_mapa* datos){
+void mover_entrenador_hacia_recurso(t_datos_mapa* datos,char* nombre_mapa){
 	int distanciaH = TRUE;
 	int distanciaY = TRUE;
 
@@ -145,48 +209,48 @@ void mover_entrenador_hacia_recurso(t_datos_mapa* datos){
 			distanciaH = distancia_A_RecursoH(datos->entrenador->posicion->x);
 		pthread_mutex_unlock(&mutex_desplaza_x);
 
-		mover_eje_x(datos,distanciaH);
+		mover_eje_x(datos,distanciaH,nombre_mapa);
 
 		pthread_mutex_lock(&mutex_desplaza_y);
 			distanciaY = distancia_A_RecursoY(datos->entrenador->posicion->y);
 		pthread_mutex_unlock(&mutex_desplaza_y);
 
-		mover_eje_y(datos,distanciaY);
+		mover_eje_y(datos,distanciaY,nombre_mapa);
 	}
 }
 
-void mover_eje_x(t_datos_mapa* datos, int dist) {
+void mover_eje_x(t_datos_mapa* datos, int dist,char * nombre_mapa) {
 	if (dist > 0) {
 		datos->entrenador->posicion->x++;
 		MoverPersonaje(datos->items, datos->entrenador->caracter,
 				datos->entrenador->posicion->x, datos->entrenador->posicion->y);
 		sleep(1);
-		nivel_gui_dibujar(datos->items, "Mapa Checkpoint I");
+		nivel_gui_dibujar(datos->items, nombre_mapa);
 	}
 }
 
-void mover_eje_y(t_datos_mapa* datos, int dist) {
+void mover_eje_y(t_datos_mapa* datos, int dist,char* nombre_mapa) {
 	if (dist > 0) {
 		datos->entrenador->posicion->y++;
 		MoverPersonaje(datos->items, datos->entrenador->caracter,
 				datos->entrenador->posicion->x, datos->entrenador->posicion->y);
 		sleep(1);
-		nivel_gui_dibujar(datos->items, "Mapa Checkpoint I");
+		nivel_gui_dibujar(datos->items, nombre_mapa);
 	}
 }
 
 
-void mover_entrenador(int fd_entrenador, t_log* mapa_log,t_datos_mapa* datos){
-	t_entrenador* entrenador=malloc(sizeof(t_entrenador));
+void mover_entrenador(t_entrenador *entrenador, t_log* mapa_log,t_datos_mapa* datos,char* nombre_mapa){
+
+	//t_entrenador* entrenador=malloc(sizeof(t_entrenador));
 	int *result = malloc(sizeof(int));
 	int posx, posy;
-
-	entrenador=buscar_entrenador(fd_entrenador);
+	//entrenador=buscar_entrenador(fd_entrenador);
 	datos->entrenador=entrenador;
-	posx = recibirInt(fd_entrenador, result, mapa_log);
-	posy = recibirInt(fd_entrenador, result, mapa_log);
-	mover_eje_x(datos,posx);
-	mover_eje_y(datos, posy);
+	posx = recibirInt(entrenador->fd, result, mapa_log);
+	posy = recibirInt(entrenador->fd, result, mapa_log);
+	mover_eje_x(datos,posx,nombre_mapa);
+	mover_eje_y(datos, posy,nombre_mapa);
 
 }
 

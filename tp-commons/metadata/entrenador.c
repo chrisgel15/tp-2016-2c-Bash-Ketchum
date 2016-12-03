@@ -49,6 +49,34 @@ int get_entrenador_reintentos(t_config * metadata)
 	return config_get_int_value(metadata, REINTENTOS);
 }
 
+char *get_entrenador_directorio_bill(char *ruta_pokedex , char *nombre_entrenador){
+	char * path = string_new();
+	string_append(&path, ruta_pokedex);
+	string_append(&path, "/");
+	string_append(&path, ENTRENADOR_FOLDER);
+	string_append(&path, "/");
+	string_append(&path, nombre_entrenador);
+	string_append(&path, "/");
+	string_append(&path, DIRECTORIO_BILL);
+	string_append(&path, "/");
+
+	return path;
+}
+
+char *get_entrenador_directorio_medallas(char *ruta_pokedex , char *nombre_entrenador){
+	char * path = string_new();
+	string_append(&path, ruta_pokedex);
+	string_append(&path, "/");
+	string_append(&path, ENTRENADOR_FOLDER);
+	string_append(&path, "/");
+	string_append(&path, nombre_entrenador);
+	string_append(&path, "/");
+	string_append(&path, MEDALLAS);
+	string_append(&path, "/");
+
+	return path;
+}
+
 // ** Ejemplo de Uso! ** //
 
 //t_config * metadata;

@@ -54,7 +54,26 @@ char ** get_lista_de_pokenest(t_config * metadata)
 //	TODO return ARREGLO CON LOS NOMBRES DE TODOS LOS POKENEST DEL MAPA
 }
 
+char *get_mapa_path(char *ruta_pokedex , char *nombre_mapa) {
+	char * path = string_new();
+	string_append(&path, ruta_pokedex);
+	string_append(&path, "/");
+	string_append(&path, MAPA_FOLDER);
+	string_append(&path, "/");
+	string_append(&path, nombre_mapa);
+	return path;
+}
 
+char *get_medalla_path(char *ruta_pokedex , char *nombre_mapa){
+	char *path = get_mapa_path(ruta_pokedex, nombre_mapa);
+
+	string_append(&path, "/");
+	string_append(&path, MEDALLA);
+	string_append(&path, nombre_mapa);
+	string_append(&path, ".jpg");
+
+	return path;
+}
 
 
 

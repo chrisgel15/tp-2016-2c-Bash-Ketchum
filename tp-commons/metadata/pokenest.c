@@ -51,6 +51,39 @@ char * get_identificador_pokemon(t_config * metadata)
 	return config_get_string_value(metadata , IDENTIFICADOR);
 }
 
+char *get_pokenest_path_dir(char * ruta_pokedex , char * nombre_mapa) {
+	char * path = string_new();
+	string_append(&path, ruta_pokedex);
+	string_append(&path, "/");
+	string_append(&path, MAPA_FOLDER);
+	string_append(&path, "/");
+	string_append(&path, nombre_mapa);
+	string_append(&path, "/");
+	string_append(&path, POKENEST_FOLDER);
+	return path;
+}
+
+char *get_pokenest_pokemon_path_dir(char *ruta_pokenest, char *nombre_pokemon) {
+	char * path = string_new();
+	string_append(&path, ruta_pokenest);
+	string_append(&path, "/");
+	string_append(&path, nombre_pokemon);
+	return path;
+}
+
+t_config *get_pokemon_information(char *ruta_pokenest_pokemon, char *nombre_archivo) {
+	char * path = string_new();
+		string_append(&path, ruta_pokenest_pokemon);
+		string_append(&path, "/");
+		string_append(&path, nombre_archivo);
+
+	return creacion_config_with_path(path);
+}
+
+int get_nivel_pokemon(t_config * metadata) {
+	return config_get_int_value(metadata , NIVEL);
+}
+
 /* Ejemplo de uso */
 
 //metadata = get_pokenest_metadata(ruta_pokedex, "Ciudad Paleta", "Pikachu");
