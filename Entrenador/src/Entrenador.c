@@ -250,7 +250,6 @@ bool objetivoCumplido(int posHojaDeViaje, int posPokenest){
 
 
 void terminarObjetivo(){
-
 	int *result = malloc(sizeof(int));
 	char *ruta_medalla = NULL;
 	int tamanio_texto;
