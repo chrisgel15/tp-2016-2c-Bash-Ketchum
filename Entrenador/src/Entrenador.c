@@ -15,9 +15,11 @@ int socket_mapa;
 
 //Hoja de Viaje
 char ** hojaDeViaje ;
+int posHojaDeViaje = 0;
 
 //Nombre del entrenador
 char *nombre_entrendor;
+char* dirBill;
 
 //Estructuras para el manejo de la posicion
 t_posicion_pokenest *posicion_pokenest;
@@ -28,6 +30,7 @@ t_posicion_mapa *posicion_mapa;
 //void init_datos_entrenador(void);
 void borrar(DIR*, char*, char*);
 void borrar_del_mapa(char*, char*);
+void copiar_archivo(char*, char*);
 
 
 int main(int argc, char **argv) {
@@ -52,6 +55,7 @@ int main(int argc, char **argv) {
 	// Obtiene el archivo de metadata del entrenador.
 	metadata = get_entrenador_metadata(ruta_pokedex, nombre_entrendor);
 	init_datos_entrenador();
+	dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
 
 	//Obtiene hoja de viaje del archivo metadata del entrenador
 	hojaDeViaje = get_entrenador_hoja_de_viaje(metadata);
@@ -66,7 +70,7 @@ int main(int argc, char **argv) {
 	signal(SIGKILL,system_call_catch);
 
 	//Comieza el viaje del Entreandor
-	recorrer_hojaDeViaje(0);
+	recorrer_hojaDeViaje(posHojaDeViaje);
 
 	//Liberar memoria dinamica -> TODO: encapsular en funcion
 	free(log_level);
@@ -154,8 +158,8 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			char* nombre_archivo = malloc(sizeof(char) * tamanio_archivo);
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
-			//TODO COPIAR ARCHIVO.DAT A DIRECTORIO BILL
-			char* dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+
+			//char* dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
 			copiar_archivo(nombre_archivo, dirBill);
 			log_info(entrenador_log, "%s",nombre_archivo);
 			free(result);
@@ -262,7 +266,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 	time_t inicio_De_Viaje, inicio_bloqueado, fin_bloqueado, fin_De_Viaje, tiempo_total_bloqueado, total_tiempo_viaje;
 	tiempo_total_bloqueado=0;
 	inicio_De_Viaje=time(NULL);
-	t_list* pokemons_atrapados = list_create();; // es una lista temporal en caso de que en el mapa actual tenga que borrar los archivos por muerte
+	t_list* pokemons_atrapados = list_create(); // es una lista temporal en caso de que en el mapa actual tenga que borrar los archivos por muerte
 	while (hojaDeViaje[posHojaDeViaje]!= NULL){
 
 		if(estado == CONECTARSE_MAPA){
@@ -373,7 +377,7 @@ void handshake(){
 		char * simbolo = get_entrenador_simbolo(metadata);
 		enviarMensaje(socket_mapa, simbolo);
 		ingresar_a_nuevo_mapa(posicion_mapa);
-		free(simbolo);
+		//free(simbolo);
 }
 
 void init_datos_entrenador(){
