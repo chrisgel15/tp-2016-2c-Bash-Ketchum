@@ -265,7 +265,7 @@ void convertirseEnMaestroPokemon(double tiempo_total_Viaje, double tiempo_total_
 	printf("Tiempo del Viaje:  %f s.\n" , tiempo_total_bloqueado);
 	printf("Tiempo bloqueado en Pokenest:  %f s.\n" , tiempo_total_Viaje);
 	printf("Cantidad de veces que murio:  %d \n" , cantidad_muerte);
-	printf("Cantidad de veces que murio:  %d \n" , cantidad_deadlocks);
+	printf("Cantidad de batallas  %d \n" , cantidad_deadlocks);
 
 }
 
