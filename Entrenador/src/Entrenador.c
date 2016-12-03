@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 	recorrer_hojaDeViaje(posHojaDeViaje);
 
 	//Liberar memoria dinamica -> TODO: encapsular en funcion
-	free(log_level);
+
 	liberar_recursos();
 	return EXIT_SUCCESS;
 }
@@ -163,13 +163,12 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
 
-			//char* dirBill = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
 			pthread_mutex_lock(&mutex_archivo);
 			copiar_archivo(nombre_archivo, dirBill);
 			pthread_mutex_unlock(&mutex_archivo);
 			log_info(entrenador_log, "%s",nombre_archivo);
 			free(result);
-			//free(nombre_archivo);
+
 			break;
 		case MUERTE:
 			printf("Ha muerto en una batalla");
@@ -196,29 +195,11 @@ int avanzar_hacia_pokenest(){
 
 	//Me muevo en X
 	movimiento_x = moverse_en_mapa_eje_x(posicion_mapa, posicion_pokenest);
-	//enviarInt(socket_mapa, movimiento_x);
 	enviarInt(socket_mapa, posicion_mapa->x);
-
-	//mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
-
-//	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
-//		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
-//		exit(0);
-//	}
 
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
-	//enviarInt(socket_mapa, movimiento_y);
 	enviarInt(socket_mapa, posicion_mapa->y);
-
-	//mensaje_recibido = recibirInt(socket_mapa, result, entrenador_log);
-
-//	if(*result < 0 && mensaje_recibido != ACCION_REALIZADA){
-//		perror("Ocurrio un error al intentar recibir un mensaje del Mapa.");
-//		exit(0);
-//	}
-//
-
 
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
 	if(movimiento_x == 0 && movimiento_y == 0){
@@ -249,7 +230,6 @@ void terminarObjetivo(){
 	ruta_medalla = malloc(sizeof(char) * tamanio_texto);
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
 
-	//char* dirMedalla = get_entrenador_directorio_medallas(ruta_pokedex, nombre_entrendor);
 	pthread_mutex_lock(&mutex_archivo);
 	copiar_archivo(ruta_medalla, dirMedalla);
 	pthread_mutex_unlock(&mutex_archivo);
@@ -258,20 +238,22 @@ void terminarObjetivo(){
 
 }
 
-void convertirseEnMaestroPokemon(time_t tiempo_total_Viaje, time_t tiempo_total_bloqueado, int cantidad_muerte){
+void convertirseEnMaestroPokemon(double tiempo_total_Viaje, double tiempo_total_bloqueado, int cantidad_muerte){
 	printf("Tiempo del Viaje:  %f s.\n" , tiempo_total_bloqueado);
 	printf("Tiempo bloqueado en Pokenest:  %f s.\n" , tiempo_total_Viaje);
 	printf("Cantidad de veces que murio:  %d \n" , cantidad_muerte);
+
 }
 
 
 void recorrer_hojaDeViaje(int posHojaDeViaje) {
-//	int posHojaDeViaje = 0; //Indice para recorrer la Hoja de Viaje
+
 	int posObjetivoPorMapa = 0; //Indice para recorrer los Objetivos por Mapa
 	int estado = CONECTARSE_MAPA;
 	char **objetivosPorMapa;
 	int cantidad_muerte=0;
-	time_t inicio_De_Viaje, inicio_bloqueado, fin_bloqueado, fin_De_Viaje, tiempo_total_bloqueado, total_tiempo_viaje;
+	time_t inicio_De_Viaje, inicio_bloqueado, fin_bloqueado, fin_De_Viaje;
+	double tiempo_total_bloqueado, total_tiempo_viaje;
 	tiempo_total_bloqueado=0;
 	inicio_De_Viaje=time(NULL);
 	t_list* pokemons_atrapados = list_create(); // es una lista temporal en caso de que en el mapa actual tenga que borrar los archivos por muerte
@@ -293,7 +275,6 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 		while(estado != OBJETIVO_CUMPLIDO && !flag_reinicio && !flag_reconexion){
 			switch(estado){
 				case UBICACION_POKENEST:
-					//solicitar_posicion_pokenest(metadata, hojaDeViaje[posHojaDeViaje], posHojaDeViaje);
 					solicitar_posicion_pokenest(objetivosPorMapa[posObjetivoPorMapa]);
 					estado = AVANZAR_HACIA_POKENEST;
 					break;
@@ -313,8 +294,6 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 					if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
 						estado = OBJETIVO_CUMPLIDO;
 					} else {
-						//posObjetivoPorMapa++;
-						//posObjetivoPorMapa = 0;
 						posObjetivoPorMapa++;
 						estado = UBICACION_POKENEST;
 					}
@@ -351,17 +330,8 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 				total_tiempo_viaje = difftime(fin_De_Viaje,inicio_De_Viaje);
 				convertirseEnMaestroPokemon(total_tiempo_viaje,tiempo_total_bloqueado, cantidad_muerte);
 				close(socket_mapa);
-				free(pokemons_atrapados);
-				int i=0;
-				while (objetivosPorMapa[i]!=NULL ) {
-					free(objetivosPorMapa[i]);
-					i++;
-				}
-				free(objetivosPorMapa);
-				for (i=0;i<list_size(pokemons_atrapados); i++){
-					free(list_get(pokemons_atrapados,i));
-				}
-				free(pokemons_atrapados);
+				list_destroy(pokemons_atrapados);
+
 
 		} else {
 
@@ -385,7 +355,7 @@ void handshake(){
 		char * simbolo = get_entrenador_simbolo(metadata);
 		enviarMensaje(socket_mapa, simbolo);
 		ingresar_a_nuevo_mapa(posicion_mapa);
-		//free(simbolo);
+
 }
 
 void init_datos_entrenador(){
@@ -446,21 +416,10 @@ void borrar_medallas(void){
 }
 
 void liberar_recursos(){
-	int i=0;
-	while (hojaDeViaje[i]!=NULL ) {
-		free(hojaDeViaje[i]);
-		i++;
-	}
-	free(hojaDeViaje);
-
 		log_destroy(entrenador_log);
-		free(entrenador->nombre);
 		free(entrenador);
-		free(nombre_entrendor);
-		free(ruta_pokedex);
 		free(posicion_pokenest);
 		free(posicion_mapa);
-		free(entrenador_log);
 		free(metadata);
 }
 
