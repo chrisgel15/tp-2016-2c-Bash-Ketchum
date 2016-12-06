@@ -33,6 +33,7 @@ int doConnect(ltn_sock_addinfo * sockAddrInfo) {
 
 	freeaddrinfo(sockAddrInfo->serverinfo); // free the linked-list
 	free(sockAddrInfo);
+	log_destroy(mySocketLog);//20161205
 
 	return returnSock;
 

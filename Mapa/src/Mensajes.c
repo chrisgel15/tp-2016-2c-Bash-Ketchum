@@ -76,7 +76,7 @@ int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_
 			return 0;
 		}
 
-		nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
+		nombre_pokenest = malloc((sizeof(char) * tamanio_texto) + 1);
 		recibirMensaje(fd, nombre_pokenest, tamanio_texto, log);
 
 		pthread_mutex_lock(&mutex_mensajes);
@@ -85,6 +85,7 @@ int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_
 		pthread_mutex_unlock(&mutex_mensajes);
 
 		free(result);
+
 
 		return 1;
 	}
@@ -151,7 +152,7 @@ int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log
 			return 0;
 		}
 
-		nombre_pokemon = malloc(sizeof(char) * tamanio_nombre_pokemon);
+		nombre_pokemon = malloc((sizeof(char) * tamanio_nombre_pokemon) + 1);
 		recibirMensaje(fd, nombre_pokemon, tamanio_nombre_pokemon, log);
 
 
@@ -161,6 +162,7 @@ int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log
 		pthread_mutex_unlock(&mutex_mensajes);
 
 		free(result);
+		free(nombre_pokemon);//20161205
 
 		return 1;
 

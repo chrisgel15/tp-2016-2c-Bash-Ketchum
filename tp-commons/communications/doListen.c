@@ -26,6 +26,7 @@ int doListen(int sockNumber, int MaxConnections) {
 	}
 
 	log_info(mySocketLog, "Finalizado el listen");
+	log_destroy(mySocketLog);//20161205
 
 	return sockNumber;
 

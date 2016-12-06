@@ -151,6 +151,8 @@ int main(int argc, char **argv) {
 		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);
 	}
 	free(pokenest_dir);
+	log_destroy(mapa_log);//20161205
+	free(fd_sets_entrenadores);//20161205
 	return EXIT_SUCCESS;
 }
 
@@ -343,12 +345,12 @@ void recibir_nuevo_entrenador(int fd){
 
 	//Recibo el nombre
 	tamanio_texto = recibirInt(fd, result, mapa_log);
-	nombre = malloc(sizeof(char) * tamanio_texto);
+	nombre = malloc((sizeof(char) * tamanio_texto) + 1);
 	recibirMensaje(fd, nombre, tamanio_texto, mapa_log);
 
 	//Recibo el Caracter
 	tamanio_texto = recibirInt(fd, result, mapa_log);
-	caracter = malloc(sizeof(char) * tamanio_texto);
+	caracter = malloc((sizeof(char) * tamanio_texto) + 1);
 	recibirMensaje(fd, caracter, tamanio_texto, mapa_log);
 
 	//Cargo la estructura del Entrenador con los datos recibidos por Socket
@@ -362,8 +364,7 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->pokemons = list_create();
 	entrenador->tiempo_ingreso = time(0); //Guardo la Fecha y Hora de Ingreso del Entrenador al Mapa
 
-	free(result);
-	free(caracter);
+
 
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d.", entrenador->nombre, fd);
 
@@ -374,6 +375,11 @@ void recibir_nuevo_entrenador(int fd){
 
 	//Muestro en el Mapa al Entrenador
 	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
+
+	free(result);
+	free(caracter);
+	free(nombre);
+
 }
 
 void despedir_entrenador(int fd_entrenador){
@@ -503,7 +509,7 @@ void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
 	enviarInt(fd,pokenest->posicion->x);
 	enviarInt(fd,pokenest->posicion->y);
 
-	free(nombre_pokenest);
+
 }
 
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
