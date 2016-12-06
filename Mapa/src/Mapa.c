@@ -153,6 +153,8 @@ int main(int argc, char **argv) {
 	free(pokenest_dir);
 	log_destroy(mapa_log);//20161205
 	free(fd_sets_entrenadores);//20161205
+	pthread_join(planificador,NULL);//20161206
+	pthread_join(interbloqueo,NULL);//20161206
 	return EXIT_SUCCESS;
 }
 
@@ -345,12 +347,12 @@ void recibir_nuevo_entrenador(int fd){
 
 	//Recibo el nombre
 	tamanio_texto = recibirInt(fd, result, mapa_log);
-	nombre = malloc((sizeof(char) * tamanio_texto) + 1);
+	nombre = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(fd, nombre, tamanio_texto, mapa_log);
 
 	//Recibo el Caracter
 	tamanio_texto = recibirInt(fd, result, mapa_log);
-	caracter = malloc((sizeof(char) * tamanio_texto) + 1);
+	caracter = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(fd, caracter, tamanio_texto, mapa_log);
 
 	//Cargo la estructura del Entrenador con los datos recibidos por Socket
@@ -377,8 +379,8 @@ void recibir_nuevo_entrenador(int fd){
 	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
 
 	free(result);
-	free(caracter);
-	free(nombre);
+	//free(caracter);
+	//free(nombre);
 
 }
 
