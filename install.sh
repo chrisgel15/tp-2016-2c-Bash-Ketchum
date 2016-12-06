@@ -49,8 +49,6 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/tp-2016-2c-Bash-Ketchum
 
-git checkout desarrollo
-
 cd /home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug
 
 make all
