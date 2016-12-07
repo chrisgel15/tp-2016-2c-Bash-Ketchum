@@ -126,15 +126,10 @@ int conectar_mapa(char* ruta_pokedex, char *mapa){
 	char* mapa_ip = (char*)get_mapa_ip( metadata_mapa);
 	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
 	int socket_mapa = doConnect(ltn_cliente_entrenador);
-	//TODO REVISAR FREE
-//	free(metadata_mapa->path);
-//	dictionary_destroy(metadata_mapa->properties);
-//	free(metadata_mapa);
+
 	free(mapa_puerto);
-	//free(mapa_ip);
 	config_destroy(metadata_mapa);
-	//free(ltn_cliente_entrenador);
-	//free(metadata_mapa);
+
 
 	return socket_mapa;
 }
@@ -260,11 +255,18 @@ void convertirseEnMaestroPokemon(double tiempo_total_Viaje, double tiempo_total_
 void recorrer_hojaDeViaje(int posHojaDeViaje) {
 
 	int posObjetivoPorMapa = 0; //Indice para recorrer los Objetivos por Mapa
+
 	int estado = CONECTARSE_MAPA;
+
 	char **objetivosPorMapa;
+	int index = 0; // indice para recorrer y liberar char** objetivosPorMapa
+
 	int cantidad_muerte = 0;
+
 	time_t inicio_De_Viaje, inicio_bloqueado, fin_bloqueado, fin_De_Viaje;
+
 	double tiempo_total_bloqueado, total_tiempo_viaje;
+
 	tiempo_total_bloqueado = 0;
 	inicio_De_Viaje = time(NULL);
 	t_list* pokemons_atrapados = list_create(); // es una lista temporal en caso de que en el mapa actual tenga que borrar los archivos por muerte
@@ -376,6 +378,11 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 			}
 		}
 	}
+
+	while(*(objetivosPorMapa + index) != NULL){
+		free(*(objetivosPorMapa + index));
+		index ++;
+	}
 	free(objetivosPorMapa);
 }
 void handshake(){
@@ -452,12 +459,25 @@ void borrar_medallas(void){
 
 }
 
-void liberar_recursos(){
-		log_destroy(entrenador_log);
-		config_destroy(metadata);
-		free(entrenador);
-		free(dirBill);
-		free(dirMedalla);
+void liberar_recursos() {
+	int index = 0; // indice para recorrer y liberar char** hojaDeViaje
+
+	log_destroy(entrenador_log);
+
+	config_destroy(metadata);
+
+	free(entrenador);
+	free(dirBill);
+	free(dirMedalla);
+
+	while (*(hojaDeViaje + index) != NULL) {
+		free(*(hojaDeViaje + index));
+		index++;
+	}
+	free(hojaDeViaje); //20161207 - FM
+
+	free(posicion_mapa); //20161207 - FM
+	free(posicion_pokenest); //20161207 - FM
 
 }
 
@@ -540,35 +560,49 @@ void copiar_archivo(char* path_from, char* path_to){
 	char* path_dst = string_new();
 	char* mapArchSrc;
 	char* mapArchDst;
-	struct stat buf;
 	char* nombre_archivo;
-	char** path_split;
-	char i = 0;
-	string_append(&path_src,path_from);
-	path_split = string_split(path_from,"/");
 
+	char** path_split;
+
+	struct stat buf;
+
+	int i = 0; //indice para recorrer char** path_split
+
+	int index = 0; //indice para recorrer y liberar char** path_split
+
+	string_append(&path_src,path_from);
+
+	path_split = string_split(path_from,"/");
 	while(*(path_split + i) != NULL){
 		nombre_archivo = *(path_split + i);
-		free(*(path_split + i));
 		i++;
-
 	}
-	free(path_split);
+
 	//El path destino seria /Entrenadores/[nombre entrenador]/directorio de bill
 	string_append(&path_dst,path_to);
 	string_append(&path_dst,nombre_archivo);
+
 	int fd_src = open(path_src, O_RDWR);
 	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
+
 	stat(path_src,&buf);
 	int tam = buf.st_size;
+
 	ftruncate(fd_dst,tam);
+
 	mapArchSrc = (char*)mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED, fd_src, 0);
 	mapArchDst = (char*)mmap(0, tam, PROT_WRITE, MAP_SHARED, fd_dst, 0);
 	memcpy(mapArchDst, mapArchSrc, tam);
+
 	munmap(mapArchSrc, tam);
 	munmap(mapArchDst, tam);
+
 	free(path_src);
 	free(path_dst);
 
-
+	while(*(path_split + index) != NULL){
+		free(*(path_split + index));
+		index ++;
+	}
+	free(path_split);
 }
