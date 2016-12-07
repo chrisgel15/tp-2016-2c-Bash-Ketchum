@@ -379,8 +379,8 @@ void recibir_nuevo_entrenador(int fd){
 	ingreso_nuevo_entrenador(items, entrenador, nombre_mapa);
 
 	free(result);
-	//free(caracter);
-	//free(nombre);
+	//free(caracter);//20161207 - FM
+	//free(nombre); //20161207 - FM
 
 }
 
