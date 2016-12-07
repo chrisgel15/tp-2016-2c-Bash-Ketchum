@@ -26,9 +26,20 @@ int main(void) {
 
 	/**************** Creacion del Log ******************/
 
-	osada_log = CreacionLogWithLevel("osada-server-log", "osada-server", "WARNING");
+	osada_log = CreacionLogWithLevel("osada-server-log", "osada-server", "INFO");
 
-	fd_osadaDisk = open("/home/utnso/osadaDisks/test1.bin", O_RDWR);
+	char * nombreDisco = config_get_string_value(osada_server_config , NOMBRE_DISCO_OSADA);
+
+	char * nombreDiscoCompleto = string_new();
+	string_append(&nombreDiscoCompleto , "/home/utnso/");
+	string_append(&nombreDiscoCompleto, nombreDisco);
+
+	log_info(osada_log, "Se va a abrir el disco: %s. En caso de error chequear que exista.", nombreDiscoCompleto);
+
+	fd_osadaDisk = open(nombreDiscoCompleto, O_RDWR);
+
+	myFree(nombreDiscoCompleto, "nombreDiscoCompleto", osada_log);
+
 	fstat(fd_osadaDisk, &osadaStat);
 	pmap_osada = mmap(0, osadaStat.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_osadaDisk, 0);
 
@@ -82,7 +93,7 @@ void UbicarPunteros()
 	header = (osada_header *)pmap_osada;
 
 	// Me muevo un bloque y apunto al bitmap...
-	bitmap = bitarray_create_with_mode((char*)header + sizeof(osada_header), (header->bitmap_blocks * OSADA_BLOCK_SIZE) * 8, LSB_FIRST);
+	bitmap = bitarray_create_with_mode((char*)header + sizeof(osada_header), header->fs_blocks, MSB_FIRST);
 	t_bitarray * indice_bitmap = bitmap;
 
 	// Me muevo un bloque y la cantidad de bloques que ocupe el bitmap (apunto a la tabla de archivos)
@@ -804,7 +815,9 @@ bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId
 
 		if ((int)indice_tabla_archivos->state != 0)
 		{
-			if (indice_tabla_archivos->parent_directory == parentId && memcmp(indice_tabla_archivos->fname,path[0],strlen(path[0])) == 0)
+			int criterio_compare = indice_tabla_archivos->fname[TAMANIO_MAXIMO_NOMBRE_ARCHIVO-1] != '\0' ? TAMANIO_MAXIMO_NOMBRE_ARCHIVO : strlen(indice_tabla_archivos->fname);
+			int lenght_compare = criterio_compare > strlen(path[0]) ? criterio_compare : strlen(path[0]);
+			if (indice_tabla_archivos->parent_directory == parentId && memcmp(indice_tabla_archivos->fname,path[0],lenght_compare) == 0)
 			{
 				if (path[1] != NULL)
 				{
@@ -892,7 +905,7 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 	int * indice_tabla_asignaciones = tabla_asignaciones;
 	char * indice_tabla_datos = tabla_datos;
 
-	int bloque_actual, bloque_anterior;
+	int bloque_actual, bloque_anterior, bloque_inicial;
 
 	// Ver como funciona la lectura de archivo que no tiene bloques asignados
 	bloque_actual = AsignarBloqueActualLectoEscritura(indice_tabla_archivos, operacion);
@@ -910,6 +923,16 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
 		offset_from -= OSADA_BLOCK_SIZE;
 	}
+
+	bool obtuve_bloque_inicial = false;
+	if (bloque_actual == indice_tabla_archivos->first_block)
+	{
+		bloque_inicial = bloque_actual;
+		obtuve_bloque_inicial = true;
+	}
+
+	//if (bloque_actual == NO_HAY_ESPACIO_BITMAP)
+		//	return -ENOSPC; // Corto la ejecucion aca porque me quede sin espacio.
 
 	// Ubico el indice de los datos en el byte a comenzar a leer.
 	indice_tabla_datos += bloque_actual * OSADA_BLOCK_SIZE;
@@ -943,9 +966,24 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		{
 			bloque_actual = FinalDeBloqueLectoEscritura(indice_tabla_asignaciones, bloque_actual, operacion);
 
-			indice_tabla_datos = tabla_datos;
-			indice_tabla_datos += bloque_actual * OSADA_BLOCK_SIZE;
-			offset_from = 0;
+			if (!obtuve_bloque_inicial)
+			{
+				bloque_inicial = bloque_actual;
+				obtuve_bloque_inicial = true;
+			}
+
+			if (bloque_actual != NO_HAY_ESPACIO_BITMAP)
+			{
+				indice_tabla_datos = tabla_datos;
+				indice_tabla_datos += bloque_actual * OSADA_BLOCK_SIZE;
+				offset_from = 0;
+			}
+			else
+			{
+				//indice_tabla_archivos->file_size += bytes_to_rw; // Le sumo el tamaño para que dsp se borre todo.
+				RollbackLectoEscrituraSinEspacio(indice_tabla_asignaciones, bloque_inicial);
+				return -ENOSPC; // Corto la ejecucion aca porque me quede sin espacio.
+			}
 		}
 
 	}
@@ -953,7 +991,7 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 	if (operacion == ESCRITURA)
 	{
 		// Marco el fin de los bloques.
-		*(indice_tabla_asignaciones + bloque_actual) = 0xFFFFFFFF;
+		*(indice_tabla_asignaciones + bloque_actual) = FIN_DE_DATOS_DE_ARCHIVO;
 		indice_tabla_archivos->file_size += bytes_to_rw;
 
 		// Ultima fecha de modificación
@@ -978,15 +1016,24 @@ int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actu
 	{
 		bloque_anterior = bloque_actual;
 		bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
-		SeteaBitEnBitMap(bloque_actual);
-		*(indice_tabla_asignaciones + bloque_anterior) = bloque_actual;
+
+		if (bloque_actual != NO_HAY_ESPACIO_BITMAP)
+		{
+			SeteaBitEnBitMap(bloque_actual);
+			*(indice_tabla_asignaciones + bloque_anterior) = bloque_actual;
+		}
+		else
+		{
+			// No tengo mas espacio. Marco que finaliza lo escrito para saber hasta cuando borrar...
+			*(indice_tabla_asignaciones + bloque_anterior) = NO_HAY_ESPACIO_BITMAP;
+		}
 	}
 	else
 	{
 		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
 	}
 
-	return bloque_actual; // Es un nuevo bloque Actual
+	return bloque_actual; // Es un nuevo bloque Actual o -1 si no hay mas bloques
 
 }
 
@@ -1000,8 +1047,12 @@ int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int op
 		if (operacion == ESCRITURA)
 		{
 			aux_bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
-			indice_tabla_archivos->first_block = aux_bloque_actual;
-			SeteaBitEnBitMap(aux_bloque_actual);
+
+			if (aux_bloque_actual != NO_HAY_ESPACIO_BITMAP)
+			{
+				indice_tabla_archivos->first_block = aux_bloque_actual;
+				SeteaBitEnBitMap(aux_bloque_actual);
+			}
 		}
 	}
 	else
@@ -1016,32 +1067,45 @@ int BuscaPrimerEspacioDisponibleEnBitMap()
 {
 	sComenzarEscrituraBitMap();
 
-	int index = 0;
+	//int index = 0;
+	int centinela = 0;
 	bool hayEspacio = false;
 	t_bitarray * bm = bitmap;
 
-	while(!hayEspacio && index < header->data_blocks)
+	while(!hayEspacio && centinela < header->data_blocks)
 	{
-		int bit_value = (int)bitarray_test_bit(bm, offset_bitmap_datos + index);
+		if (ultimo_bloque_disponible_encontrado == header->data_blocks)
+			ultimo_bloque_disponible_encontrado = 0;
+
+		int bit_value = (int)bitarray_test_bit(bm, offset_bitmap_datos + ultimo_bloque_disponible_encontrado);
 
 		if (bit_value == 0)
 		{
 			hayEspacio = true;
-			SeteaBitEnBitMap(index);
+			SeteaBitEnBitMap(ultimo_bloque_disponible_encontrado);
 		}
 		else
-			index++;
+			ultimo_bloque_disponible_encontrado++;
+
+		centinela++;
+
 	}
 
 	sFinalizarEscrituraBitMap();
 
-	return hayEspacio ? index : NO_HAY_ESPACIO_BITMAP;
+	return hayEspacio ? ultimo_bloque_disponible_encontrado : NO_HAY_ESPACIO_BITMAP;
 }
 
 void SeteaBitEnBitMap(int offset)
 {
 	t_bitarray * bm = bitmap;
 	bitarray_set_bit(bm, offset_bitmap_datos + offset);
+}
+
+void LimpiaBitEnBitMap(int offset)
+{
+	t_bitarray * bm = bitmap;
+	bitarray_clean_bit(bm, offset_bitmap_datos + offset);
 }
 
 int Crear(char * path, int state)
@@ -1081,7 +1145,8 @@ int Crear(char * path, int state)
 				returnValue = -ENOENT;
 		}
 		else
-			returnValue = -EFBIG;
+			returnValue = -ENAMETOOLONG
+;
 
 	return returnValue;
 
@@ -1248,7 +1313,9 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId)
 
 	int bloque_actual = indice_tabla_archivos->first_block;
 
-	while(i<blocks_to_delete){
+	while(i<blocks_to_delete && i<header->data_blocks)
+	//while(*(indice_tabla_asignaciones + bloque_actual) != FIN_DE_DATOS_DE_ARCHIVO)
+	{
 		algo = bitarray_test_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
 
 		bitarray_clean_bit(bitmap_aux,offset_tabla_datos+bloque_actual);
@@ -1261,7 +1328,24 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId)
 	return 0;
 }
 
+void RollbackLectoEscrituraSinEspacio(int * indice_tabla_asignaciones, int bloque_inicial)
+{
+	int bloque_actual = bloque_inicial;
 
+	sComenzarEscrituraBitMap();
+
+	while(*(indice_tabla_asignaciones + bloque_actual) != NO_HAY_ESPACIO_BITMAP)
+	{
+		LimpiaBitEnBitMap(bloque_actual);
+		bloque_actual = *(indice_tabla_asignaciones + bloque_actual);
+	}
+
+	LimpiaBitEnBitMap(bloque_actual); // Limpio el ultimo...
+
+	sFinalizarEscrituraBitMap();
+
+	*(indice_tabla_asignaciones + bloque_inicial) = NO_HAY_ESPACIO_BITMAP;
+}
 // Sincronizacion
 void InicializarSemaforos()
 {
@@ -1289,7 +1373,9 @@ void InicializarSemaforos()
 	// Bitmap
 	myInitMutex(&mutex_escritura_bitmap, "mutex_escritura_bitmap", osada_log);
 	myInitMutex(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
-	int cuenta_lectores_bitmap = 0;
+	cuenta_lectores_bitmap = 0;
+	ultimo_bloque_disponible_encontrado = 0;
+
 
 	//Archivos
 	mutex_escritura_archivos = (pthread_mutex_t *)myMalloc_mutex_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - mutex_escritura_archivos", osada_log);
