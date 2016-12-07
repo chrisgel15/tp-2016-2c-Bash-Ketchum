@@ -1,5 +1,6 @@
 #include "Entrenador.h"
 
+
 //Log
 t_log *entrenador_log;
 
@@ -117,17 +118,21 @@ void system_call_catch(int signal){
 
 int conectar_mapa(char* ruta_pokedex, char *mapa){
 	ltn_sock_addinfo *ltn_cliente_entrenador;
-	t_config * metadata_mapa = get_mapa_metadata(ruta_pokedex , mapa);
-	int puerto_del_mapa = get_mapa_puerto(metadata_mapa);
+
+	t_config * metadata_mapa = (t_config*)get_mapa_metadata(ruta_pokedex , mapa);
+	int puerto_del_mapa = (int)get_mapa_puerto(metadata_mapa);
 	char* mapa_puerto = string_itoa(puerto_del_mapa);
 	//char *mapa_puerto = string_itoa(get_mapa_puerto(metadata_mapa));
-	char* mapa_ip = get_mapa_ip( metadata_mapa);
+	char* mapa_ip = (char*)get_mapa_ip( metadata_mapa);
 	ltn_cliente_entrenador = createClientSocket(mapa_ip, mapa_puerto);
 	int socket_mapa = doConnect(ltn_cliente_entrenador);
 	//TODO REVISAR FREE
-	free(metadata_mapa);
+//	free(metadata_mapa->path);
+//	dictionary_destroy(metadata_mapa->properties);
+//	free(metadata_mapa);
 	free(mapa_puerto);
-	free(mapa_ip);
+	//free(mapa_ip);
+	config_destroy(metadata_mapa);
 	//free(ltn_cliente_entrenador);
 	//free(metadata_mapa);
 
@@ -164,7 +169,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 	switch (instruccion=recibirInt(socket_mapa, result, entrenador_log)) {
 		case POKEMON_CONCEDIDO:
 			tamanio_archivo = recibirInt(socket_mapa, result, entrenador_log);
-			char* nombre_archivo = malloc((sizeof(char) * tamanio_archivo) + 1);
+			char* nombre_archivo = malloc(sizeof(char) * (tamanio_archivo + 1));
 			recibirMensaje(socket_mapa, nombre_archivo, tamanio_archivo, entrenador_log);
 			list_add(pokemons, nombre_archivo);
 
@@ -233,7 +238,7 @@ void terminarObjetivo(){
 
 	//Recibo la ruta de medalla
 	tamanio_texto = recibirInt(socket_mapa, result, entrenador_log);
-	ruta_medalla = malloc((sizeof(char) * tamanio_texto) + 1);
+	ruta_medalla = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
 
 	pthread_mutex_lock(&mutex_archivo);
@@ -321,7 +326,9 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 //					estado = OBJETIVO_CUMPLIDO;
 				if(objetivosPorMapa[posObjetivoPorMapa + 1] == NULL){
 					estado = OBJETIVO_CUMPLIDO;
+
 				} else {
+					//free(&objetivosPorMapa[posObjetivoPorMapa]);//20161206 - FM
 					posObjetivoPorMapa++;
 					estado = UBICACION_POKENEST;
 				}
@@ -447,10 +454,8 @@ void borrar_medallas(void){
 
 void liberar_recursos(){
 		log_destroy(entrenador_log);
+		config_destroy(metadata);
 		free(entrenador);
-		free(posicion_pokenest);
-		free(posicion_mapa);
-		free(metadata);
 		free(dirBill);
 		free(dirMedalla);
 
@@ -544,6 +549,7 @@ void copiar_archivo(char* path_from, char* path_to){
 
 	while(*(path_split + i) != NULL){
 		nombre_archivo = *(path_split + i);
+		free(*(path_split + i));
 		i++;
 
 	}

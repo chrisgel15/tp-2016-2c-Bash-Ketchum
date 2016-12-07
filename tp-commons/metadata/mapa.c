@@ -2,6 +2,7 @@
 
 t_config * get_mapa_metadata(char * ruta_pokedex , char * nombre_mapa)
 {
+
 	char * path = string_new();
 	string_append(&path, ruta_pokedex);
 	string_append(&path, "/");
