@@ -10,7 +10,7 @@
 
 #include "PokedexServidor.h"
 
-#define EXECUTION_MODE 0 // 0 = Release, 1 = Debug
+#define EXECUTION_MODE 1 // 0 = Release, 1 = Debug
 
 
 
@@ -26,7 +26,7 @@ int main(void) {
 
 	/**************** Creacion del Log ******************/
 
-	osada_log = CreacionLogWithLevel("osada-server-log", "osada-server", "INFO");
+	osada_log = CreacionLogWithLevel("osada-server-log", "osada-server", "TRACE");
 
 	char * nombreDisco = config_get_string_value(osada_server_config , NOMBRE_DISCO_OSADA);
 
@@ -815,9 +815,10 @@ bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId
 
 		if ((int)indice_tabla_archivos->state != 0)
 		{
-			int criterio_compare = indice_tabla_archivos->fname[TAMANIO_MAXIMO_NOMBRE_ARCHIVO-1] != '\0' ? TAMANIO_MAXIMO_NOMBRE_ARCHIVO : strlen(indice_tabla_archivos->fname);
-			int lenght_compare = criterio_compare > strlen(path[0]) ? criterio_compare : strlen(path[0]);
-			if (indice_tabla_archivos->parent_directory == parentId && memcmp(indice_tabla_archivos->fname,path[0],lenght_compare) == 0)
+		//	int criterio_compare = indice_tabla_archivos->fname[TAMANIO_MAXIMO_NOMBRE_ARCHIVO-1] != '\0' ? TAMANIO_MAXIMO_NOMBRE_ARCHIVO : strlen(indice_tabla_archivos->fname);
+		//	int lenght_compare = criterio_compare > strlen(path[0]) ? criterio_compare : strlen(path[0]);
+		//	if (indice_tabla_archivos->parent_directory == parentId && memcmp(indice_tabla_archivos->fname,path[0],lenght_compare) == 0)
+			if (indice_tabla_archivos->parent_directory == parentId && CompararNombres(indice_tabla_archivos->fname, path[0]))
 			{
 				if (path[1] != NULL)
 				{
@@ -908,7 +909,7 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 	int bloque_actual, bloque_anterior, bloque_inicial;
 
 	// Ver como funciona la lectura de archivo que no tiene bloques asignados
-	bloque_actual = AsignarBloqueActualLectoEscritura(indice_tabla_archivos, operacion);
+	bloque_actual = AsignarBloqueActualLectoEscritura(indice_tabla_archivos, operacion, directoryId);
 
 	// Para no leer mas que el tamaño del archivo...
 	if (operacion == LECTURA)
@@ -931,9 +932,6 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		obtuve_bloque_inicial = true;
 	}
 
-	//if (bloque_actual == NO_HAY_ESPACIO_BITMAP)
-		//	return -ENOSPC; // Corto la ejecucion aca porque me quede sin espacio.
-
 	// Ubico el indice de los datos en el byte a comenzar a leer.
 	indice_tabla_datos += bloque_actual * OSADA_BLOCK_SIZE;
 	indice_tabla_datos += offset_from;
@@ -942,18 +940,21 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 
 	while (bytes_remaining > 0)
 	{
-		if (bytes_remaining > OSADA_BLOCK_SIZE)
+		if (bytes_remaining > (OSADA_BLOCK_SIZE - offset_from))
 			bytes_a_rw = OSADA_BLOCK_SIZE - offset_from;
 		else
 			bytes_a_rw = bytes_remaining;
 
 		if (operacion == ESCRITURA)
 		{
+			//printf("%.*s", stringLength, pointerToString);
+			log_trace(osada_log, "Escribi los siguientes bytes en el archivo %d del bloque %d: %.*s", directoryId, bloque_actual,bytes_a_rw, buf);
 			memcpy((void *)indice_tabla_datos, buf, (bytes_a_rw));
 			buf += bytes_a_rw;
 		}
 		else
 		{
+			log_trace(osada_log, "Lei los siguientes bytes en el archivo %d del bloque %d: %.*s", directoryId, bloque_actual, bytes_a_rw, indice_tabla_datos);
 			memcpy((void *)indice_aux_buf, indice_tabla_datos, (bytes_a_rw));
 			indice_aux_buf += bytes_a_rw;
 		}
@@ -964,7 +965,7 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 		// Si llegue al final de un bloque, muevo el puntero de la tabla de asignaciones...
 		if (offset_from == (OSADA_BLOCK_SIZE) && bytes_remaining != NO_HAY_MAS_BLOQUES_POR_RW)
 		{
-			bloque_actual = FinalDeBloqueLectoEscritura(indice_tabla_asignaciones, bloque_actual, operacion);
+			bloque_actual = FinalDeBloqueLectoEscritura(indice_tabla_asignaciones, bloque_actual, operacion, directoryId);
 
 			if (!obtuve_bloque_inicial)
 			{
@@ -1008,14 +1009,14 @@ int LectoEscrituraFromOffset(off_t offset_from, size_t bytes_to_rw, int director
 	return bytes_to_rw;
 }
 
-int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion)
+int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion, int directoryId)
 {
 	int bloque_anterior;
 
 	if (operacion == ESCRITURA)
 	{
 		bloque_anterior = bloque_actual;
-		bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
+		bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap(directoryId);
 
 		if (bloque_actual != NO_HAY_ESPACIO_BITMAP)
 		{
@@ -1037,7 +1038,7 @@ int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actu
 
 }
 
-int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion)
+int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion, int directoryId)
 {
 	int aux_bloque_actual;
 
@@ -1046,7 +1047,7 @@ int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int op
 		// No tiene bloque inicial, asignarlo. // Solo para escritura
 		if (operacion == ESCRITURA)
 		{
-			aux_bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap();
+			aux_bloque_actual = BuscaPrimerEspacioDisponibleEnBitMap(directoryId);
 
 			if (aux_bloque_actual != NO_HAY_ESPACIO_BITMAP)
 			{
@@ -1063,7 +1064,7 @@ int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int op
 	return aux_bloque_actual;
 }
 
-int BuscaPrimerEspacioDisponibleEnBitMap()
+int BuscaPrimerEspacioDisponibleEnBitMap(int directoryId)
 {
 	sComenzarEscrituraBitMap();
 
@@ -1083,6 +1084,7 @@ int BuscaPrimerEspacioDisponibleEnBitMap()
 		{
 			hayEspacio = true;
 			SeteaBitEnBitMap(ultimo_bloque_disponible_encontrado);
+			log_info(osada_log, "Reserve el bloque %d al archivo %d", ultimo_bloque_disponible_encontrado, directoryId);
 		}
 		else
 			ultimo_bloque_disponible_encontrado++;
@@ -1091,9 +1093,11 @@ int BuscaPrimerEspacioDisponibleEnBitMap()
 
 	}
 
+	int ultimo_bloque_disponible_encontrado_local = ultimo_bloque_disponible_encontrado;
+
 	sFinalizarEscrituraBitMap();
 
-	return hayEspacio ? ultimo_bloque_disponible_encontrado : NO_HAY_ESPACIO_BITMAP;
+	return hayEspacio ? ultimo_bloque_disponible_encontrado_local : NO_HAY_ESPACIO_BITMAP;
 }
 
 void SeteaBitEnBitMap(int offset)
@@ -1346,6 +1350,41 @@ void RollbackLectoEscrituraSinEspacio(int * indice_tabla_asignaciones, int bloqu
 
 	*(indice_tabla_asignaciones + bloque_inicial) = NO_HAY_ESPACIO_BITMAP;
 }
+
+bool CompararNombres(unsigned char * nom1, char * nom2)
+{
+	char * nombre_archivo1 = myMalloc_char(OSADA_FILENAME_LENGTH, "CompararNombres - nombre_archivo1", osada_log);
+	char * nombre_archivo2 = myMalloc_char(OSADA_FILENAME_LENGTH, "CompararNombres - nombre_archivo2", osada_log);
+	memset((void *)nombre_archivo1, '\0', OSADA_FILENAME_LENGTH);
+	memset((void *)nombre_archivo2, '\0', OSADA_FILENAME_LENGTH);
+
+	int index = 0;
+	bool done1 = false, done2 = false;
+
+	while (index < OSADA_FILENAME_LENGTH)
+	{
+		if ((nom1[index]) != '\0' && !done1)
+			nombre_archivo1[index] = nom1[index];
+		else
+			done1 = true;
+
+		if ((nom2[index]) != '\0' && !done2)
+			nombre_archivo2[index] = nom2[index];
+		else
+			done2 = true;
+
+		index++;
+	}
+
+	bool returnValue =  strcmp(nombre_archivo1, nombre_archivo2) == 0;
+
+	myFree(nombre_archivo1, "CompararNombres - nombre_archivo1", osada_log);
+	myFree(nombre_archivo2, "CompararNombres - nombre_archivo2", osada_log);
+
+	return returnValue;
+
+}
+
 // Sincronizacion
 void InicializarSemaforos()
 {
@@ -1583,7 +1622,7 @@ void ImprimirTablaDeArchivos()
 			log_info(osada_log, "Tamanio: %d bytes - %d bloques", indice_tabla_archivos->file_size, TamanioEnBloques(indice_tabla_archivos->file_size));
 			log_info(osada_log, "Directorio Padre: %04x hexa - %d decimal", indice_tabla_archivos->parent_directory, indice_tabla_archivos->parent_directory);
 			log_info(osada_log, "Primer Bloque: %04x hexa - %d decimal", indice_tabla_archivos->first_block, indice_tabla_archivos->first_block);
-		//	ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
+			ImprimirBloquesDeTablaAsignacion(tabla_asignaciones, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block);
 			log_info(osada_log, "Fecha Ultima Modificacion: %d\n", indice_tabla_archivos->lastmod);
 		//	GenerarArchivo(indice_datos, indice_tabla_archivos->file_size, indice_tabla_archivos->first_block, &(indice_tabla_archivos->fname));
 //		}
