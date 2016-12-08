@@ -36,6 +36,7 @@
 /********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
 void agregar_entrenador_a_listos(t_entrenador *entrenador);
 t_entrenador *remover_entrenador_listo_por_RR();
+t_entrenador *remover_entrenador_mas_viejo();
 t_entrenador *remover_entrenador_listo_por_SRDF();
 void agregar_entrenador_a_bloqueados(t_entrenador *);
 void sumar_recurso_pokemon(t_pokemon_mapa *pokemon);
@@ -60,6 +61,7 @@ void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes);
 void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes);
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
+void system_call_manager();
 void system_call_catch(int signal);
 
 /********* FUNCIONES ENCARGADAS DE LA ADMINISTRACIÓN DEL MAPA *********/

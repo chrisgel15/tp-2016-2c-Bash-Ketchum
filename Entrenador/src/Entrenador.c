@@ -77,8 +77,6 @@ int main(int argc, char **argv) {
 	//Comieza el viaje del Entreandor
 	recorrer_hojaDeViaje(posHojaDeViaje);
 
-	//Liberar memoria dinamica -> TODO: encapsular en funcion
-
 	liberar_recursos();
 	return EXIT_SUCCESS;
 }
@@ -238,13 +236,13 @@ int avanzar_hacia_pokenest(){
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
 	enviarInt(socket_mapa, posicion_mapa->y);
-
+	return llego_a_pokenest(posicion_mapa, posicion_pokenest);
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
-	if(movimiento_x == 0 && movimiento_y == 0){
+	/*if(movimiento_x == 0 && movimiento_y == 0){
 		return 1;
 	} else {
 		return 0;
-	}
+	}*/
 }
 
 
@@ -522,9 +520,9 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	int rem;
 	int cant_archivos = 0; //variable para verificar la cantidad de archivos en el directorio
 						   //durante debug
-	struct dirent *ep = malloc(sizeof(struct dirent));
+	struct dirent* ep;//= malloc(sizeof(struct dirent));
 
-	memset(ep->d_name, '\0', sizeof(ep->d_name));
+	//memset(ep->d_name, '\0', sizeof(ep->d_name));
 
 	if (deDirectorio != NULL) {
 		while ((ep = readdir(deDirectorio)) != NULL) {
@@ -548,7 +546,7 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	free(archivo);
 	free(path_total);
 	free(ret);
-	free(ep);
+	//free(ep);
 }
 
 

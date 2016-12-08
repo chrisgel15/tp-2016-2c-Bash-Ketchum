@@ -30,5 +30,6 @@ void ingresar_a_nuevo_mapa(t_posicion_mapa *posicion);
 void actualizar_posicion_pokenest(t_posicion_pokenest *pokenest, int posicion_x, int posicion_y);
 int moverse_en_mapa_eje_x(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest);
 int moverse_en_mapa_eje_y(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest);
+int llego_a_pokenest(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest);
 
 #endif /* GPS_H_ */

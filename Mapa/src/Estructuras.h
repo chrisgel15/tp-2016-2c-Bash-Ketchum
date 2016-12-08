@@ -30,6 +30,7 @@ typedef struct {
 	int pokeny;		//posicion de la pokenest en el eje y
 	t_list* pokemons; //En esta Lista se Encuentran los Pokemons que va atrapando el Entrenador
 	time_t tiempo_ingreso;
+	time_t timpo_ingreso_listo; //Fecha y Hora de Ingreso a Listo
 } t_entrenador;
 
 typedef struct {

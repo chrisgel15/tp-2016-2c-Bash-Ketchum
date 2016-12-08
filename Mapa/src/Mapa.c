@@ -92,7 +92,7 @@ int main(int argc, char **argv) {
 	inicializar_estructuras();
 
 	//Manejo de System Calls
-	signal(SIGUSR2, system_call_catch);
+	//signal(SIGUSR2, system_call_catch);
 
 	//Creamos el Servidor de Entrenadores
 	int puerto_entrenadores = get_mapa_puerto(metadata);
@@ -130,6 +130,10 @@ int main(int argc, char **argv) {
 	pthread_t interbloqueo;
 	pthread_create(&interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
 
+	//Hilo Interbloqueo
+	pthread_t calls_manager;
+	pthread_create(&calls_manager, NULL, (void *) system_call_manager, NULL);
+
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
 		fd_sets_entrenadores->readFileDescriptorSet = fd_sets_entrenadores->masterSet;
@@ -152,6 +156,7 @@ int main(int argc, char **argv) {
 //Agrega un Nuevo Entrenador a la Cola de Listos
 void agregar_entrenador_a_listos(t_entrenador *entrenador) {
 	pthread_mutex_lock(&mutex_entrenadores_listos);
+	entrenador->timpo_ingreso_listo = time(0);
 	list_add(entrenadores_listos, entrenador);
 	int listos_size = list_size(entrenadores_listos);
 	char *entrenadores = string_new();
@@ -173,9 +178,42 @@ t_entrenador *remover_entrenador_listo_por_RR(){
 	t_entrenador *entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	//sem_wait(&sem_listos);
-	entrenador = (t_entrenador *) list_remove(entrenadores_listos, 0);
+	//entrenador = (t_entrenador *) list_remove(entrenadores_listos, 0);
+	entrenador = remover_entrenador_mas_viejo();
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se remueve el Entrenador %s de la Cola de Listos.", entrenador->nombre);
+	return entrenador;
+}
+
+t_entrenador *remover_entrenador_mas_viejo(){
+	int entrenadores_listos_size = list_size(entrenadores_listos);
+	int i = 0, j = 0;
+	t_entrenador *entrenador = NULL, *entrenador_compare = NULL;
+	bool mas_viejo = true, encontrado = false;
+	log_info(mapa_log, "Voy a verificar cual es el Entrenador mas Viejo.");
+	while((i  < entrenadores_listos_size) && !encontrado){
+		entrenador = (t_entrenador *) list_get(entrenadores_listos, i);
+		j = i + 1;
+		while((j < entrenadores_listos_size) && mas_viejo){
+			entrenador_compare = (t_entrenador *) list_get(entrenadores_listos, j);
+			log_info(mapa_log, "Comparo a %s con %s.", entrenador->nombre, entrenador_compare->nombre);
+
+			if(entrenador->timpo_ingreso_listo > entrenador_compare->timpo_ingreso_listo){
+				mas_viejo = false;
+			}
+			j = j + 1;
+		}
+
+		if(!mas_viejo){
+			i = i + 1;
+			mas_viejo = true;
+		} else {
+			encontrado = true;
+		}
+	}
+
+	entrenador = (t_entrenador *) list_remove(entrenadores_listos, i);
+	log_info(mapa_log, "El Entrenador mas viejos es %s.", entrenador->nombre);
 	return entrenador;
 }
 
@@ -502,14 +540,21 @@ void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
 }
 
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
+void system_call_manager(){
+	//Manejo de System Calls
+	signal(SIGUSR2, system_call_catch);
+}
+
 void system_call_catch(int signal){
 
 	if (signal == SIGUSR2){
+		metadata = get_mapa_metadata(ruta_pokedex, nombre_mapa);
 		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
 		set_algoritmoActual();
 		set_quantum();
 		set_retardo();
 		set_interbloqueo();
+		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d - Retardo de Interbloqueo: %d. - Retardo de Quantum: %d." , algoritmo, mapa_quantum, interbloqueo, retardo);
 	}
 }
 
