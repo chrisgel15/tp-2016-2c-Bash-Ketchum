@@ -206,10 +206,10 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			}
 			free(result);
 			break;
-
 		default :
+			if (flag_reinicio != true ){
 			log_info(entrenador_log, "No se recibio instruccion del Mapa, posible desconexion ");
-			// Borrar medallas obtenidas;
+			 //Borrar medallas obtenidas;
 			borrar_medallas();
 			log_info(entrenador_log, "Se borraron las medallas para finalizar el programa ");
 			// Borrar pokemones obtenidos;
@@ -217,6 +217,8 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			log_info(entrenador_log, "Se borraron los pokemons para finalizar el programa ");
 			free(result);
 			exit(1);
+			}
+			free(result);
 			break;
 	}
 
@@ -353,6 +355,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 		}
 
 		if (flag_reinicio){
+			log_info (entrenador_log, "Reinicia valores de variables");
 			estado = CONECTARSE_MAPA;
 			posHojaDeViaje = 0;
 			flag_reinicio = false;
