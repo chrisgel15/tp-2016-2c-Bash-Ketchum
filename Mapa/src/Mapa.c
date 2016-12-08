@@ -124,11 +124,11 @@ int main(int argc, char **argv) {
 
 	//Hilo Planificador
 	pthread_t planificador;
-	//pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
+	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
 
 	//Hilo Interbloqueo
 	pthread_t interbloqueo;
-	//pthread_create(&interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
+	pthread_create(&interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -265,14 +265,14 @@ void inicializar_estructuras(){
 	sem_init(&sem_listos, 0, 0);
 	sem_init(&sem_mensajes, 0, 0);
 
-	//incializar_gestion_colas_bloqueados();
+	incializar_gestion_colas_bloqueados();
 
 	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
 
 /********* FUNCIONES PARA RECIBIR PETICIONES DE LOS ENTRENADORES *********/
 void atender_entrenador(int fd_entrenador, int codigo_instruccion){
-
+	log_info(mapa_log, "Voy a atender al Entrenador con Fd %d - Codigo: %d.", fd_entrenador, codigo_instruccion);
 	switch(codigo_instruccion){
 		case SOY_ENTRENADOR:
 			recibir_nuevo_entrenador(fd_entrenador);
@@ -442,7 +442,7 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 	string_append(&pokemon_path,pokenest->nombre);
 	string_append(&pokemon_path,"/");
 	string_append(&pokemon_path, pokemon->nombre_archivo);
-	int tamanio_nombre_archivo = string_length(pokemon_path);
+	int tamanio_nombre_archivo = string_length(pokemon_path); //TODO: VER SI SUMAR Sumar 1
 	enviarInt(entrenador->fd, POKEMON_CONCEDIDO);
 	enviarInt(entrenador->fd, (sizeof(char) * tamanio_nombre_archivo));
 	if(enviarMensaje(entrenador->fd, pokemon_path) < 0){
@@ -951,7 +951,7 @@ void enviar_resultado_batalla(t_entrenador *perdedor, t_entrenador *ganador){
 	string_append(&mensaje_ganador, perdedor->nombre);
 	string_append(&mensaje_perdedor, ganador->nombre);
 
-	int mensaje_ganador_size = string_length(mensaje_ganador);
+	int mensaje_ganador_size = string_length(mensaje_ganador); //todo ver si sumar 1
 	int mensaje_perdedor_size = string_length(mensaje_perdedor);
 
 	//Envio el Mensaje al Ganador

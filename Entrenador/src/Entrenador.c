@@ -139,8 +139,9 @@ void solicitar_posicion_pokenest(char *pokemon){
 	int *result = malloc(sizeof(int));
 	int posicion_x, posicion_y;
 	enviarInt(socket_mapa, UBICACION_POKENEST);
-	log_info(entrenador_log,  " ENVIE UBICACION_POKENEST,instruccion: %d", UBICACION_POKENEST);
-	enviarInt(socket_mapa, (sizeof(char) * 2));
+	log_info(entrenador_log,  "ENVIE UBICACION_POKENEST,instruccion: %d", UBICACION_POKENEST);
+	//enviarInt(socket_mapa, (sizeof(char) * 2));
+	enviarInt(socket_mapa, string_length(pokemon));
 	log_info(entrenador_log , "ENVIE  2");
 	enviarMensaje(socket_mapa,pokemon);
 	log_info(entrenador_log, "%s", pokemon);
@@ -160,7 +161,8 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 	char* mensaje1;
 	char* mensaje2;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
-	enviarInt(socket_mapa, 2);
+	//enviarInt(socket_mapa, 2);
+	enviarInt(socket_mapa, string_length(nombre_pokemon));
 	enviarMensaje(socket_mapa, nombre_pokemon);
 
 	instruccion = recibirInt(socket_mapa, result, entrenador_log);
@@ -407,10 +409,10 @@ void handshake(){
 		//Envio el nombre del Entrenador
 		enviarInt(socket_mapa, size_nombre);
 		enviarMensaje(socket_mapa, nombre_entrendor);
-
 		//Envio el caracter representante en el mapa
-		enviarInt(socket_mapa, 2);
+		//enviarInt(socket_mapa, 2);
 		char * simbolo = get_entrenador_simbolo(metadata);
+		enviarInt(socket_mapa, string_length(simbolo));
 		enviarMensaje(socket_mapa, simbolo);
 		ingresar_a_nuevo_mapa(posicion_mapa);
 
