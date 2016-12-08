@@ -49,9 +49,9 @@ bool FindDirectoryByName(char * path, int * directoryId);
 bool FindDirectoryByNameAndParent(char ** path, int  parentId, int * directoryId);
 void FindAllFilesByParentId(int * parentId, void *buf, fuse_fill_dir_t filler, int fd);
 char ** SplitPath(char * path);
-int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion);
-int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion);
-int BuscaPrimerEspacioDisponibleEnBitMap();
+int FinalDeBloqueLectoEscritura(int * indice_tabla_asignaciones, int bloque_actual, int operacion, int directoryId);
+int AsignarBloqueActualLectoEscritura(osada_file * indice_tabla_archivos, int operacion, int directoryId);
+int BuscaPrimerEspacioDisponibleEnBitMap(int directoryId);
 int Crear(char * path, int state);
 int BuscaPrimerEspacioDisponibleEnTablaArchivos();
 bool TamanioNombreAdecuado(char * path);
@@ -63,6 +63,7 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId);
 void SeteaBitEnBitMap(int offset);
 void RollbackLectoEscrituraSinEspacio(int * indice_tabla_asignaciones, int bloque_inicial);
 void LimpiaBitEnBitMap(int offset);
+bool CompararNombres(unsigned char * nom1, char * nom2);
 
 // Semaforos
 void InicializarSemaforos();
@@ -100,7 +101,7 @@ void GenerarArchivo(char * indice_datos, int tamanio_en_bytes, int primer_bloque
 #define OSADA_CANTIDAD_MAXIMA_ARCHIVOS 2048
 #define OSADA_HEADER_BLOCK_SIZE 1
 #define NO_HAY_ESPACIO_TABLA_ARCHIVOS -1
-#define NO_HAY_ESPACIO_BITMAP -1
+#define NO_HAY_ESPACIO_BITMAP -2
 #define TAMANIO_MAXIMO_NOMBRE_ARCHIVO 17
 #define CONTAR_TODOS_LOS_BLOQUES -1
 #define SIN_BLOQUES_ASIGNADOS 0xFFFFFFFF

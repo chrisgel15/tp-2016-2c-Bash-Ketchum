@@ -77,8 +77,6 @@ int main(int argc, char **argv) {
 	//Comieza el viaje del Entreandor
 	recorrer_hojaDeViaje(posHojaDeViaje);
 
-	//Liberar memoria dinamica -> TODO: encapsular en funcion
-
 	liberar_recursos();
 	return EXIT_SUCCESS;
 }
@@ -519,9 +517,9 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	int rem;
 	int cant_archivos = 0; //variable para verificar la cantidad de archivos en el directorio
 						   //durante debug
-	struct dirent *ep = malloc(sizeof(struct dirent));
+	struct dirent* ep;//= malloc(sizeof(struct dirent));
 
-	memset(ep->d_name, '\0', sizeof(ep->d_name));
+	//memset(ep->d_name, '\0', sizeof(ep->d_name));
 
 	if (deDirectorio != NULL) {
 		while ((ep = readdir(deDirectorio)) != NULL) {
@@ -545,7 +543,7 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	free(archivo);
 	free(path_total);
 	free(ret);
-	free(ep);
+	//free(ep);
 }
 
 
