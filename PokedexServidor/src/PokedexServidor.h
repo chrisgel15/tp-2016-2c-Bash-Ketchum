@@ -31,6 +31,7 @@ int CantidadBloquesLibres(int condicion);
 char * TipoDeArchivo (int tipo);
 int TamanioEnBloques(int tamanioBytes);
 
+void CrearHilo(int fdCliente);
 void RecibirYProcesarPedido(int fdCliente);
 void ProcesarGetAttr(int fd);
 void ProcesarReadDir(int fd);
@@ -60,6 +61,8 @@ int LongitudArray(char ** arr);
 void CrearArchivoDirectorio(char * path, int tablaArchivosId, int parentDirectoryId, int state);
 int DeleteBlocks(size_t blocks_to_delete, int directoryId);
 void SeteaBitEnBitMap(int offset);
+void RollbackLectoEscrituraSinEspacio(int * indice_tabla_asignaciones, int bloque_inicial);
+void LimpiaBitEnBitMap(int offset);
 
 // Semaforos
 void InicializarSemaforos();
@@ -101,10 +104,12 @@ void GenerarArchivo(char * indice_datos, int tamanio_en_bytes, int primer_bloque
 #define TAMANIO_MAXIMO_NOMBRE_ARCHIVO 17
 #define CONTAR_TODOS_LOS_BLOQUES -1
 #define SIN_BLOQUES_ASIGNADOS 0xFFFFFFFF
+#define FIN_DE_DATOS_DE_ARCHIVO 0xFFFFFFFF
 #define LECTURA 1
 #define ESCRITURA 2
 #define NO_HAY_MAS_BLOQUES_POR_RW 0
 #define POKEDEX_SERVIDOR_PUERTO_ESCUCHA "POKEDEX_SERVIDOR_PUERTO_ESCUCHA"
+#define NOMBRE_DISCO_OSADA "NOMBRE_DISCO_OSADA"
 
 
 // Variables Globales
@@ -137,6 +142,7 @@ int cuenta_lectores_tabla_archivos;
 pthread_mutex_t mutex_escritura_bitmap;
 pthread_mutex_t mutex_cuenta_lectores_bitmap;
 int cuenta_lectores_bitmap;
+int ultimo_bloque_disponible_encontrado;
 
 //Archivos
 pthread_mutex_t * mutex_escritura_archivos;

@@ -9,19 +9,19 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/so-commons-library
 
-cd /so-commons-library
+cd so-commons-library
 
 sudo make install
 
 #Preparo archivo del disco
 
-#cd /home/utnso
+cd /home/utnso
 
-#mkdir osadaDisks
+mkdir osadaDisks
 
-#cd /osadaDisks
+cd osadaDisks
 
-#truncate -s 1000000 test1.bin
+truncate -s 5MB test1.bin
 
 # Instalacion de osada-utils
 
@@ -29,7 +29,9 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/osada-utils
 
-#sudo ./osada-format /home/utnso/osadaDisks/test1.bin
+cd osada-utils
+
+sudo ./osada-format /home/utnso/osadaDisks/test1.bin
 
 # Instalacion de massive-file-decriptor
 
@@ -37,7 +39,7 @@ cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/massive-file-creator
 
-cd /massive-file-creator
+cd massive-file-creator
 
 make
 
@@ -46,8 +48,6 @@ make
 cd /home/utnso
 
 git clone https://github.com/sisoputnfrba/tp-2016-2c-Bash-Ketchum
-
-git checkout desarrollo
 
 cd /home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug
 

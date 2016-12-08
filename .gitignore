@@ -42,7 +42,7 @@ Debug/config/**
 *.log
 
 **/Debug/**/*.d
-**/Debug/
+**/Debug/**/*.o
 **/.gitignore
 
 #CDT

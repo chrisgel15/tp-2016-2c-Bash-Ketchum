@@ -116,6 +116,7 @@ t_config* creacion_config_with_path(char * path) {
 	char* configFilePath = path;
 	t_config* myConfig;
 	myConfig = config_create(configFilePath);
+	free(path); //20161208 - FM
 	return myConfig;
 }
 
