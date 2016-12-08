@@ -20,20 +20,20 @@ t_list *mensajes_entrenadores;
 t_list *bloqueados; //Esta estrucutra se va a utilizar para buscar entre todos los Entrenadores Bloquedos cuando alguno cierre su conexion
 
 //Lista de nombres de pokenests
-char ** pokenests;
+char **pokenests;
 t_list *lista_pokenests;
 
 //Lista de items a dibujar en el Mapa
-t_list* items;
+t_list *items;
 
 //Log
 t_log *mapa_log;
 
 //metadata
-t_config * metadata;
+t_config *metadata;
 
 //Algoritmo
-char* algoritmo;
+char *algoritmo;
 
 //Quantum
 int mapa_quantum;
@@ -49,17 +49,10 @@ t_list *lista_interbloqueo;
 char *nombre_mapa;
 char *ruta_pokedex;
 
-char* pokenest_dir;
+char *pokenest_dir;
 
 //Ids de Entrenadores
 int entrenador_id = 0;
-
-pthread_mutex_t mutex_desplaza_x;
-pthread_mutex_t mutex_desplaza_y;
-
-//SEMAFORO PARA CONTROLAR LA CANTIDAD DE RECURSOS DE POKENEST TODO DEBERIA HABER UNO POR CADA POKENEST?
-pthread_mutex_t mutex_recursos_pokenest;
-
 
 //****************************************************
 // Prototipos de funciones internas
@@ -206,7 +199,7 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 	t_list *entrenadores_bloqueados_lista = cola_bloqueados->entrenadores->elements;
 	int bloqueados_size = list_size(entrenadores_bloqueados_lista);
 	char *entrenadores = string_new();
-	int i;
+	int i = 0;
 	for(i = 0; i < bloqueados_size; i++){
 		t_entrenador *entrenador_bloqueado = (t_entrenador *) list_get(entrenadores_bloqueados_lista, i);
 		string_append(&entrenadores, " ");
@@ -234,7 +227,7 @@ t_entrenador *remover_entrenador_de_bloqueados(t_entrenador *entrenador){
 	//pthread_mutex_lock(&mutex_cola_bloqueados);
 	t_entrenadores_bloqueados *bloqueados_3 = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, entrenador->pokemon_bloqueado);
 	t_list *entrenadores = bloqueados_3->entrenadores->elements;
-	int i, entrenadores_size = list_size(entrenadores);
+	int i = 0, entrenadores_size = list_size(entrenadores);
 	t_entrenador *entrenador_bloqueado = NULL;
 	int index_encontrado;
 	for(i = 0; i < entrenadores_size; i++){
@@ -265,11 +258,8 @@ void inicializar_estructuras(){
 
 	//Semaforos
 	inicializar_semaforo_mensajes();
-	pthread_mutex_init(&mutex_desplaza_x, NULL);
-	pthread_mutex_init(&mutex_desplaza_y, NULL);
 	pthread_mutex_init(&mutex_entrenadores_listos, NULL);
 	pthread_mutex_init(&mutex_cola_bloqueados, NULL);
-	pthread_mutex_init(&mutex_recursos_pokenest,NULL);
 	pthread_mutex_init(&mutex_pokenests,NULL);
 
 	sem_init(&sem_listos, 0, 0);
@@ -344,12 +334,12 @@ void recibir_nuevo_entrenador(int fd){
 
 	//Recibo el nombre
 	tamanio_texto = recibirInt(fd, result, mapa_log);
-	nombre = malloc(sizeof(char) * tamanio_texto);
+	nombre = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(fd, nombre, tamanio_texto, mapa_log);
 
 	//Recibo el Caracter
 	tamanio_texto = recibirInt(fd, result, mapa_log);
-	caracter = malloc(sizeof(char) * tamanio_texto);
+	caracter = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(fd, caracter, tamanio_texto, mapa_log);
 
 	//Cargo la estructura del Entrenador con los datos recibidos por Socket
@@ -364,7 +354,7 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->tiempo_ingreso = time(0); //Guardo la Fecha y Hora de Ingreso del Entrenador al Mapa
 
 	free(result);
-	free(caracter);
+	//free(caracter);
 
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d.", entrenador->nombre, fd);
 
@@ -384,7 +374,7 @@ void despedir_entrenador(int fd_entrenador){
 	pthread_mutex_lock(&mutex_cola_bloqueados);
 
 	t_entrenador *despedido = NULL;
-	int i, index_listado;
+	int i = 0, index_listado = 0;
 
 	//Busco al entrenador en la lista de Entrenadores Listos
 	int listos_size = list_size(entrenadores_listos);
@@ -541,7 +531,7 @@ void administrar_turnos() {
 			es_algoritmo_rr = FALSE;
 		}
 
-		//Verifico si el entrenador no se desconecto
+		//Verifico si el entrenador no se desconecto -- Esta validacion se podria borrar
 		if(fcntl(entrenador->fd, F_GETFL) != -1){
 			atender_Viaje_Entrenador(entrenador, es_algoritmo_rr);
 		} else {
@@ -558,7 +548,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	bool bloqueado = FALSE; //Flag utilizado para saber si un Entrenador se Bloqueo
 	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
 	bool desconectado = FALSE; //Falg utilizado para saber si el Entrenador se Desconecto
-	int instruccion;
+	int instruccion = 0;
 
 	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo && !desconectado){
 		sem_wait(&sem_mensajes);
@@ -688,7 +678,7 @@ void incializar_gestion_colas_bloqueados(){
 	pthread_t *bloqueados_threads_vec = malloc(cantidad_pokenest * sizeof(pthread_t));
 	sem_entrenadores_bloqueados = malloc(cantidad_pokenest * sizeof(sem_t));
 	sem_pokemones_disponibles = malloc(cantidad_pokenest * sizeof(sem_t));
-	int i;
+	int i = 0;
 	t_pokenest *pokenest;
 	char *pokenest_id;
 
@@ -712,7 +702,7 @@ void incializar_gestion_colas_bloqueados(){
 
 void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje){
 	int cant_pokemons = list_size(entrenador->pokemons);
-	int i, fd;
+	int i = 0, fd;
 
 	log_info(mapa_log, "Voy a liberar los recursos del Entrenador %s.", entrenador->nombre);
 
@@ -757,7 +747,7 @@ void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados_v
 	t_list *entrenadores = (t_list *) pokenest_bloqueados->entrenadores->elements;
 	int cant_entrenadores = list_size(entrenadores);
 	int cant_pokenets = list_size(lista_pokenests);
-	int i, j, cant_pokemons, pokenest_index;
+	int i = 0, j = 0, cant_pokemons = 0, pokenest_index = 0;
 
 	log_trace(mapa_log, "Se agregan los Entrenadores Bloqueados del Pokenest %s.", key);
 
@@ -800,7 +790,7 @@ void chequear_interbloqueados(){
 		sleep(interbloqueo);
 		pthread_mutex_lock(&mutex_cola_bloqueados);
 		int cant_pokenets = list_size(lista_pokenests);
-		int i, j, cant_entrenadores;
+		int i = 0, j = 0, cant_entrenadores = 0;
 		int *disponibles = malloc(cant_pokenets * sizeof(int));
 		lista_interbloqueo = list_create();
 		void (*add_entrenadores_interbloqueados_iterator) (char*, void*) = add_entrenadores_interbloqueados;

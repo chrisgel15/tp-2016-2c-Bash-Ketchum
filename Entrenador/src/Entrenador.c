@@ -138,7 +138,7 @@ void solicitar_posicion_pokenest(char *pokemon){
 	int *result = malloc(sizeof(int));
 	int posicion_x, posicion_y;
 	enviarInt(socket_mapa, UBICACION_POKENEST);
-	log_info(entrenador_log,  " ENVIE UBICACION_POKENEST");
+	log_info(entrenador_log,  "ENVIE UBICACION_POKENEST. Codigo %d.", UBICACION_POKENEST);
 	enviarInt(socket_mapa, (sizeof(char) * 2));
 	log_info(entrenador_log , "ENVIE  2");
 	enviarMensaje(socket_mapa,pokemon);

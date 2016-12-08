@@ -3,8 +3,8 @@
 t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 
 	t_list *pokenest_list = list_create();
-	int posicion_x;
-	int posicion_y;
+	int posicion_x = 0;
+	int posicion_y = 0;
 
 	char *punto_simple = string_new();
 	char *punto_doble = string_new();
@@ -144,7 +144,7 @@ bool comparar_nivel_pokemons(t_pokemon_mapa *pokemon1, t_pokemon_mapa *pokemon2)
 
 int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id){
 	int pokenests_size = list_size(pokenests);
-	int i;
+	int i = 0;
 
 	for(i = 0; i < pokenests_size; i++){
 		t_pokenest *pokenest = (t_pokenest *) list_get(pokenests, i);
