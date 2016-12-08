@@ -124,11 +124,11 @@ int main(int argc, char **argv) {
 
 	//Hilo Planificador
 	pthread_t planificador;
-	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
+	//pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
 
 	//Hilo Interbloqueo
 	pthread_t interbloqueo;
-	pthread_create(&interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
+	//pthread_create(&interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -265,7 +265,7 @@ void inicializar_estructuras(){
 	sem_init(&sem_listos, 0, 0);
 	sem_init(&sem_mensajes, 0, 0);
 
-	incializar_gestion_colas_bloqueados();
+	//incializar_gestion_colas_bloqueados();
 
 	log_info(mapa_log, "Se inicializaron las Estructuras y los Semaforos.");
 }
@@ -330,13 +330,13 @@ void recibir_nuevo_entrenador(int fd){
 	int *result = malloc(sizeof(int));
 	char *nombre = NULL;
 	char *caracter = NULL;
-	int tamanio_texto;
+	int tamanio_texto = 0;
 
 	//Recibo el nombre
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	nombre = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(fd, nombre, tamanio_texto, mapa_log);
-
+	tamanio_texto = 0;
 	//Recibo el Caracter
 	tamanio_texto = recibirInt(fd, result, mapa_log);
 	caracter = malloc(sizeof(char) * (tamanio_texto + 1));
@@ -344,7 +344,8 @@ void recibir_nuevo_entrenador(int fd){
 
 	//Cargo la estructura del Entrenador con los datos recibidos por Socket
 	//La posicion inicial es (0;0)
-	entrenador->id = entrenador_id + 1;
+	entrenador_id = entrenador_id + 1; //Incremento el Id
+	entrenador->id = entrenador_id;
 	entrenador->fd = fd;
 	entrenador->nombre = nombre;
 	entrenador->caracter =  *caracter;

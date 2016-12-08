@@ -63,7 +63,7 @@ int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_
 
 	if(mensajes_entrenador != NULL){
 		t_queue *cola_mensajes = mensajes_entrenador->mensajes;
-		int tamanio_texto;
+		int tamanio_texto = 0;
 		int *result = malloc(sizeof(int));
 		char *nombre_pokenest;
 		int accion = UBICACION_POKENEST;
@@ -75,8 +75,9 @@ int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_
 			free(result);
 			return 0;
 		}
-
+		//tamanio_texto = 2 + 1;
 		nombre_pokenest = malloc(sizeof(char) * (tamanio_texto + 1));
+		nombre_pokenest = malloc(sizeof(char) * tamanio_texto);
 		recibirMensaje(fd, nombre_pokenest, tamanio_texto, log);
 
 		pthread_mutex_lock(&mutex_mensajes);

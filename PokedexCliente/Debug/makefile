@@ -26,7 +26,7 @@ endif
 all: PokedexCliente
 
 dependents:
-	-cd /home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug && $(MAKE) clean all
+	-cd /home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug && $(MAKE) all
 
 # Tool invocations
 PokedexCliente: $(OBJS) $(USER_OBJS) /home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug/libtp-commons.so
