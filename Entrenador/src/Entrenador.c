@@ -77,8 +77,6 @@ int main(int argc, char **argv) {
 	//Comieza el viaje del Entreandor
 	recorrer_hojaDeViaje(posHojaDeViaje);
 
-	//Liberar memoria dinamica -> TODO: encapsular en funcion
-
 	liberar_recursos();
 	return EXIT_SUCCESS;
 }
