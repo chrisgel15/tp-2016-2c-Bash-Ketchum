@@ -234,13 +234,13 @@ int avanzar_hacia_pokenest(){
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
 	enviarInt(socket_mapa, posicion_mapa->y);
-
+	return llego_a_pokenest(posicion_mapa, posicion_pokenest);
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
-	if(movimiento_x == 0 && movimiento_y == 0){
+	/*if(movimiento_x == 0 && movimiento_y == 0){
 		return 1;
 	} else {
 		return 0;
-	}
+	}*/
 }
 
 

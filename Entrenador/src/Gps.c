@@ -62,3 +62,11 @@ int moverse_en_mapa_eje_y(t_posicion_mapa *posicion,  t_posicion_pokenest *poken
 
 	return moverse;
 }
+
+int llego_a_pokenest(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest){
+	if((posicion->x == pokenest->x) && (posicion->y == pokenest->y)){
+		return 1;
+	}
+
+	return 0;
+}
