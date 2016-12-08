@@ -31,12 +31,15 @@ char ** get_entrenador_hoja_de_viaje(t_config * metadata)
 
 char ** get_entrenador_objetivos_por_mapa(t_config * metadata, char * mapa)
 {
+	char** array_value;
 	char * key = string_new();
 	string_append(&key , "obj[");
 	string_append(&key , mapa);
 	string_append(&key , "]");
 
-	return config_get_array_value(metadata, key);
+	array_value = config_get_array_value(metadata, key);
+	free(key);
+	return array_value;
 }
 
 int get_entrenador_vidas(t_config * metadata)

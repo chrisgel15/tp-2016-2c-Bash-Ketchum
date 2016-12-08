@@ -8,7 +8,7 @@
 
 #include "Mapa.h"
 
-int distancia_A_RecursoH(int);
+/*int distancia_A_RecursoH(int);
 int distancia_A_RecursoY(int);
 void mover_eje_x(t_datos_mapa*,int,char*);
 void mover_eje_y(t_datos_mapa*,int,char*);
@@ -21,12 +21,14 @@ int distancia_A_RecursoY(int posy){
 
 	int dist = RECURSO_POSY - posy;
 	return dist;
-}
+}*/
 
 
 
-extern pthread_mutex_t mutex_desplaza_x;
-extern pthread_mutex_t mutex_desplaza_y;
+//extern pthread_mutex_t mutex_desplaza_x;
+//extern pthread_mutex_t mutex_desplaza_y;
+
+//Semaforo utilizado para la interfaz
 pthread_mutex_t mutex_interfaz;
 
 /*F:MANDRI => funcion dibujar_mapa(): ejemplo para ver como mover un personaje hacia un recurso
@@ -96,7 +98,7 @@ pthread_mutex_t mutex_interfaz;
 //
 //}
 
-void dibujar_mapa_vacio(t_list* items){
+/*void dibujar_mapa_vacio(t_list* items){
 	//t_list* items = list_create();
 	int filas = 50;
 	int columnas = 50;;
@@ -108,7 +110,7 @@ void dibujar_mapa_vacio(t_list* items){
 	//Termino el mapa despues de 10 segundos
 //	sleep(10);
 //	nivel_gui_terminar();
-}
+}*/
 
 void inicializar_mapa(t_list* items, t_list* pokenest_list, char *nombre_mapa){
 	int filas = 50;
@@ -179,7 +181,7 @@ void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa){
 //		Debería ser así: CrearPkenest(itms,id,x,y,cantidad){
 //							CrearCaja(items,id,x,y,cantidad);
 //						 }
-void CrearPokenest(t_list* items, char id, int x , int y,int cant){
+/*void CrearPokenest(t_list* items, char id, int x , int y,int cant){
 	 CrearItem(items, id, x, y, POKENEST_ITEM_TYPE, cant);
 }
 
@@ -252,11 +254,11 @@ void mover_entrenador(t_entrenador *entrenador, t_log* mapa_log,t_datos_mapa* da
 	mover_eje_x(datos,posx,nombre_mapa);
 	mover_eje_y(datos, posy,nombre_mapa);
 
-}
+}*/
 
 
 /***** FUNCION:  OBTENER DATOS DE POKENEST Y AGREGARLO A LA LISTA ITEMS PARA DIBUJAR EN EL MAPA *****/
-void cargar_pokenests_en_items(t_list* items,char* ruta_pokedex,char* nombre_mapa, char** pokenests){
+/*void cargar_pokenests_en_items(t_list* items,char* ruta_pokedex,char* nombre_mapa, char** pokenests){
 	int i=0;
 	t_config* metadata_pokenest;
 	t_posicion* posicion;
@@ -276,4 +278,4 @@ void cargar_pokenests_en_items(t_list* items,char* ruta_pokedex,char* nombre_map
 
 	}
 
-}
+}*/
