@@ -423,7 +423,7 @@ void init_datos_entrenador(){
 
 	entrenador = malloc(sizeof(t_entrenador));
 	entrenador -> vidas = get_entrenador_vidas(metadata);
-	entrenador -> reintentos = get_entrenador_reintentos(metadata);
+	//entrenador -> reintentos = get_entrenador_reintentos(metadata);
 
 }
 
@@ -480,7 +480,7 @@ void borrar_medallas(void){
 	borrar(dir_medalla,contenido,dirMedalla);
 	pthread_mutex_unlock(&mutex_archivo);
 	closedir(dir_medalla);
-	free(contenido);
+	//free(contenido); //20161210 - FM
 	//free(path_medalla);
 
 }
@@ -509,7 +509,7 @@ void borrar_pokemon(void){
 	string_append(&contenido,".dat");
 	borrar(dir_bill,contenido,dirBill);
 	closedir(dir_bill);
-	free(contenido);
+	//free(contenido); //20161210 - FM
 
 }
 
@@ -546,7 +546,7 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	free(archivo);
 	free(path_total);
 	free(ret);
-	//free(ep);
+	free(contenido); //20161210 - FM
 }
 
 

@@ -18,7 +18,7 @@
 #define VIDAS "vidas"
 #define REINTENTOS "reintentos"
 #define NOMBRE_ARCHIVO_METADATA "metadata"
-#define DIRECTORIO_BILL "directorio de bill"
+#define DIRECTORIO_BILL "Dir de Bill"
 #define MEDALLAS "medallas"
 
 

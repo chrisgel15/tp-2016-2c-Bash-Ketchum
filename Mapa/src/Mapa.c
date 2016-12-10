@@ -57,7 +57,7 @@ int entrenador_id = 0;
 //****************************************************
 // Prototipos de funciones internas
 
-bool menor_distancia(t_entrenador*, t_entrenador*);
+int menor_distancia(t_entrenador*, t_entrenador*);
 double distancia_a_pokenest(t_entrenador*);
 void srdf(t_list*);
 //****************************************************
@@ -657,22 +657,36 @@ int quantum_actual() {
 	return mapa_quantum;
 }
 
-bool menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
-	int unaDistancia = distancia_a_pokenest(unEntrenador);
-	int otraDistancia = distancia_a_pokenest(otroEntrenador);
-	return (unaDistancia < otraDistancia);
+int menor_distancia(t_entrenador* unEntrenador, t_entrenador* otroEntrenador){
+	double unaDistancia = 0;
+	double otraDistancia = 0;
+
+	unaDistancia = distancia_a_pokenest(unEntrenador);
+	otraDistancia = distancia_a_pokenest(otroEntrenador);
+
+	if(unaDistancia < otraDistancia)
+		return (bool)true;
+	else
+		return (bool)false;
 }
 
 double distancia_a_pokenest(t_entrenador* entrenador){
-	int deltaX = entrenador->pokenx - entrenador->posicion->x;
-	int deltaY = entrenador->pokeny - entrenador->posicion->y;
+	double deltaTotal = 0;
+	double deltaX = 0;
+	double deltaY = 0;
 
-	return sqrt(deltaX*deltaX + deltaY*deltaY);
+	deltaX = entrenador->pokenx - entrenador->posicion->x;
+	deltaY = entrenador->pokeny - entrenador->posicion->y;
+
+	deltaTotal = sqrt(deltaX*deltaX + deltaY*deltaY);;
+
+	return deltaTotal;
+
 }
 
 void srdf(t_list* entrenadores_listos){
 	bool (*pf)(t_entrenador*,t_entrenador*) = menor_distancia;
-	list_sort(entrenadores_listos, pf);
+	list_sort(entrenadores_listos, (void*)pf);
 }
 
 /* Actualizacion de valores desde el Archivo de comfiguracion */

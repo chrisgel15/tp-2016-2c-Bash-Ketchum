@@ -26,6 +26,7 @@
 #include "Interbloqueo.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 
 //Varibles para el Log del Programa
 #define log_nombre "mapa.log"
