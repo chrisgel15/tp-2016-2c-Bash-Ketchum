@@ -24,5 +24,6 @@ void add_pokemon_pokenest(t_list *lista_pokenest, t_pokemon_mapa *pokemon);
 t_pokemon_mapa *get_pokemon_mas_fuerte(t_list *pokemons);
 bool comparar_nivel_pokemons(t_pokemon_mapa *pokemon1, t_pokemon_mapa *pokemon2);
 int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id);
+void liberar_pokenest(t_list *pokenst);
 
 #endif /* POKENEST_H_ */

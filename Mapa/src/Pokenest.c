@@ -1,5 +1,8 @@
 #include "Pokenest.h"
 
+void destruir_pokenest(void *pokenest);
+void destruir_pokemon(void * pokemon);
+
 t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa, char *pokenest_path){
 
 	t_list *pokenest_list = list_create();
@@ -166,5 +169,22 @@ int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id){
 }
 
 void liberar_pokenest(t_list *pokenst){
+	void (*element_destroyer) (void *) = destruir_pokenest;
+	list_clean_and_destroy_elements(pokenst, element_destroyer);
+	list_destroy(pokenst);
+}
 
+void destruir_pokenest(void *pokenest){
+	t_pokenest *pokenest_destroy = (t_pokenest *)pokenest;
+	free(pokenest_destroy->nombre);
+	free(pokenest_destroy->posicion);
+	void (*element_destroyer) (void *) = destruir_pokemon;
+	queue_destroy_and_destroy_elements(pokenest_destroy->pokemons, element_destroyer);
+	free(pokenest_destroy);
+}
+
+void destruir_pokemon(void * pokemon){
+	t_pokemon_mapa *pokemon_destroy = (t_pokemon_mapa *)pokemon;
+	free(pokemon_destroy->nombre_archivo);
+	free(pokemon_destroy);
 }
