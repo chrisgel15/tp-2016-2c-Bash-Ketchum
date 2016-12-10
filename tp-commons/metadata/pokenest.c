@@ -42,6 +42,15 @@ t_posicion_pokemon * get_posicion_pokemon(t_config * metadata)
 	posicion_pokemon->posicion_y = string_new();
 	string_append(&(posicion_pokemon->posicion_y), array_posicion[1]);
 
+	free(str_posicion);
+	int index = 0;
+	while (*(array_posicion + index) != NULL) {
+		free(*(array_posicion + index));
+		index++;
+	}
+
+	free(array_posicion);
+
 	return posicion_pokemon;
 
 }

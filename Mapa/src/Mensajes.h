@@ -28,5 +28,6 @@ int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log
 int recibir_mensaje_objetivo_cumplido(t_list *mensajes_entrenadores, int fd, t_log *log);
 void eliminar_cola_mensajes_entrenador(t_list *mensajes, int fd, t_log *log);
 void entrenador_desconectado(t_list *mensajes_entrenadores, int fd);
+void liberar_mensajes(t_list *mensajes, t_log *log);
 
 #endif /* MENSAJES_H_ */

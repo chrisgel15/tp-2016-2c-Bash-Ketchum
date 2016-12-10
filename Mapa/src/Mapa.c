@@ -20,7 +20,7 @@ t_list *mensajes_entrenadores;
 t_list *bloqueados; //Esta estrucutra se va a utilizar para buscar entre todos los Entrenadores Bloquedos cuando alguno cierre su conexion
 
 //Lista de nombres de pokenests
-char **pokenests;
+//char **pokenests;
 t_list *lista_pokenests;
 
 //Lista de items a dibujar en el Mapa
@@ -54,6 +54,11 @@ char *pokenest_dir;
 //Ids de Entrenadores
 int entrenador_id = 0;
 
+//Hilos
+pthread_t p_planificador;
+pthread_t p_interbloqueo;
+pthread_t *bloqueados_threads_vec;
+
 //****************************************************
 // Prototipos de funciones internas
 
@@ -85,8 +90,9 @@ int main(int argc, char **argv) {
 	log_info(mapa_log, "Se ha creado el Log para el Mapa.");
 
 	//Inicializamos el Listado de los Pokenests con sus respectivos Pokemons
-	lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
+	//lista_pokenests = get_listado_pokenest(argv[2] , nombre_mapa);
 	pokenest_dir = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
+	lista_pokenests = get_listado_pokenest(ruta_pokedex , nombre_mapa, pokenest_dir);
 
 	//Inicializamos Estructuras
 	inicializar_estructuras();
@@ -98,8 +104,9 @@ int main(int argc, char **argv) {
 	int puerto_entrenadores = get_mapa_puerto(metadata);
 	int listener_entrenadores;
 	ltn_sock_addinfo* ltn_entrenadores;
-
-	ltn_entrenadores = createSocket(string_itoa(puerto_entrenadores));
+	char *puerto_escucha = string_itoa(puerto_entrenadores);
+	ltn_entrenadores = createSocket(puerto_escucha);
+	free(puerto_escucha);
 	listener_entrenadores = doBind(ltn_entrenadores);
 	listener_entrenadores = doListen(listener_entrenadores, 100);
 
@@ -123,16 +130,16 @@ int main(int argc, char **argv) {
 	inicializar_mapa(items, lista_pokenests, nombre_mapa);
 
 	//Hilo Planificador
-	pthread_t planificador;
-	pthread_create(&planificador, NULL, (void *) administrar_turnos, NULL);
+	//pthread_t planificador;
+	pthread_create(&p_planificador, NULL, (void *) administrar_turnos, NULL);
 
 	//Hilo Interbloqueo
-	pthread_t interbloqueo;
-	pthread_create(&interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
+	//pthread_t interbloqueo;
+	pthread_create(&p_interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
 
 	//Hilo Interbloqueo
-	pthread_t calls_manager;
-	pthread_create(&calls_manager, NULL, (void *) system_call_manager, NULL);
+	pthread_t p_calls_manager;
+	pthread_create(&p_calls_manager, NULL, (void *) system_call_manager, NULL);
 
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
@@ -251,8 +258,7 @@ void agregar_entrenador_a_bloqueados(t_entrenador *entrenador){
 }
 
 void sumar_recurso_pokemon(t_pokemon_mapa *pokemon){
-	char *pokenest_id = string_new();
-	pokenest_id = string_repeat(pokemon->pokenest_id, 1);
+	char *pokenest_id = string_repeat(pokemon->pokenest_id, 1);
 	//Sumo el el recurso al Pokenest
 	add_pokemon_pokenest(lista_pokenests, pokemon);
 	t_entrenadores_bloqueados *bloqueados_4 = (t_entrenadores_bloqueados *)dictionary_get(entrenadores_bloqueados, pokenest_id);
@@ -292,7 +298,7 @@ void inicializar_estructuras(){
 	items = list_create();
 	mensajes_entrenadores = list_create();
 
-	algoritmo = malloc(sizeof(char)*4);
+	algoritmo = malloc((sizeof(char)) * 4);
 
 	//Semaforos
 	inicializar_semaforo_mensajes();
@@ -386,14 +392,16 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->id = entrenador_id;
 	entrenador->fd = fd;
 	entrenador->nombre = nombre;
-	entrenador->caracter =  *caracter;
+	//entrenador->caracter =  *caracter;
+	entrenador->caracter = caracter[0];
 	entrenador->posicion->x = POSICION_INICIAL_X;
 	entrenador->posicion->y = POSICION_INICIAL_Y;
 	entrenador->pokemons = list_create();
 	entrenador->tiempo_ingreso = time(0); //Guardo la Fecha y Hora de Ingreso del Entrenador al Mapa
+	entrenador->pokemon_bloqueado = string_new();
 
 	free(result);
-	//free(caracter);
+	free(caracter);
 
 	log_info(mapa_log,"Bienvenido Entrenador %s N° %d.", entrenador->nombre, fd);
 
@@ -487,7 +495,8 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 		//Consideramos que el Entrenador se Deconecto - Hay que liberar recursos
 		liberar_recursos_entrenador(entrenador, 0);
 	} else {
-		entrenador->pokemon_bloqueado = NULL; //Limpio el ID del Pokemon porque ya se otorgo
+		free(entrenador->pokemon_bloqueado); //Limpio el ID del Pokemon porque ya se otorgo
+		entrenador->pokemon_bloqueado = string_new();
 		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
 		agregar_entrenador_a_listos(entrenador);
 		//Resto el Recurso de la Interfaz de Mapa
@@ -535,7 +544,9 @@ void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
 
 void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
 	char *nombre_pokemon = (char *)obtener_mensaje(mensajes);
-	entrenador->pokemon_bloqueado = nombre_pokemon;
+	string_append(&entrenador->pokemon_bloqueado, nombre_pokemon);
+	//entrenador->pokemon_bloqueado = nombre_pokemon;
+	free(nombre_pokemon); //TODO: Ver si sirve
 	log_info(mapa_log, "El Entrenador %s solicito atrapar a un Pokemon.", entrenador->nombre);
 }
 
@@ -543,6 +554,7 @@ void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
 void system_call_manager(){
 	//Manejo de System Calls
 	signal(SIGUSR2, system_call_catch);
+	signal(SIGINT, system_call_catch);
 }
 
 void system_call_catch(int signal){
@@ -555,6 +567,17 @@ void system_call_catch(int signal){
 		set_retardo();
 		set_interbloqueo();
 		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d - Retardo de Interbloqueo: %d. - Retardo de Quantum: %d." , algoritmo, mapa_quantum, interbloqueo, retardo);
+	}
+
+	if(signal ==  SIGINT){
+		liberar_mensajes(mensajes_entrenadores, mapa_log);
+		free(algoritmo);
+		free(nombre_mapa);
+		free(ruta_pokedex);
+		free(pokenest_dir);
+
+
+		exit(1);
 	}
 }
 
@@ -721,7 +744,8 @@ void administrar_bloqueados(char *pokenest_id){
 void incializar_gestion_colas_bloqueados(){
 	entrenadores_bloqueados = dictionary_create();
 	int cantidad_pokenest = list_size(lista_pokenests);
-	pthread_t *bloqueados_threads_vec = malloc(cantidad_pokenest * sizeof(pthread_t));
+	//pthread_t *bloqueados_threads_vec = malloc(cantidad_pokenest * sizeof(pthread_t));
+	bloqueados_threads_vec = malloc(cantidad_pokenest * sizeof(pthread_t));
 	sem_entrenadores_bloqueados = malloc(cantidad_pokenest * sizeof(sem_t));
 	sem_pokemones_disponibles = malloc(cantidad_pokenest * sizeof(sem_t));
 	int i = 0;
@@ -777,6 +801,8 @@ void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje){
 	list_destroy(entrenador->pokemons);
 	free(entrenador->posicion);
 	log_info(mapa_log, "El Entrenador %s a abandonado el Mapa.", entrenador->nombre);
+	free(entrenador->nombre);
+	free(entrenador->pokemon_bloqueado);
 	free(entrenador);
 
 	switch(mensaje){

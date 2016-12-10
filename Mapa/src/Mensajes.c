@@ -1,5 +1,7 @@
 #include "Mensajes.h"
 
+void eliminar_cola_mensajes(void *element);
+
 //Mutexs Para Lista de Mensajes
 pthread_mutex_t mutex_mensajes;
 
@@ -219,5 +221,30 @@ void entrenador_desconectado(t_list *mensajes_entrenadores, int fd){
 		pthread_mutex_lock(&mutex_mensajes);
 		queue_push(cola_mensajes, accion);
 		pthread_mutex_unlock(&mutex_mensajes);
+	}
+}
+
+void liberar_mensajes(t_list *mensajes, t_log *log){
+	pthread_mutex_lock(&mutex_mensajes);
+
+	int mensajes_size = list_size(mensajes);
+	int i = 0;
+	void (*element_destroyer) (void *) = eliminar_cola_mensajes;
+
+	for(i = 0; i <mensajes_size; i++){
+		t_mensajes *mensaje = (t_mensajes *)list_remove(mensajes, 0);
+		queue_destroy_and_destroy_elements(mensaje->mensajes, element_destroyer);
+		free(mensaje);
+	}
+
+	pthread_mutex_unlock(&mutex_mensajes);
+
+}
+
+void eliminar_cola_mensajes(void *element){
+	//char *destroy_element = (char *)element;
+	//string_
+	if(!(element > 0)){
+		free(element);
 	}
 }

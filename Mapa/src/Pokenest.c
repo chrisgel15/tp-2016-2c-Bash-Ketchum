@@ -1,6 +1,6 @@
 #include "Pokenest.h"
 
-t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
+t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa, char *pokenest_path){
 
 	t_list *pokenest_list = list_create();
 	int posicion_x = 0;
@@ -17,70 +17,79 @@ t_list *get_listado_pokenest(char *ruta_pokedex , char *nombre_mapa) {
 	DIR *dir_pokenest_pokemon;
 	struct dirent *ent_pokenest;
 	struct dirent *ent_pokenest_pokemon;
-	char *pokenest_path = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
-	char *pokenest_pokemon_path = string_new();
+	//char *pokenest_path = get_pokenest_path_dir(ruta_pokedex , nombre_mapa);
+	char *pokenest_pokemon_path = NULL;
+
+	t_config *metadata_pokenest = NULL;
 
 	if ((dir_pokenest = opendir (pokenest_path)) != NULL) {
 	  /* print all the files and directories within directory */
 	  while ((ent_pokenest = readdir (dir_pokenest)) != NULL) {
 
-		  //Omite . y ..
+		 //Omite . y ..
 		 if(!string_equals_ignore_case(ent_pokenest->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest->d_name, punto_doble) ){
-			  //Armo el Pokenest
-			  t_pokenest *pokenest = malloc(sizeof(t_pokenest));
-			  pokenest->posicion = malloc(sizeof(t_posicion));
-			  t_config *metadata = get_pokenest_metadata(ruta_pokedex , nombre_mapa, ent_pokenest->d_name);
-			  //pokenest->nombre = ent_pokenest->d_name;
-			  pokenest->nombre = string_duplicate(ent_pokenest->d_name);
-			  strncpy(&pokenest->caracter, get_identificador_pokemon(metadata), 1);
-			  t_posicion_pokemon *posicion = get_posicion_pokemon(metadata);
-			  pokenest->posicion->x = atoi(posicion->posicion_x);
-			  pokenest->posicion->y = atoi(posicion->posicion_y);
-			  pokenest->tipo = get_pokenest_tipo(metadata);
-			  pokenest->pokemons = queue_create();
 
-			  pokenest_pokemon_path = get_pokenest_pokemon_path_dir(pokenest_path, ent_pokenest->d_name);
+			t_pokenest *pokenest = malloc(sizeof(t_pokenest));
+			pokenest->posicion = malloc(sizeof(t_posicion));
+			metadata_pokenest = get_pokenest_metadata(ruta_pokedex , nombre_mapa, ent_pokenest->d_name);
+			//pokenest->nombre = ent_pokenest->d_name;
+			pokenest->nombre = string_duplicate(ent_pokenest->d_name);
+			strncpy(&pokenest->caracter, get_identificador_pokemon(metadata_pokenest), 1);
+			t_posicion_pokemon *posicion = get_posicion_pokemon(metadata_pokenest);
+			pokenest->posicion->x = atoi(posicion->posicion_x);
+			pokenest->posicion->y = atoi(posicion->posicion_y);
+			free(posicion->posicion_x);
+			free(posicion->posicion_y);
+			free(posicion);
+			char *tipo = (char *)get_pokenest_tipo(metadata_pokenest);
+			pokenest->tipo = string_duplicate(tipo);
+			free(tipo);
+			//pokenest->tipo = get_pokenest_tipo(metadata_pokenest);
+			pokenest->pokemons = queue_create();
 
-			  //Agrego los Pokemons al Pokenest
-			  if ((dir_pokenest_pokemon = opendir (pokenest_pokemon_path)) != NULL) {
-				  while ((ent_pokenest_pokemon = readdir (dir_pokenest_pokemon)) != NULL) {
+			pokenest_pokemon_path = get_pokenest_pokemon_path_dir(pokenest_path, ent_pokenest->d_name);
 
-					  if(!string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_doble) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, metada_file_name)){
-						  t_pokemon_mapa *pokemon = malloc(sizeof(t_pokemon_mapa));
-						  t_config *metadata_pokemon = get_pokemon_information(pokenest_pokemon_path, ent_pokenest_pokemon->d_name);
-						  pokemon->nivel = get_nivel_pokemon(metadata_pokemon);
-						  pokemon->nombre = pokenest->nombre;
-						  pokemon->nombre_archivo = string_duplicate(ent_pokenest_pokemon->d_name);
-						  pokemon->pokenest_id = pokenest->caracter;
-						  queue_push(pokenest->pokemons, pokemon);
-					  }
+			//Agrego los Pokemons al Pokenest
+			if ((dir_pokenest_pokemon = opendir (pokenest_pokemon_path)) != NULL) {
+			  while ((ent_pokenest_pokemon = readdir (dir_pokenest_pokemon)) != NULL) {
+
+				  if(!string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_simple) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, punto_doble) && !string_equals_ignore_case(ent_pokenest_pokemon->d_name, metada_file_name)){
+					  t_pokemon_mapa *pokemon = malloc(sizeof(t_pokemon_mapa));
+					  t_config *metadata_pokemon = get_pokemon_information(pokenest_pokemon_path, ent_pokenest_pokemon->d_name);
+					  pokemon->nivel = get_nivel_pokemon(metadata_pokemon);
+					  pokemon->nombre = pokenest->nombre;
+					  pokemon->nombre_archivo = string_duplicate(ent_pokenest_pokemon->d_name);
+					  pokemon->pokenest_id = pokenest->caracter;
+					  queue_push(pokenest->pokemons, pokemon);
+					  config_destroy(metadata_pokemon);
 				  }
-				  closedir (dir_pokenest_pokemon);
-
-			  } else {
-				  perror ("Could not open Directory");
-				  return EXIT_FAILURE;
 			  }
+			  closedir (dir_pokenest_pokemon);
+			} else {
+			  perror ("Could not open Directory");
+			  exit(0);
+			}
 
-			  pokenest->cantPokemons = queue_size(pokenest->pokemons);
+			pokenest->cantPokemons = queue_size(pokenest->pokemons);
 
-			  //Agrego el Pokenest al listado
-			  list_add(pokenest_list, pokenest);
+			//Agrego el Pokenest al listado
+			list_add(pokenest_list, pokenest);
+			free(pokenest_pokemon_path);
+			//config_destroy(metadata_pokenest);
 		  }
-
 	  }
+
 	  closedir (dir_pokenest);
 	  free(punto_simple);
 	  free(punto_doble);
 	  free(metada_file_name);
-	  free(pokenest_path);
-	  free(pokenest_pokemon_path);
-
+	  //free(pokenest_path);
+	  //config_destroy(metadata_pokenest);
 	  return pokenest_list;
 
 	} else {
 	  perror ("Could not open Directory");
-	  return EXIT_FAILURE;
+	  exit(0);
 	}
 }
 
@@ -154,4 +163,8 @@ int get_pokenest_index_by_pokemon_id(t_list *pokenests, char id){
 	}
 
 	return NULL;
+}
+
+void liberar_pokenest(t_list *pokenst){
+
 }
