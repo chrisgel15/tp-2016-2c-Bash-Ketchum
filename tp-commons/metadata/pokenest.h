@@ -9,6 +9,7 @@
 #define METADATA_POKENEST_H_
 
 #include <stdint.h>
+#include <stdio.h>
 #include <commons/config.h>
 #include <commons/string.h>
 
