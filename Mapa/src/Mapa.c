@@ -576,7 +576,8 @@ void system_call_catch(int signal){
 		free(ruta_pokedex);
 		free(pokenest_dir);
 		liberar_pokenest(lista_pokenests);
-
+		finalizar_mapa();
+		list_destroy(items);
 		exit(1);
 	}
 }
