@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 	//Manejo de System Calls
 	signal(SIGTERM, system_call_catch);
 	signal(SIGUSR1, system_call_catch);
-	signal(SIGINT,system_call_catch);
+	//signal(SIGINT,system_call_catch);
 
 	//Comieza el viaje del Entreandor
 	recorrer_hojaDeViaje(posHojaDeViaje);

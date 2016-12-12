@@ -132,7 +132,8 @@ void ingreso_nuevo_entrenador(t_list* items, t_entrenador* entrenador, char *nom
 	pthread_mutex_lock(&mutex_interfaz);
 	CrearPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
 	nivel_gui_dibujar(items, nombre_mapa);
-	sleep(1);
+	//sleep(1);
+	usleep(500000);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
@@ -140,7 +141,8 @@ void mover_entrenador_en_mapa(t_list* items, t_entrenador* entrenador, char *nom
 	pthread_mutex_lock(&mutex_interfaz);
 	MoverPersonaje(items, entrenador->caracter, entrenador->posicion->x, entrenador->posicion->y);
 	nivel_gui_dibujar(items, nombre_mapa);
-	sleep(1);
+	//sleep(1);
+	usleep(500000);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
@@ -148,7 +150,8 @@ void disminuir_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombr
 	pthread_mutex_lock(&mutex_interfaz);
 	restarRecurso(items, pokenest_id);
 	nivel_gui_dibujar(items, nombre_mapa);
-	sleep(1);
+	//sleep(1);
+	usleep(500000);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
@@ -164,7 +167,8 @@ void aumentar_recursos_de_pokenest(t_list* items, char pokenest_id, char *nombre
 	}
 
 	nivel_gui_dibujar(items, nombre_mapa);
-	sleep(1);
+	//sleep(1);
+	usleep(500000);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
@@ -172,7 +176,8 @@ void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa){
 	pthread_mutex_lock(&mutex_interfaz);
 	BorrarItem(items, entrenador_id);
 	nivel_gui_dibujar(items, nombre_mapa);
-	sleep(1);
+	//sleep(1);
+	usleep(500000);
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
