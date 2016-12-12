@@ -61,17 +61,17 @@ make all
 
 echo "Instaladas tp-commons"
 
-#cd /home/utnso/tp-2016-2c-Bash-Ketchum/Entrenador/Debug
+cd /home/utnso/tp-2016-2c-Bash-Ketchum/Entrenador/Debug
 
-#make all
+make all
 
-#echo "Instalado el Entrenador"
+echo "Instalado el Entrenador"
 
-#cd /home/utnso/tp-2016-2c-Bash-Ketchum/Mapa/Debug
+cd /home/utnso/tp-2016-2c-Bash-Ketchum/Mapa/Debug
 
-#make all
+make all
 
-#echo "Instalado el Mapa"
+echo "Instalado el Mapa"
 
 cd /home/utnso/tp-2016-2c-Bash-Ketchum/PokedexCliente/Debug
 

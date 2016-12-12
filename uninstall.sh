@@ -8,8 +8,6 @@ cd /home/utnso
 
 sudo rm -rf so-commons-library/
 
-cd /home/utnso
-
 sudo rm -rf massive-file-creator/
 
 sudo rm -rf osada-utils/
