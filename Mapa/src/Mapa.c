@@ -39,10 +39,10 @@ char *algoritmo;
 int mapa_quantum;
 
 //Retardo
-int retardo;
+int64_t retardo;
 
 //Interbloqueo
-int interbloqueo;
+int64_t interbloqueo;
 t_list *lista_interbloqueo;
 
 //Nombre de Mapa
@@ -654,7 +654,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 
 		turnos++;
 
-		sleep(retardo);
+		usleep(retardo);
 	}
 
 	//Finalizo el Turno del Entrenador
@@ -718,11 +718,11 @@ void set_algoritmoActual(){
 	algoritmo = get_mapa_algoritmo(metadata);
 }
 void set_quantum(){
-	mapa_quantum = get_mapa_quantum(metadata);
+	mapa_quantum = get_mapa_quantum(metadata) * 1000;
 }
 
 void set_retardo(){
-	retardo = get_mapa_retardo(metadata);
+	retardo = get_mapa_retardo(metadata) * 1000;
 }
 void set_interbloqueo(){
 	interbloqueo = get_mapa_tiempo_deadlock(metadata);
@@ -874,7 +874,7 @@ void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados_v
 
 void chequear_interbloqueados(){
 	while(1){
-		sleep(interbloqueo);
+		usleep(interbloqueo);
 		pthread_mutex_lock(&mutex_cola_bloqueados);
 		int cant_pokenets = list_size(lista_pokenests);
 		int i = 0, j = 0, cant_entrenadores = 0;
