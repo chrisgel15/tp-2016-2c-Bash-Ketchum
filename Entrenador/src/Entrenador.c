@@ -188,7 +188,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			log_info(entrenador_log, "Copio archivo %s a directorio bill ", mensaje2 );
 
 			free(result);
-			//free(mensaje2); //20161211 - FM
+			free(mensaje2); //20161211 - FM
 			break;
 
 		case MUERTE:
@@ -406,6 +406,12 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 
 				} else {
 
+					while (*(objetivosPorMapa + index) != NULL) { //20161212 - FM
+							free(*(objetivosPorMapa + index));
+							index++;
+						}
+					free(objetivosPorMapa);
+					index = 0;
 					estado = CONECTARSE_MAPA;
 				}
 
