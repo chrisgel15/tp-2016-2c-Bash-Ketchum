@@ -43,6 +43,12 @@ cd massive-file-creator
 
 make
 
+# Instalacion de los tests para osada
+
+cd /home/utnso
+
+git clone https://github.com/sisoputnfrba/osada-tests
+
 # Instalacion del TP
 
 cd /home/utnso
