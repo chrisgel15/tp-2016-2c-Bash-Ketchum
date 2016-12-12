@@ -29,7 +29,7 @@
 #include <math.h>
 
 //Varibles para el Log del Programa
-#define log_nombre "mapa.log"
+//#define log_nombre "mapa.log"
 #define programa_nombre "Mapa.c"
 #define POSICION_INICIAL_X 0
 #define POSICION_INICIAL_Y 0

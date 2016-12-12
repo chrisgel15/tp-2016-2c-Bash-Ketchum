@@ -48,7 +48,7 @@ t_list *lista_interbloqueo;
 //Nombre de Mapa
 char *nombre_mapa;
 char *ruta_pokedex;
-
+char *log_nombre;
 char *pokenest_dir;
 
 //Ids de Entrenadores
@@ -85,6 +85,9 @@ int main(int argc, char **argv) {
 	// Creacion del Log
 	//char *log_level = config_get_string_value(mapa_log , LOG_LEVEL);
 	char *log_level = "TRACE";
+	log_nombre = string_new(); //Creo el nombre del Archivo de Log
+	string_append(&log_nombre, nombre_mapa);
+	string_append(&log_nombre, ".log");
 	mapa_log = CreacionLogWithLevel(log_nombre, programa_nombre, log_level);
 	mapa_log->is_active_console = false;
 	log_info(mapa_log, "Se ha creado el Log para el Mapa.");
@@ -571,6 +574,7 @@ void system_call_catch(int signal){
 
 	if(signal ==  SIGINT){
 		liberar_mensajes(mensajes_entrenadores, mapa_log);
+		free(log_nombre);
 		free(algoritmo);
 		free(nombre_mapa);
 		free(ruta_pokedex);
@@ -896,13 +900,15 @@ void chequear_interbloqueados(){
 
 		char *char_disponibles= string_new();
 		for(i = 0; i < cant_pokenets; i++){
+			char *disponible_i = string_itoa(disponibles[i]);
 			string_append(&char_disponibles, " ");
-			string_append(&char_disponibles, string_itoa(disponibles[i]));
+			string_append(&char_disponibles, disponible_i);
+			free(disponible_i);
 		}
 
 		log_info(mapa_log, "Recursos Disponibles: %s.", char_disponibles);
 
-		free(char_disponibles); //Borrar
+		free(char_disponibles);
 
 		//Preparo la estructura de Entrenadores
 		//pthread_mutex_lock(&mutex_cola_bloqueados);
@@ -979,12 +985,11 @@ void chequear_interbloqueados(){
 				log_info(mapa_log, "No se registran Entrenadores Interbloqueados.");
 			}
 
-			list_destroy(entrenadores_interbloqueados);
-
 		} else {
 			log_info(mapa_log, "No se registran Entrenadores Bloqueados.");
 		}
 
+		list_destroy(entrenadores_interbloqueados);
 		list_destroy(lista_interbloqueo);
 		free(disponibles);
 
