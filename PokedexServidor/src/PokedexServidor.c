@@ -1284,6 +1284,7 @@ void CrearArchivoDirectorio(char * path, int tablaArchivosId, int parentDirector
 
 	(indice_tabla_archivos+tablaArchivosId)->file_size = 0;
 	(indice_tabla_archivos+tablaArchivosId)->first_block = SIN_BLOQUES_ASIGNADOS; // todo: check!
+	(indice_tabla_archivos+tablaArchivosId)->lastmod = time(0);
 //
 //	log_trace(osada_log, "Fin creacion del directorio...%s - con padre id: %04x", path, (indice_tabla_archivos+tablaArchivosId)->parent_directory);
 //	if (parentDirectoryId == -1)
@@ -1306,7 +1307,7 @@ int DeleteBlocks(size_t blocks_to_delete, int directoryId)
 
 	bool algo;
 	int i = 0;
-	int offset_tabla_datos = 1 + header->bitmap_blocks + 1024 + tamanio_tabla_asignaciones_bloques;
+	int offset_tabla_datos = 1 + header->bitmap_blocks + OSADA_TABLA_ARCHIVOS_SIZE + tamanio_tabla_asignaciones_bloques;
 
 	t_bitarray *bitmap_aux = bitmap;
 
