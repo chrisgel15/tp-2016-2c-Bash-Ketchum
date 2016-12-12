@@ -138,9 +138,9 @@ void solicitar_posicion_pokenest(char *pokemon){
 	int posicion_x, posicion_y;
 	enviarInt(socket_mapa, UBICACION_POKENEST);
 	log_info(entrenador_log,  "ENVIE UBICACION_POKENEST,instruccion: %d", UBICACION_POKENEST);
-	//enviarInt(socket_mapa, (sizeof(char) * 2));
+
 	enviarInt(socket_mapa, string_length(pokemon));
-	//log_info(entrenador_log , "ENVIE  2");
+
 	enviarMensaje(socket_mapa,pokemon);
 	log_info(entrenador_log, "Coordenadas de la pokenest %s", pokemon);
 	posicion_x = recibirInt(socket_mapa, result, entrenador_log);
@@ -159,7 +159,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 	char* mensaje1;
 	char* mensaje2;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
-	//enviarInt(socket_mapa, 2);
+	;
 	enviarInt(socket_mapa, string_length(nombre_pokemon));
 	enviarMensaje(socket_mapa, nombre_pokemon);
 
@@ -188,7 +188,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons, int posHojaDeViaje
 			log_info(entrenador_log, "Copio archivo %s a directorio bill ", mensaje2 );
 
 			free(result);
-			free(mensaje2); //20161211 - FM
+			free(mensaje2);
 			break;
 
 		case MUERTE:
@@ -395,13 +395,19 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 					convertirseEnMaestroPokemon(total_tiempo_viaje,
 							tiempo_total_bloqueado, cantidad_muerte,
 							cantidad_deadlocks);
+
+
 					// Borrar medallas obtenidas;
+					//log_info(entrenador_log, "Se procede a borrar las medallas obtenidas para finalizar la Hoja de Viaje");
 					//borrar_medallas();
 					//log_info(entrenador_log, "Se borraron las medallas para finalizar la Hoja de Viaje ");
 					// Borrar pokemones obtenidos;
+					//log_info(entrenador_log, "Se procede a borrar los pokemons capturados para finalizar la Hoja de Viaje");
 					//borrar_pokemon();
 					//log_info(entrenador_log, "Se borraron los pokemons para finalizar la Hoja de Viaje");
+
 					close(socket_mapa);
+
 					list_destroy(pokemons_atrapados);
 
 				} else {
@@ -432,7 +438,7 @@ void handshake(){
 		enviarInt(socket_mapa, size_nombre);
 		enviarMensaje(socket_mapa, nombre_entrendor);
 		//Envio el caracter representante en el mapa
-		//enviarInt(socket_mapa, 2);
+
 		char * simbolo = get_entrenador_simbolo(metadata);
 		enviarInt(socket_mapa, string_length(simbolo));
 		enviarMensaje(socket_mapa, simbolo);
@@ -452,7 +458,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 	char c;
 
 	printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
-	//printf("La cantidad de reintentos hasta el momento es %d \n", entrenador->reintentos);
+
 
 	switch (c = getchar()) {
 	case 'Y':
@@ -493,7 +499,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 
 
 void borrar_medallas(void){
-	//char* path_medalla = get_entrenador_directorio_medallas(ruta_pokedex,nombre_entrendor);
+
 	DIR* dir_medalla = opendir(dirMedalla);
 	char *contenido = string_new();
 	string_append(&contenido,".jpg");
@@ -501,8 +507,8 @@ void borrar_medallas(void){
 	borrar(dir_medalla,contenido,dirMedalla);
 	pthread_mutex_unlock(&mutex_archivo);
 	closedir(dir_medalla);
-	free(contenido); //20161210 - FM
-	//free(path_medalla);
+	free(contenido);
+
 
 }
 
@@ -517,20 +523,20 @@ void liberar_recursos() {
 		free(*(hojaDeViaje + index));
 		index++;
 	}
-	free(hojaDeViaje); //20161207 - FM
+	free(hojaDeViaje);
 	free(posicion_pokenest);
 	free(posicion_mapa);
 
 }
 
 void borrar_pokemon(void){
-	//char* path_pokemon = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor);
+
 	DIR* dir_bill = opendir(dirBill);
 	char *contenido = string_new();
 	string_append(&contenido,".dat");
 	borrar(dir_bill,contenido,dirBill);
 	closedir(dir_bill);
-	free(contenido); //20161210 - FM
+	free(contenido);
 
 }
 
@@ -541,9 +547,9 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	int rem;
 	int cant_archivos = 0; //variable para verificar la cantidad de archivos en el directorio
 						   //durante debug
-	struct dirent* ep;//= malloc(sizeof(struct dirent));
+	struct dirent* ep;
 
-	//memset(ep->d_name, '\0', sizeof(ep->d_name));
+
 
 	if (deDirectorio != NULL) {
 		while ((ep = readdir(deDirectorio)) != NULL) {
@@ -554,12 +560,13 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 				if (*ret != '\0') {
 					string_append(&archivo, ep->d_name);
 					string_append(&path_total, path_dir);
-					string_append(&path_total, "/");
+					//string_append(&path_total, "/");
 					string_append(&path_total, archivo);
 					rem = remove(path_total);
 					ret = strcpy(ret, "");
 					archivo = strcpy(archivo, "");
 					path_total = strcpy(path_total, "");
+
 				}
 			}
 		}
@@ -567,50 +574,52 @@ void borrar(DIR* deDirectorio, char* contenido, char* path_dir) {
 	free(archivo);
 	free(path_total);
 	free(ret);
-	//free(contenido); //20161210 - FM
+
 }
 
 
 void borrar_pokemons_de_un_mapa(t_list * pokemons){
-	//char* path_pokemon = get_entrenador_directorio_bill(ruta_pokedex,nombre_entrendor); //20161211 - FM
+
 	int i;
 	for (i=0;i<list_size(pokemons);i++) {
-		//borrar_del_mapa(path_pokemon, list_get(pokemons,i)); //20161211 - FM
+
 		borrar_del_mapa(dirBill, list_get(pokemons,i));
 	}
-	//free(path_pokemon); //20161211 - FM
+
 }
 
 void borrar_del_mapa(char* directorio, char* archivo) {
 	char* path_total = string_new();
-	char ** path_split; //20161211 - FM
-	char* nombre_archivo; //20161211 - FM
+	char ** path_split;
+	char* nombre_archivo = string_new();
 	int rem;
-	int i = 0; //20161211 - FM
-	int index = 0; //20161211 - FM
+	int i = 0;
+	int index = 0;
 
-	path_split = string_split(archivo, "/"); //20161211 - FM
+	string_append(&nombre_archivo, archivo);
 
-	while (*(path_split + i) != NULL) { //20161211 - FM
+	path_split = string_split(archivo, "/");
+
+	while (*(path_split + i) != NULL) {
 		nombre_archivo = *(path_split + i);
 		i++;
 	}
 
 	string_append(&path_total, directorio);
-	string_append(&path_total, "/");
+	//string_append(&path_total, "/");
 	string_append(&path_total, nombre_archivo);
 	rem = remove(path_total);
 
 	//archivo = strcpy(archivo, ""); //20161211 - FM
 	path_total = strcpy(path_total, "");
 
-	while (*(path_split + index) != NULL) { //20161211 - FM
+	while (*(path_split + index) != NULL) {
 		free(*(path_split + index));
 		index++;
 	}
-	free(path_split); //20161211 - FM
-
+	free(path_split);
 	free(path_total);
+	free(nombre_archivo);
 }
 
 
