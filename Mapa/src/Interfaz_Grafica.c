@@ -176,6 +176,10 @@ void eliminar_entrenador(t_list* items, char entrenador_id, char *nombre_mapa){
 	pthread_mutex_unlock(&mutex_interfaz);
 }
 
+void finalizar_mapa(){
+	nivel_gui_terminar();
+}
+
 //TODO: @Gi - No hace falta usar la funcion CrearItem -> La ibreria ya ofrece funciones
 //		CrearCaja y CrearPersonaje que implementan CrearItem.
 //		Debería ser así: CrearPkenest(itms,id,x,y,cantidad){
