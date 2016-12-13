@@ -124,10 +124,10 @@ int main(int argc, char **argv) {
 	mapa_quantum = get_mapa_quantum(metadata);
 
 	//Retardo
-	retardo = get_mapa_retardo(metadata);
+	retardo = get_mapa_retardo(metadata) * 1000;
 
 	//Interbloqueo
-	interbloqueo = get_mapa_tiempo_deadlock(metadata);
+	interbloqueo = get_mapa_tiempo_deadlock(metadata) * 1000;
 
 	//Inicializamos la Interfaz Grafica
 	inicializar_mapa(items, lista_pokenests, nombre_mapa);

@@ -390,6 +390,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 			cantidad_deadlocks = 0;
 			tiempo_total_bloqueado = 0;
 			inicio_De_Viaje = 0;
+			entrenador->vidas = get_entrenador_vidas(metadata);
 		} else {
 
 			if (flag_reconexion) {
