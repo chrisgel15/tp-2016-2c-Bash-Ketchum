@@ -500,7 +500,9 @@ void init_datos_entrenador(){
 void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 	char c;
 
-	printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
+	printf(
+			"No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N), tus reintentos hasta el momento son: %d\n",
+			entrenador->reintentos);
 
 
 	switch (c = getchar()) {
