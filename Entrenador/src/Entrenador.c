@@ -30,10 +30,11 @@ pthread_mutex_t mutex_archivo;
 
 
 // Funciones utilitarias //
-//void init_datos_entrenador(void);
+
 void borrar(DIR*, char*, char*);
 void borrar_del_mapa(char*, char*);
 void copiar_archivo(char*, char*);
+void imprimirEstadisticaDelViaje(void); //20161213 - FM
 
 
 int main(int argc, char **argv) {
@@ -88,11 +89,11 @@ void system_call_catch(int signal){
 	switch(signal){
 	case SIGTERM:
 		log_info(entrenador_log, "Se ha enviado la señal SIGTERM. Se le restará una vida al Entrenador.");
-
+		entrenador->vidas--;
 		if (!entrenador->vidas)
-		reiniciar_Hoja_De_Viaje(0);
-		else
-			entrenador->vidas--;
+			reiniciar_Hoja_De_Viaje(0);
+//		else
+//			entrenador->vidas--;
 		break;
 
 	case SIGUSR1:
@@ -102,12 +103,13 @@ void system_call_catch(int signal){
 
 	case SIGINT:
 		//flag_fin_prog = true;
-		close(socket_mapa);
 		borrar_medallas();
 		log_info(entrenador_log, "Se borraron las medallas para finalizar el programa ");
 		// Borrar pokemones obtenidos;
 		borrar_pokemon();
 		log_info(entrenador_log, "Se borraron los pokemons para finalizar el programa ");
+		liberar_recursos();
+		close(socket_mapa);
 		break;
 
 	default:
@@ -155,6 +157,7 @@ void solicitar_posicion_pokenest(char *pokemon){
 
 void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 		int posHojaDeViaje, int *cantidad_muerte, int *cantidad_deadlocks) {
+
 	int *result = malloc(sizeof(int));
 	int tamanio_mensaje, instruccion;
 	char* mensaje1;
@@ -174,6 +177,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 		instruccion = recibirInt(socket_mapa, result, entrenador_log);
 		free(mensaje1);
 		*cantidad_deadlocks += 1;
+		entrenador -> interbloqueos += *cantidad_deadlocks;
 	}
 
 	switch (instruccion) {
@@ -197,12 +201,13 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 	case MUERTE:
 		printf("Has muerto en una batalla POKEMON!! \n");
 		*cantidad_muerte += 1;
+		entrenador -> muertes += *cantidad_muerte;
 		entrenador->vidas --;
 		if (!entrenador->vidas) {
 			reiniciar_Hoja_De_Viaje(posHojaDeViaje);
 		} else {
 			close(socket_mapa);
-			entrenador->vidas--;
+			//entrenador->vidas--;
 			//borrar_pokemons_de_un_mapa(pokemons);
 			borrar_pokemon();
 			flag_reconexion = true;
@@ -290,6 +295,15 @@ void convertirseEnMaestroPokemon(double tiempo_total_Viaje, double tiempo_total_
 
 }
 
+//20161213 - FM
+void imprimirEstadisticaDelViaje(void) {
+	printf("Tiempo del Viaje: %f s.\n", entrenador -> tiempoDeViaje);
+	printf("Tiempo bloqueado en Pokenest: %f s.\n", entrenador -> tiempoBloqueado);
+	printf("Cantidad de batallas: %d \n", entrenador -> interbloqueos);
+	printf("Cantidad de veces que murio: %d \n", entrenador -> muertes);
+	printf("Cantidad de reintentos: %d \n", entrenador -> reintentos);
+}
+
 
 void recorrer_hojaDeViaje(int posHojaDeViaje) {
 
@@ -358,6 +372,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 				fin_bloqueado = time(NULL);
 				tiempo_total_bloqueado += difftime(fin_bloqueado,
 						inicio_bloqueado);
+				entrenador -> tiempoBloqueado += tiempo_total_bloqueado; //20161213 - FM
 //					if (objetivoCumplido(/*0,0*/posHojaDeViaje,posObjetivoPorMapa)){
 //						estado = OBJETIVO_CUMPLIDO;
 //					}
@@ -390,6 +405,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 			cantidad_deadlocks = 0;
 			tiempo_total_bloqueado = 0;
 			inicio_De_Viaje = 0;
+			entrenador->vidas = get_entrenador_vidas(metadata);
 		} else {
 
 			if (flag_reconexion) {
@@ -412,9 +428,12 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 					fin_De_Viaje = time(NULL);
 					total_tiempo_viaje = difftime(fin_De_Viaje,
 							inicio_De_Viaje);
-					convertirseEnMaestroPokemon(total_tiempo_viaje,
-							tiempo_total_bloqueado, cantidad_muerte,
-							cantidad_deadlocks);
+					entrenador -> tiempoDeViaje += total_tiempo_viaje; //20161213 - FM
+					imprimirEstadisticaDelViaje(); //20161213 - FM
+
+//					convertirseEnMaestroPokemon(total_tiempo_viaje,
+//							tiempo_total_bloqueado, cantidad_muerte,
+//							cantidad_deadlocks);
 
 					// Borrar medallas obtenidas;
 					//log_info(entrenador_log, "Se procede a borrar las medallas obtenidas para finalizar la Hoja de Viaje");
@@ -470,20 +489,26 @@ void init_datos_entrenador(){
 
 	entrenador = malloc(sizeof(t_entrenador));
 	entrenador -> vidas = get_entrenador_vidas(metadata);
-	//entrenador -> reintentos = get_entrenador_reintentos(metadata);
+	entrenador -> reintentos = 0;
+	entrenador -> muertes = 0;
+	entrenador -> tiempoBloqueado = 0;
+	entrenador -> tiempoDeViaje = 0;
+	entrenador -> interbloqueos = 0;
 
 }
 
 void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 	char c;
 
-	printf("No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N)\n");
+	printf(
+			"No te quedan más vidas para continuar con tu aventura POKEMON, querés reintentar?: (Y/N), tus reintentos hasta el momento son: %d\n",
+			entrenador->reintentos);
 
 
 	switch (c = getchar()) {
 	case 'Y':
 	case 'y':
-		//entrenador->reintentos++;
+		entrenador->reintentos ++; // 20161213 - FM
 
 		// Borrar medallas obtenidas;
 		borrar_medallas();
@@ -647,9 +672,9 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 void copiar_archivo(char* path_from, char* path_to) {
 	char* path_src = string_new();
 	char* path_dst = string_new();
-	char* mapArchSrc;
-	char* mapArchDst;
-	struct stat buf;
+	//char* mapArchSrc;
+	//char* mapArchDst;
+	//struct stat buf;
 	char* nombre_archivo;
 	char** path_split;
 	char i = 0;	//indice para recorrer char** path_split
@@ -665,17 +690,23 @@ void copiar_archivo(char* path_from, char* path_to) {
 	//El path destino seria /Entrenadores/[nombre entrenador]/directorio de bill
 	string_append(&path_dst, path_to);
 	string_append(&path_dst, nombre_archivo);
-	int fd_src = open(path_src, O_RDWR);
-	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
-	stat(path_src, &buf);
-	int tam = buf.st_size;
-	ftruncate(fd_dst, tam);
-	mapArchSrc = (char*) mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED,
-			fd_src, 0);
-	mapArchDst = (char*) mmap(0, tam, PROT_WRITE, MAP_SHARED, fd_dst, 0);
-	memcpy(mapArchDst, mapArchSrc, tam);
-	munmap(mapArchSrc, tam);
-	munmap(mapArchDst, tam);
+
+	char * cmd = malloc(sizeof(char)*200);
+	sprintf( cmd, "/bin/cp -p \'%s\' \'%s\'", path_src, path_dst);
+
+		// Finalmente se ejecuta de esta forma...
+		system(cmd);
+//	int fd_src = open(path_src, O_RDWR);
+//	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
+//	stat(path_src, &buf);
+//	int tam = buf.st_size;
+//	ftruncate(fd_dst, tam);
+//	mapArchSrc = (char*) mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED,
+//			fd_src, 0);
+//	mapArchDst = (char*) mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED, fd_dst, 0);
+//	memcpy(mapArchDst, mapArchSrc, tam);
+//	munmap(mapArchSrc, tam);
+//	munmap(mapArchDst, tam);
 	free(path_src);
 	free(path_dst);
 

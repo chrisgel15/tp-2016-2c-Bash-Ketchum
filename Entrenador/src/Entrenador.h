@@ -38,6 +38,10 @@ typedef struct{
 	char* nombre;
 	int vidas;
 	int reintentos;
+	int muertes;
+	int interbloqueos;
+	double tiempoDeViaje;
+	double tiempoBloqueado;
 } t_entrenador;
 
 void system_call_catch(int signal);
