@@ -709,6 +709,7 @@ void copiar_archivo(char* path_from, char* path_to) {
 //	munmap(mapArchDst, tam);
 	free(path_src);
 	free(path_dst);
+	free(cmd);
 
 	while (*(path_split + index) != NULL) {
 		free(*(path_split + index));
