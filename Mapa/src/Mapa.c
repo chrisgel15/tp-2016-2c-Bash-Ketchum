@@ -228,12 +228,31 @@ t_entrenador *remover_entrenador_mas_viejo(){
 }
 
 //Remover Entrenador segun Algoritmo Shortest Remaining Distance First
-t_entrenador *remover_entrenador_listo_por_SRDF(){
+t_entrenador *remover_entrenador_listo_por_SRDF(){ //20161214 - FM
 	t_entrenador* entrenador = NULL;
 	pthread_mutex_lock(&mutex_entrenadores_listos);
 	//sem_wait(&sem_listos);
-	srdf(entrenadores_listos);
-	entrenador = (t_entrenador*)list_remove(entrenadores_listos,0);
+	int cant_listos = list_size(entrenadores_listos);
+	bool sin_ubicacion = false;
+	int i = 0;
+	int aux_index;
+	while(i < cant_listos && !sin_ubicacion){
+		entrenador = list_get(entrenadores_listos, i);
+
+		if(!entrenador->conoce_ubicacion){
+			aux_index = i;
+			sin_ubicacion = true;
+
+		}
+		i++;
+	}
+	if(!sin_ubicacion){
+		srdf(entrenadores_listos);
+		entrenador = (t_entrenador*)list_remove(entrenadores_listos,0);
+	}
+	else
+		entrenador = (t_entrenador*)list_remove(entrenadores_listos,aux_index);
+
 	pthread_mutex_unlock(&mutex_entrenadores_listos);
 	log_info(mapa_log, "Se remueve el Entrenador %s de la Cola de Listos.", entrenador->nombre);
 	return entrenador;
@@ -402,6 +421,7 @@ void recibir_nuevo_entrenador(int fd){
 	entrenador->pokemons = list_create();
 	entrenador->tiempo_ingreso = time(0); //Guardo la Fecha y Hora de Ingreso del Entrenador al Mapa
 	entrenador->pokemon_bloqueado = string_new();
+	entrenador -> conoce_ubicacion = false;
 
 	free(result);
 	free(caracter);
@@ -500,6 +520,7 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 	} else {
 		free(entrenador->pokemon_bloqueado); //Limpio el ID del Pokemon porque ya se otorgo
 		entrenador->pokemon_bloqueado = string_new();
+		entrenador->conoce_ubicacion = false; //20161214 - FM
 		log_info(mapa_log, "Se otorgo el Pokemon %s al Entrenador %s.", pokemon->nombre, entrenador->nombre);
 		agregar_entrenador_a_listos(entrenador);
 		//Resto el Recurso de la Interfaz de Mapa
@@ -525,14 +546,16 @@ void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 	liberar_recursos_entrenador(entrenador, 0);
 }
 
-void enviar_posicion_pokenest(int fd , t_mensajes *mensajes){
+void enviar_posicion_pokenest(t_entrenador* entrenador , t_mensajes *mensajes){ //20161214 - FM
 	char *nombre_pokenest = (char *)obtener_mensaje(mensajes);
 	pthread_mutex_lock(&mutex_pokenests);
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, *nombre_pokenest);
 	pthread_mutex_unlock(&mutex_pokenests);
 	log_info(mapa_log, "Se envia posicion del Pokenest: %s", pokenest->nombre);
-	enviarInt(fd,pokenest->posicion->x);
-	enviarInt(fd,pokenest->posicion->y);
+	entrenador->pokenest = pokenest->posicion;
+	entrenador->conoce_ubicacion = true;
+	enviarInt(entrenador->fd,pokenest->posicion->x);
+	enviarInt(entrenador->fd,pokenest->posicion->y);
 
 	free(nombre_pokenest);
 }
@@ -623,8 +646,9 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
 	bool desconectado = FALSE; //Falg utilizado para saber si el Entrenador se Desconecto
 	int instruccion = 0;
+	bool conocio_ubicacion = false;
 
-	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo && !desconectado){
+	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo && !desconectado && !conocio_ubicacion){
 		sem_wait(&sem_mensajes);
 
 		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
@@ -634,7 +658,9 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 
 		switch(instruccion){
 			case UBICACION_POKENEST:
-				enviar_posicion_pokenest(entrenador->fd, mensajes_entrenador);
+				if(!es_algoritmo_rr)
+					conocio_ubicacion = true;
+				enviar_posicion_pokenest(entrenador, mensajes_entrenador);//20161214 - FM
 				break;
 			case AVANZAR_HACIA_POKENEST:
 				avanzar_hacia_pokenest(entrenador, mensajes_entrenador);
@@ -703,8 +729,8 @@ double distancia_a_pokenest(t_entrenador* entrenador){
 	double deltaX = 0;
 	double deltaY = 0;
 
-	deltaX = entrenador->pokenx - entrenador->posicion->x;
-	deltaY = entrenador->pokeny - entrenador->posicion->y;
+	deltaX = entrenador->pokenest->x - entrenador->posicion->x;
+	deltaY = entrenador->pokenest->y - entrenador->posicion->y;
 
 	deltaTotal = deltaX + deltaY; //sqrt(deltaX*deltaX + deltaY*deltaY);
 

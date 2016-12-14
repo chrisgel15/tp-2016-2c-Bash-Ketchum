@@ -26,11 +26,13 @@ typedef struct {
 	char caracter; //Caracter que va a representar al Entrendor en el Mapa
 	t_posicion* posicion;
 	char *pokemon_bloqueado;
-	int pokenx;		//posicion de la pokenest en el eje x
-	int pokeny;		//posicion de la pokenest en el eje y
+//	int pokenx;		//posicion de la pokenest en el eje x
+//	int pokeny;		//posicion de la pokenest en el eje y
+	t_posicion* pokenest;
 	t_list* pokemons; //En esta Lista se Encuentran los Pokemons que va atrapando el Entrenador
 	time_t tiempo_ingreso;
 	time_t timpo_ingreso_listo; //Fecha y Hora de Ingreso a Listo
+	bool conoce_ubicacion;
 } t_entrenador;
 
 typedef struct {
