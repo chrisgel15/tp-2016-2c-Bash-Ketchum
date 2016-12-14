@@ -672,9 +672,9 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 void copiar_archivo(char* path_from, char* path_to) {
 	char* path_src = string_new();
 	char* path_dst = string_new();
-	char* mapArchSrc;
-	char* mapArchDst;
-	struct stat buf;
+	//char* mapArchSrc;
+	//char* mapArchDst;
+	//struct stat buf;
 	char* nombre_archivo;
 	char** path_split;
 	char i = 0;	//indice para recorrer char** path_split
@@ -690,17 +690,23 @@ void copiar_archivo(char* path_from, char* path_to) {
 	//El path destino seria /Entrenadores/[nombre entrenador]/directorio de bill
 	string_append(&path_dst, path_to);
 	string_append(&path_dst, nombre_archivo);
-	int fd_src = open(path_src, O_RDWR);
-	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
-	stat(path_src, &buf);
-	int tam = buf.st_size;
-	ftruncate(fd_dst, tam);
-	mapArchSrc = (char*) mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED,
-			fd_src, 0);
-	mapArchDst = (char*) mmap(0, tam, PROT_WRITE, MAP_SHARED, fd_dst, 0);
-	memcpy(mapArchDst, mapArchSrc, tam);
-	munmap(mapArchSrc, tam);
-	munmap(mapArchDst, tam);
+
+	char * cmd = malloc(sizeof(char)*200);
+	sprintf( cmd, "/bin/cp -p \'%s\' \'%s\'", path_src, path_dst);
+
+		// Finalmente se ejecuta de esta forma...
+		system(cmd);
+//	int fd_src = open(path_src, O_RDWR);
+//	int fd_dst = open(path_dst, O_CREAT | O_RDWR, S_IRWXU);
+//	stat(path_src, &buf);
+//	int tam = buf.st_size;
+//	ftruncate(fd_dst, tam);
+//	mapArchSrc = (char*) mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED,
+//			fd_src, 0);
+//	mapArchDst = (char*) mmap(0, tam, PROT_READ | PROT_WRITE, MAP_SHARED, fd_dst, 0);
+//	memcpy(mapArchDst, mapArchSrc, tam);
+//	munmap(mapArchSrc, tam);
+//	munmap(mapArchDst, tam);
 	free(path_src);
 	free(path_dst);
 
