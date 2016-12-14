@@ -706,7 +706,7 @@ double distancia_a_pokenest(t_entrenador* entrenador){
 	deltaX = entrenador->pokenx - entrenador->posicion->x;
 	deltaY = entrenador->pokeny - entrenador->posicion->y;
 
-	deltaTotal = sqrt(deltaX*deltaX + deltaY*deltaY);;
+	deltaTotal = deltaX + deltaY; //sqrt(deltaX*deltaX + deltaY*deltaY);
 
 	return deltaTotal;
 
