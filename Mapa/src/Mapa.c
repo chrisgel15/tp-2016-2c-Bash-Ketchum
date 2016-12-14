@@ -571,7 +571,7 @@ void system_call_catch(int signal){
 		set_interbloqueo();
 		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d - Retardo de Interbloqueo: %d. - Retardo de Quantum: %d." , algoritmo, mapa_quantum, interbloqueo, retardo);
 	}
-
+	//Ctrl + C
 	if(signal ==  SIGINT){
 		liberar_mensajes(mensajes_entrenadores, mapa_log);
 		free(log_nombre);
@@ -582,6 +582,7 @@ void system_call_catch(int signal){
 		liberar_pokenest(lista_pokenests);
 		finalizar_mapa();
 		list_destroy(items);
+		log_destroy(mapa_log);
 		exit(1);
 	}
 }
