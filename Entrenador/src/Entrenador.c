@@ -161,7 +161,6 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 	int *result = malloc(sizeof(int));
 	int tamanio_mensaje, instruccion;
 	char* mensaje1;
-	char* mensaje2;
 	enviarInt(socket_mapa, ATRAPAR_POKEMON);
 
 	enviarInt(socket_mapa, string_length(nombre_pokemon));
@@ -184,7 +183,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 
 	case POKEMON_CONCEDIDO:
 		tamanio_mensaje = recibirInt(socket_mapa, result, entrenador_log);
-		mensaje2 = malloc(sizeof(char) * (tamanio_mensaje + 1));
+		char* mensaje2 = malloc(sizeof(char) * (tamanio_mensaje + 1));
 		recibirMensaje(socket_mapa, mensaje2, tamanio_mensaje, entrenador_log);
 		list_add(pokemons, mensaje2);
 		pthread_mutex_lock(&mutex_archivo);
@@ -195,7 +194,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 				mensaje2);
 
 		free(result);
-		free(mensaje2);
+		//free(mensaje2);
 		break;
 
 	case MUERTE:
@@ -208,8 +207,8 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 		} else {
 			close(socket_mapa);
 			//entrenador->vidas--;
-			//borrar_pokemons_de_un_mapa(pokemons);
-			borrar_pokemon();
+			borrar_pokemons_de_un_mapa(pokemons);
+			//borrar_pokemon();
 			flag_reconexion = true;
 		}
 		free(result);
@@ -445,7 +444,7 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 					//log_info(entrenador_log, "Se borraron los pokemons para finalizar la Hoja de Viaje");
 
 					close(socket_mapa);
-
+					list_clean(pokemons_atrapados);
 					list_destroy(pokemons_atrapados);
 
 				} else {
@@ -627,7 +626,6 @@ void borrar_pokemons_de_un_mapa(t_list * pokemons){
 
 	int i;
 	for (i=0;i<list_size(pokemons);i++) {
-
 		borrar_del_mapa(dirBill, list_get(pokemons,i));
 	}
 
@@ -641,10 +639,11 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 	int i = 0;
 	int index = 0;
 
+
 	string_append(&nombre_archivo, archivo);
 
-	path_split = string_split(archivo, "/");
 
+	path_split = string_split(archivo, "/");
 	while (*(path_split + i) != NULL) {
 		nombre_archivo = *(path_split + i);
 		i++;
@@ -654,7 +653,6 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 	//string_append(&path_total, "/");
 	string_append(&path_total, nombre_archivo);
 	rem = remove(path_total);
-
 	//archivo = strcpy(archivo, ""); //20161211 - FM
 	path_total = strcpy(path_total, "");
 
@@ -664,7 +662,8 @@ void borrar_del_mapa(char* directorio, char* archivo) {
 	}
 	free(path_split);
 	free(path_total);
-	free(nombre_archivo);
+	//free(nombre_archivo); tira error double free GL
+
 }
 
 
