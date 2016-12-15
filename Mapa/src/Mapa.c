@@ -904,16 +904,23 @@ void add_entrenadores_interbloqueados(char *key, void *entrenadores_bloqueados_v
 }
 
 void chequear_interbloqueados(){
+	int *disponibles;
+	int cant_pokenets = list_size(lista_pokenests);
+	void (*add_entrenadores_interbloqueados_iterator) (char*, void*) = add_entrenadores_interbloqueados;
+	int i = 0, j = 0, cant_entrenadores = 0, modo_batalla;
+	t_list *entrenadores_interbloqueados;
+
 	while(1){
 		usleep(interbloqueo);
-		pthread_mutex_lock(&mutex_cola_bloqueados);
-		int cant_pokenets = list_size(lista_pokenests);
-		int i = 0, j = 0, cant_entrenadores = 0;
-		int *disponibles = malloc(cant_pokenets * sizeof(int));
+		//pthread_mutex_lock(&mutex_cola_bloqueados);
+
+		i = 0;
+		j = 0;
+		cant_entrenadores = 0;
+		disponibles = malloc(cant_pokenets * sizeof(int));
 		lista_interbloqueo = list_create();
-		void (*add_entrenadores_interbloqueados_iterator) (char*, void*) = add_entrenadores_interbloqueados;
-		t_list *entrenadores_interbloqueados = list_create();
-		int modo_batalla = get_mapa_batalla_on_off(metadata);
+		entrenadores_interbloqueados = list_create();
+		modo_batalla = get_mapa_batalla_on_off(metadata);
 
 		log_trace(mapa_log, "Se va a realizar el Chequeo de Entrenadores Interbloqueados.");
 
@@ -938,9 +945,9 @@ void chequear_interbloqueados(){
 		free(char_disponibles);
 
 		//Preparo la estructura de Entrenadores
-		//pthread_mutex_lock(&mutex_cola_bloqueados);
+		pthread_mutex_lock(&mutex_cola_bloqueados);
 		dictionary_iterator(entrenadores_bloqueados, add_entrenadores_interbloqueados_iterator);
-		//pthread_mutex_unlock(&mutex_cola_bloqueados);
+		pthread_mutex_unlock(&mutex_cola_bloqueados);
 
 		cant_entrenadores = list_size(lista_interbloqueo);
 		//Verifico si el Entrenador no Esta Marcado
@@ -1020,7 +1027,7 @@ void chequear_interbloqueados(){
 		list_destroy(lista_interbloqueo);
 		free(disponibles);
 
-		pthread_mutex_unlock(&mutex_cola_bloqueados);
+		//pthread_mutex_unlock(&mutex_cola_bloqueados);
 	}
 }
 
@@ -1052,7 +1059,9 @@ void batalla_pokemon(t_list *entrenadores){
 
 	log_info(mapa_log, "Remuevo Entrenador %s de Bloqueados.", victima->nombre);
 	//Remuevo de los Entrenadores Bloqueados
+	pthread_mutex_lock(&mutex_cola_bloqueados);
 	victima = remover_entrenador_de_bloqueados(victima);
+	pthread_mutex_unlock(&mutex_cola_bloqueados);
 
 	log_info(mapa_log, "Libero los recursos del Entrenador %s.", victima->nombre);
 	//Libero los Recursos del Mismo
