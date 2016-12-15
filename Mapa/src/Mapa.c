@@ -329,7 +329,7 @@ void inicializar_estructuras(){
 	pthread_mutex_init(&mutex_pokenests,NULL);
 
 	sem_init(&sem_listos, 0, 0);
-	sem_init(&sem_mensajes, 0, 0);
+	//sem_init(&sem_mensajes, 0, 0);
 
 	incializar_gestion_colas_bloqueados();
 
@@ -349,7 +349,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 				//TODO: Agregar logica de Liberacion de Recursos
 			} else {
 				log_info(mapa_log, "Se recibio correctamente el mensaje UBICACION POKENES del Entrenador del FD %d.", fd_entrenador);
-				sem_post(&sem_mensajes);
+				//sem_post(&sem_mensajes);
 			}
 			break;
 		case AVANZAR_HACIA_POKENEST:
@@ -359,7 +359,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 				//TODO: Agregar logica de Liberacion de Recursos
 			} else {
 				log_info(mapa_log, "Se recibio correctamente el mensaje AVANZAR HACIA POKENEST del Entrenador del FD %d.", fd_entrenador);
-				sem_post(&sem_mensajes);
+				//sem_post(&sem_mensajes);
 			}
 			break;
 		case ATRAPAR_POKEMON:
@@ -369,7 +369,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 				//TODO: Agregar logica de Liberacion de Recursos
 			} else {
 				log_info(mapa_log, "Se recibio correctamente el mensaje ATRAPAR POKEMON del Entrenador del FD %d.", fd_entrenador);
-				sem_post(&sem_mensajes);
+				//sem_post(&sem_mensajes);
 			}
 			break;
 		case OBJETIVO_CUMPLIDO:
@@ -378,7 +378,7 @@ void atender_entrenador(int fd_entrenador, int codigo_instruccion){
 				log_info(mapa_log, "El Entrenador del FD %d se Desconecto, se procedera a liberar sus recursos.", fd_entrenador);
 			} else {
 				log_info(mapa_log, "Se recibio correctamente el mensaje OBJETIVO CUMPLIDO del Entrenador del FD %d.", fd_entrenador);
-				sem_post(&sem_mensajes);
+				//sem_post(&sem_mensajes);
 			}
 			break;
 		default:
@@ -532,12 +532,8 @@ void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char po
 
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa){
 	log_info(mapa_log, "Se va a Entregar la Medalla a %s.", entrenador->nombre);
-	//int fd = entrenador->fd;
-	//liberar_recursos_entrenador(entrenador, 0);
 	char *ruta_medalla = get_medalla_path(ruta_pokedex, nombre_mapa);
 	log_info(mapa_log, "La ruta de la Medalla es %s.", ruta_medalla);
-	//enviarInt(fd, strlen(ruta_medalla));
-	//enviarMensaje(fd, ruta_medalla);
 	enviarInt(entrenador->fd, strlen(ruta_medalla));
 	enviarMensaje(entrenador->fd, ruta_medalla);
 
@@ -561,18 +557,26 @@ void enviar_posicion_pokenest(t_entrenador* entrenador , t_mensajes *mensajes){ 
 }
 
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes){
-	entrenador->posicion->x = (int) obtener_mensaje(mensajes);
+	int *avance_x = (int*) obtener_mensaje(mensajes);
+	//entrenador->posicion->x = (int) obtener_mensaje(mensajes);
+	entrenador->posicion->x = *avance_x;
 	mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
-	entrenador->posicion->y = (int) obtener_mensaje(mensajes);
+
+	int *avance_y = (int*) obtener_mensaje(mensajes);
+	//entrenador->posicion->y = (int) obtener_mensaje(mensajes);
+	entrenador->posicion->y = *avance_y;
 	mover_entrenador_en_mapa(items, entrenador, nombre_mapa);
+
+	free(avance_x);
+	free(avance_y);
+
 	log_info(mapa_log, "El Entrenador %s se movio a la posicion (%d, %d).", entrenador->nombre, entrenador->posicion->x, entrenador->posicion->y);
 }
 
 void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
 	char *nombre_pokemon = (char *)obtener_mensaje(mensajes);
 	string_append(&entrenador->pokemon_bloqueado, nombre_pokemon);
-	//entrenador->pokemon_bloqueado = nombre_pokemon;
-	free(nombre_pokemon); //TODO: Ver si sirve
+	free(nombre_pokemon);
 	log_info(mapa_log, "El Entrenador %s solicito atrapar a un Pokemon.", entrenador->nombre);
 }
 
@@ -646,18 +650,20 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	bool bloqueado = FALSE; //Flag utilizado para saber si un Entrenador se Bloqueo
 	bool finalizo = FALSE; //Falg utilizado para saber si el Entrenador Finalizo
 	bool desconectado = FALSE; //Falg utilizado para saber si el Entrenador se Desconecto
-	int instruccion = 0;
+	int *instruccion;
 	bool conocio_ubicacion = false;
 
 	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo && !desconectado && !conocio_ubicacion){
-		sem_wait(&sem_mensajes);
+		t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
+		//sem_wait(&sem_mensajes);
+		sem_wait(&mensajes_entrenador->semaforo);
 
 		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
 
-		t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
-		instruccion = (int) obtener_mensaje(mensajes_entrenador);
+		//t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
+		instruccion = (int*) obtener_mensaje(mensajes_entrenador);
 
-		switch(instruccion){
+		switch(*instruccion){
 			case UBICACION_POKENEST:
 				if(!es_algoritmo_rr)
 					conocio_ubicacion = true;
@@ -682,6 +688,8 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 				log_error(mapa_log, "Se ha producido un error al tratar de atender instruccion del Entrenador.");
 				break;
 		}
+
+		free(instruccion);
 
 		turnos++;
 
@@ -817,9 +825,9 @@ void incializar_gestion_colas_bloqueados(){
 }
 
 void liberar_recursos_entrenador(t_entrenador *entrenador, int mensaje){
+	//wait_de_mensajes(mensajes_entrenadores, entrenador->fd, &sem_mensajes);
 	int cant_pokemons = list_size(entrenador->pokemons);
 	int i = 0, fd;
-
 	log_info(mapa_log, "Voy a liberar los recursos del Entrenador %s.", entrenador->nombre);
 
 	pthread_mutex_lock(&mutex_pokenests);
@@ -1012,7 +1020,9 @@ void chequear_interbloqueados(){
 				//Verifico si el Mapa se encuentra en modo batalla
 				if(modo_batalla){
 					log_info(mapa_log, "Se va a comenzar con la Batalla!!!.");
+					//pthread_mutex_lock(&mutex_cola_bloqueados);
 					batalla_pokemon(entrenadores_interbloqueados);
+					//pthread_mutex_unlock(&mutex_cola_bloqueados);
 				}
 
 			} else {

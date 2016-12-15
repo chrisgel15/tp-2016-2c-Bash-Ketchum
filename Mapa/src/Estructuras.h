@@ -11,6 +11,7 @@
 #include <commons/collections/queue.h>
 #include <commons/collections/list.h>
 #include <time.h>
+#include <semaphore.h>
 
 int cantidad_pokenest;
 
@@ -61,6 +62,7 @@ typedef struct {
 typedef struct {
 	int fd;
 	t_queue *mensajes;
+	sem_t semaforo;
 } t_mensajes;
 
 //Estructura utilizada para Administracion de Hilos de Entrenadores Bloqueados
