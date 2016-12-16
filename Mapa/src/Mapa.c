@@ -1066,7 +1066,7 @@ void batalla_pokemon(t_list *entrenadores){
 		}
 
 		log_info(mapa_log, "El Entrenador %s ha perdido contra el Entrenador %s.", perdedor->nombre, ganador->nombre);
-		enviar_resultado_batalla(perdedor, ganador); //TODO: Descomentar para mandar el aviso
+		//enviar_resultado_batalla(perdedor, ganador); //TODO: Descomentar para mandar el aviso
 		victima = perdedor; //Preparo al perdedor para el Siguiente enfrentamiento
 	}
 
