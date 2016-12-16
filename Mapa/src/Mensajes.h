@@ -26,8 +26,9 @@ int recibir_mensaje_ubicacion_pokenest(t_list *mensajes_entrenadores, int fd, t_
 int recibir_mensaje_avanzar_hacia_pokenest(t_list *mensajes_entrenadores, int fd, t_log *log);
 int recibir_mensaje_atrapar_pokemon(t_list *mensajes_entrenadores, int fd, t_log *log);
 int recibir_mensaje_objetivo_cumplido(t_list *mensajes_entrenadores, int fd, t_log *log);
-void eliminar_cola_mensajes_entrenador(t_list *mensajes, int fd, t_log *log);
+void eliminar_cola_mensajes_entrenador(t_list *mensajes, int fd, t_log *log); //Nos devuelve la cantidad de mensajes borrados
 void entrenador_desconectado(t_list *mensajes_entrenadores, int fd);
 void liberar_mensajes(t_list *mensajes, t_log *log);
+void wait_de_mensajes(t_list *mensajes_entrenadores, int fd, sem_t *sem_mensajes);
 
 #endif /* MENSAJES_H_ */

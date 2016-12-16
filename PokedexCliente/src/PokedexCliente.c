@@ -184,7 +184,7 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 
 			name = myMalloc_char(tamanioName+1, "osada_readdir - name", pokedex_cliente_log);
 			//recibirMensaje(clientSocket, name, tamanioName, pokedex_cliente_log);
-			recibirBytes(clientSocket, (void *)name, 18, pokedex_cliente_log);
+			recibirBytes(clientSocket, (void *)name, tamanioName+1, pokedex_cliente_log);
 
 			filler(buf, name, NULL, 0);
 

@@ -29,7 +29,7 @@
 #include <math.h>
 
 //Varibles para el Log del Programa
-#define log_nombre "mapa.log"
+//#define log_nombre "mapa.log"
 #define programa_nombre "Mapa.c"
 #define POSICION_INICIAL_X 0
 #define POSICION_INICIAL_Y 0
@@ -57,7 +57,7 @@ void mover_entrenador_hacia_recurso(t_datos_mapa*,char*);
 
 void entregar_pokemon(t_entrenador* entrenador, t_pokemon_mapa *pokemon, char pokenest_id);
 void entregar_medalla(t_entrenador *entrenador, char* nombre_mapa);
-void enviar_posicion_pokenest(int fd, t_mensajes *mensajes);
+void enviar_posicion_pokenest(t_entrenador* entrenador, t_mensajes *mensajes);
 void avanzar_hacia_pokenest(t_entrenador *entrenador, t_mensajes *mensajes);
 void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes);
 
