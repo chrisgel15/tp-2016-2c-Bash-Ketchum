@@ -1086,7 +1086,7 @@ int BuscaPrimerEspacioDisponibleEnBitMap(int directoryId)
 		{
 			hayEspacio = true;
 			SeteaBitEnBitMap(ultimo_bloque_disponible_encontrado);
-			log_info(osada_log, "Reserve el bloque %d al archivo %d", ultimo_bloque_disponible_encontrado, directoryId);
+			log_trace(osada_log, "Reserve el bloque %d al archivo %d", ultimo_bloque_disponible_encontrado, directoryId);
 		}
 		else
 			ultimo_bloque_disponible_encontrado++;
