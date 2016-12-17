@@ -24,9 +24,10 @@
 #include "Pokenest.h"
 #include <commons/collections/dictionary.h>
 #include "Interbloqueo.h"
-#include <unistd.h>
 #include <fcntl.h>
 #include <math.h>
+#include <sys/select.h>
+#include <errno.h>
 
 //Varibles para el Log del Programa
 //#define log_nombre "mapa.log"

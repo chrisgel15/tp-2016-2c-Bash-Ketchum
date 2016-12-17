@@ -102,6 +102,7 @@ int main(int argc, char **argv) {
 
 	//Manejo de System Calls
 	//signal(SIGUSR2, system_call_catch);
+	//system_call_manager();
 
 	//Creamos el Servidor de Entrenadores
 	int puerto_entrenadores = get_mapa_puerto(metadata);
@@ -144,15 +145,26 @@ int main(int argc, char **argv) {
 	pthread_t p_calls_manager;
 	pthread_create(&p_calls_manager, NULL, (void *) system_call_manager, NULL);
 
+	/*sigset_t sigset, oldset;
+	sigemptyset(&sigset);
+	sigaddset(&sigset, SIGUSR2);
+	//sigaddset(&sigset, SIGPIPE);
+	pthread_sigmask(SIG_BLOCK, &sigset, &oldset);*/
+
 	//Espero conexiones y pedidos de Entrenadores
 	while(1){
 		fd_sets_entrenadores->readFileDescriptorSet = fd_sets_entrenadores->masterSet;
-
 		if (select(fd_sets_entrenadores->maxFileDescriptorNumber + 1,
 						&(fd_sets_entrenadores->readFileDescriptorSet),
 						&(fd_sets_entrenadores->writeFileDescriptorSet),
 						NULL, NULL) == -1){
 			log_error(mapa_log,"Se ha producido un error al intentar atender las peticiones de los Entrenadores.");
+			log_error(mapa_log, "%s", strerror(errno));
+			if(errno == EINTR){
+				log_error(mapa_log, "EINTR");
+			} else {
+				log_error(mapa_log, "NO EINTR");
+			}
 			//exit(1);
 		}
 		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);
@@ -164,6 +176,12 @@ int main(int argc, char **argv) {
 /********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
 void system_call_manager(){
 	//Manejo de System Calls
+	/*struct sigaction s;
+	s.sa_handler = system_call_catch;
+	sigemptyset(&s.sa_mask);
+	s.sa_flags = 0;
+	sigaction(SIGUSR2, &s, NULL);*/
+
 	signal(SIGUSR2, system_call_catch);
 	signal(SIGINT, system_call_catch);
 	signal(SIGPIPE, system_call_catch);
@@ -178,10 +196,10 @@ void system_call_catch(int signal){
 		set_quantum();
 		set_retardo();
 		set_interbloqueo();
-		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d" , algoritmo, mapa_quantum/*, interbloqueo, retardo*/);
+		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d - Interbloqueo: %d - Retardo: %d." , algoritmo, mapa_quantum, get_mapa_tiempo_deadlock(metadata), get_mapa_retardo(metadata));
 	}
 	//Ctrl + C
-	if(signal ==  SIGINT){
+	if(signal == SIGINT){
 		liberar_mensajes(mensajes_entrenadores, mapa_log);
 		free(log_nombre);
 		free(algoritmo);
@@ -515,6 +533,7 @@ void despedir_entrenador(int fd_entrenador){
 
 	} else {
 		despedido = (t_entrenador *) list_remove(entrenadores_listos, index_listado);
+		sem_wait(&sem_listos);
 	}
 
 	//Si encontre al Entrenador, libero los Recursos
