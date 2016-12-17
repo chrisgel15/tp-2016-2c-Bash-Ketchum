@@ -699,11 +699,11 @@ void ProcesarRename(int fd)
 	}
 	else status = -EFBIG;
 
-	myFree(oldResult, "ProcesarRmDir - oldResult", osada_log);
-	myFree(oldpath, "ProcesarRmDir - oldpath", osada_log);
-	myFree(newResult, "ProcesarRmDir - newResult", osada_log);
-	myFree(newpath, "ProcesarRmDir - newpath", osada_log);
-	myFree(directoryId, "ProcesarRmDir - directoryId", osada_log);
+	myFree(oldResult, "ProcesarRename - oldResult", osada_log);
+	myFree(oldpath, "ProcesarRename - oldpath", osada_log);
+	myFree(newResult, "ProcesarRename - newResult", osada_log);
+	myFree(newpath, "ProcesarRename - newpath", osada_log);
+	myFree(directoryId, "ProcesarRename - directoryId", osada_log);
 
 	enviarInt(fd, status);
 	enviarInt(fd, FIN_RENAME);
