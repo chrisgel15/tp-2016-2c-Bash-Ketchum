@@ -10,7 +10,7 @@
 
 #include "PokedexServidor.h"
 
-#define EXECUTION_MODE 1 // 0 = Release, 1 = Debug
+#define EXECUTION_MODE 0 // 0 = Release, 1 = Debug
 
 
 
@@ -26,7 +26,9 @@ int main(void) {
 
 	/**************** Creacion del Log ******************/
 
-	osada_log = CreacionLogWithLevel("osada-server-log", "osada-server", "TRACE");
+	logLevel = config_get_string_value(osada_server_config , LOG_LEVEL);
+
+	osada_log = CreacionLogWithLevel("osada-server.log", "osada-server", logLevel);
 
 	char * nombreDisco = config_get_string_value(osada_server_config , NOMBRE_DISCO_OSADA);
 
@@ -50,7 +52,7 @@ int main(void) {
 	{
 	//	ImprimirHeader();
 	//	ImprimirBitMap(bitmap);
-		ImprimirTablaDeArchivos();
+	//	ImprimirTablaDeArchivos();
 	//	CantidadBloquesLibres(CONTAR_TODOS_LOS_BLOQUES);
 	}
 
@@ -180,47 +182,47 @@ void RecibirYProcesarPedido(int fdCliente)
 		if (*result > 0) {
 			switch (valorRecibido) {
 			case GETATTR:
-				log_trace(osada_log , "El cliente %d pidio un GETATTR.", fdCliente);
+				log_info(osada_log , "El cliente %d pidio un GETATTR.", fdCliente);
 				ProcesarGetAttr(fdCliente);
 				break;
 			case READDIR:
-				log_trace(osada_log , "El cliente %d pidio un READDIR.", fdCliente);
+				log_info(osada_log , "El cliente %d pidio un READDIR.", fdCliente);
 				ProcesarReadDir(fdCliente);
 				break;
 			case READ:
-				log_trace(osada_log, "El cliente %d pidio un READ.", fdCliente);
+				log_info(osada_log, "El cliente %d pidio un READ.", fdCliente);
 				ProcesarRead(fdCliente);
 				break;
 			case MKDIR:
-				log_trace(osada_log, "El cliente %d pidio un MKDIR.", fdCliente);
+				log_info(osada_log, "El cliente %d pidio un MKDIR.", fdCliente);
 				ProcesarMkDir(fdCliente);
 				break;
 			case CREATE:
-				log_trace(osada_log, "El cliente %d pidio un CREATE.", fdCliente);
+				log_info(osada_log, "El cliente %d pidio un CREATE.", fdCliente);
 				ProcesarCreate(fdCliente);
 				break;
 			case WRITE:
-				log_trace(osada_log, "El cliente %d pidio un WRITE.", fdCliente);
+				log_info(osada_log, "El cliente %d pidio un WRITE.", fdCliente);
 				ProcesarWrite(fdCliente);
 				break;
 			case UNLINK:
-				log_trace(osada_log, "El cliente %d pidio un UNLINK.", fdCliente);
+				log_info(osada_log, "El cliente %d pidio un UNLINK.", fdCliente);
 				ProcesarUnlink(fdCliente);
 				break;
 			case TRUNCATE:
-				log_trace(osada_log, "El cliente %d pidio un TRUNCATE.", fdCliente);
+				log_info(osada_log, "El cliente %d pidio un TRUNCATE.", fdCliente);
 				ProcesarTruncate(fdCliente);
 				break;
 			case RMDIR:
-				log_trace(osada_log,  "El cliente %d pidio un RMDIR.", fdCliente);
+				log_info(osada_log,  "El cliente %d pidio un RMDIR.", fdCliente);
 				ProcesarRmDir(fdCliente);
 				break;
 			case RENAME:
-			 	log_trace(osada_log,  "El cliente %d pidio un RENAME.", fdCliente);
+			 	log_info(osada_log,  "El cliente %d pidio un RENAME.", fdCliente);
 			 	ProcesarRename(fdCliente);
 			 	break;
 			 case UTIME:
-			 	log_trace(osada_log,  "El cleinte %d pidio un UTIMENS", fdCliente);
+			 	log_info(osada_log,  "El cleinte %d pidio un UTIMENS", fdCliente);
 			 	ProcesarUtimens(fdCliente);
 			 	break;
 			default:
@@ -1389,21 +1391,6 @@ bool CompararNombres(unsigned char * nom1, char * nom2)
 // Sincronizacion
 void InicializarSemaforos()
 {
-//	// todo: chequear que permitan accederse la primera vez que se consultan...
-//	pthread_mutex_init(&mutex_pedido_bloques, NULL);
-//
-//	sem_tabla_archivos = (sem_t *) myMalloc_sem_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - sem_tabla_archivos", osada_log);
-//	mutex_escrituras = (pthread_mutex_t *)myMalloc_mutex_t(OSADA_CANTIDAD_MAXIMA_ARCHIVOS, "Puntero - mutex escrituras", osada_log);
-//
-//
-//
-//	for (index = 0 ; index < OSADA_CANTIDAD_MAXIMA_ARCHIVOS ; index++)
-//	{
-//		sem_init(&(sem_tabla_archivos[index]), 0 , 0);
-//		pthread_mutex_init(&(mutex_escrituras[index]), NULL);
-//		index++;
-//	}
-
 	int index = 0;
 	// Tabla de archivos
 	myInitMutex(&mutex_escritura_tabla_archivos, "mutex_escritura_tabla_archivos", osada_log);
@@ -1433,7 +1420,7 @@ void InicializarSemaforos()
 
 void sComenzarLecturaTablaArchivos()
 {
-	log_info(osada_log, "**** SINCRO: COMENZAR LECTURA TABLA ARCHIVOS");
+	log_trace(osada_log, "**** SINCRO: COMENZAR LECTURA TABLA ARCHIVOS");
 	myMutexLock(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
 	cuenta_lectores_tabla_archivos++;
 	log_trace(osada_log, "Cantidad Lectores: %d", cuenta_lectores_tabla_archivos);
@@ -1445,7 +1432,7 @@ void sComenzarLecturaTablaArchivos()
 
 void sFinalizarLecturaTablaArchivos()
 {
-	log_info(osada_log, "**** SINCRO: FINALIZAR LECTURA TABLA ARCHIVOS");
+	log_trace(osada_log, "**** SINCRO: FINALIZAR LECTURA TABLA ARCHIVOS");
 	myMutexLock(&mutex_cuenta_lectores_tabla_archivos, "mutex_cuenta_lectores_tabla_archivos", osada_log);
 	cuenta_lectores_tabla_archivos--;
 	log_trace(osada_log, "Cantidad Lectores: %d", cuenta_lectores_tabla_archivos);
@@ -1471,7 +1458,7 @@ void sFinalizarEscrituraTablaArchivos()
 
 void sComenzarLecturaBitmap()
 {
-	log_info(osada_log, "**** SINCRO: COMENZAR LECTURA BITMAP");
+	log_trace(osada_log, "**** SINCRO: COMENZAR LECTURA BITMAP");
 	myMutexLock(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
 	cuenta_lectores_bitmap++;
 	log_trace(osada_log, "Cantidad Lectores BitMap: %d", cuenta_lectores_bitmap);
@@ -1484,7 +1471,7 @@ void sComenzarLecturaBitmap()
 
 void sFinalizarLecturaBitMap()
 {
-	log_info(osada_log, "**** SINCRO: FINALIZAR LECTURA BITMAP");
+	log_trace(osada_log, "**** SINCRO: FINALIZAR LECTURA BITMAP");
 	myMutexLock(&mutex_cuenta_lectores_bitmap, "mutex_cuenta_lectores_bitmap", osada_log);
 	cuenta_lectores_bitmap--;
 	log_trace(osada_log, "Cantidad Lectores: %d", mutex_cuenta_lectores_bitmap);
@@ -1509,7 +1496,7 @@ void sFinalizarEscrituraBitMap()
 
 void sComenzarLecturaArchivo(int idArchivo)
 {
-	log_info(osada_log, "**** SINCRO: COMENZAR LECTURA ARCHIVO: %d", idArchivo);
+	log_trace(osada_log, "**** SINCRO: COMENZAR LECTURA ARCHIVO: %d", idArchivo);
 	myMutexLock(&mutex_cuenta_lectores_archivos[idArchivo], "mutex_cuenta_lectores_archivos", osada_log);
 	cuenta_lectores_archivos[idArchivo] += 1;
 	log_trace(osada_log, "Cantidad Lectores Archivo %d: %d", idArchivo, (cuenta_lectores_archivos[idArchivo]));
@@ -1522,7 +1509,7 @@ void sComenzarLecturaArchivo(int idArchivo)
 
 void sFinalizarLecturaArchivo(int idArchivo)
 {
-	log_info(osada_log, "**** SINCRO: FINALIZAR LECTURA ARCHIVO: %d", idArchivo);
+	log_trace(osada_log, "**** SINCRO: FINALIZAR LECTURA ARCHIVO: %d", idArchivo);
 	myMutexLock(&mutex_cuenta_lectores_archivos[idArchivo], "mutex_cuenta_lectores_archivos", osada_log);
 	cuenta_lectores_archivos[idArchivo] -= 1;
 	log_trace(osada_log, "Cantidad Lectores Archivo %d: %d", idArchivo, cuenta_lectores_archivos[idArchivo]);

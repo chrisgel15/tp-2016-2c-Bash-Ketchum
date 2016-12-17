@@ -44,6 +44,8 @@
 #define MKDIR_DIRECTORIO 2
 #define CREATE_FILE 1
 
+#define LOG_LEVEL "LOG_LEVEL"
+
 typedef struct {
 	int socketNumber;
 	struct addrinfo *serverinfo;

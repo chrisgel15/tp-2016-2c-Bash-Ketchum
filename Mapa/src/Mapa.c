@@ -548,11 +548,11 @@ void enviar_posicion_pokenest(t_entrenador* entrenador , t_mensajes *mensajes){ 
 	t_pokenest *pokenest = get_pokenest_by_identificador(lista_pokenests, *nombre_pokenest);
 	pthread_mutex_unlock(&mutex_pokenests);
 	log_info(mapa_log, "Se envia posicion del Pokenest: %s", pokenest->nombre);
-	entrenador->pokenest = pokenest->posicion;
-	entrenador->conoce_ubicacion = true;
 	enviarInt(entrenador->fd,pokenest->posicion->x);
 	enviarInt(entrenador->fd,pokenest->posicion->y);
 
+	entrenador->pokenest = pokenest->posicion;
+	entrenador->conoce_ubicacion = true;
 	free(nombre_pokenest);
 }
 
@@ -585,6 +585,7 @@ void system_call_manager(){
 	//Manejo de System Calls
 	signal(SIGUSR2, system_call_catch);
 	signal(SIGINT, system_call_catch);
+	signal(SIGPIPE, system_call_catch);
 }
 
 void system_call_catch(int signal){
@@ -611,6 +612,10 @@ void system_call_catch(int signal){
 		list_destroy(items);
 		log_destroy(mapa_log);
 		exit(1);
+	}
+
+	if(signal == SIGPIPE){
+		log_error(mapa_log, "Se envio un mensaje a un Entrenador que se ha desconectado.");
 	}
 }
 
@@ -698,7 +703,7 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 
 	//Finalizo el Turno del Entrenador
 	if(!bloqueado){
-		if(!finalizo){
+		if(!finalizo && !desconectado){
 			agregar_entrenador_a_listos(entrenador);
 		}
 
@@ -1061,7 +1066,7 @@ void batalla_pokemon(t_list *entrenadores){
 		}
 
 		log_info(mapa_log, "El Entrenador %s ha perdido contra el Entrenador %s.", perdedor->nombre, ganador->nombre);
-		enviar_resultado_batalla(perdedor, ganador); //TODO: Descomentar para mandar el aviso
+		//enviar_resultado_batalla(perdedor, ganador); //TODO: Descomentar para mandar el aviso
 		victima = perdedor; //Preparo al perdedor para el Siguiente enfrentamiento
 	}
 

@@ -120,6 +120,7 @@ int fd_osadaDisk;
 struct stat osadaStat;
 int* pmap_osada;
 int tamanio_tabla_asignaciones_bloques;
+char * logLevel;
 
 // Punteros a las diferentes estructuras del disco.
 osada_header* header;

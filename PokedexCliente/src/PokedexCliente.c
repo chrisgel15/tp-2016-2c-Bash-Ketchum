@@ -17,7 +17,19 @@
 
 
 int main(int argc, char *argv[]) {
-	pokedex_cliente_log = CreacionLogWithLevel("pokedex-cliente-log", "pokedex-cliente", "TRACE");
+
+	/************ Creacion del Config ***********************/
+	pokedex_cliente_config = creacion_config();
+
+	if (pokedex_cliente_config->properties->elements_amount < 1)
+	{
+		perror("Error al abrir el archivo de configuracion del Pokedex Cliente");
+		exit(0);
+	}
+
+	logLevel = config_get_string_value(pokedex_cliente_config , LOG_LEVEL);
+
+	pokedex_cliente_log = CreacionLogWithLevel("pokedex-cliente.log", "pokedex-cliente", logLevel);
 
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
 
@@ -29,22 +41,9 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	/************ Creacion del Config ***********************/
-	pokedex_cliente_config = creacion_config();
 
-	if (pokedex_cliente_config->properties->elements_amount < 1)
-	{
-		perror("Error al abrir el archivo de configuracion del Pokedex Cliente");
-		exit(0);
-	}
-
-//	char * puntoMontaje = malloc(sizeof(char));
-//	puntoMontaje = config_get_string_value(pokedex_cliente_config , PUERTO_POKEDEX_SERVIDOR);
-
-	//puertoServer =malloc(sizeof(char));
 	puertoServer = config_get_string_value(pokedex_cliente_config , PUERTO_POKEDEX_SERVIDOR);
 
-	//ipServer = malloc(sizeof(char));
 	ipServer = config_get_string_value(pokedex_cliente_config , IP_POKEDEX_SERVIDOR);
 
 	ltn_pokedex_cliente = createClientSocket(ipServer, puertoServer);
@@ -64,17 +63,10 @@ int main(int argc, char *argv[]) {
 
 // FUSE OPERATIONS
 static int osada_getattr(const char *path, struct stat *stbuf) {
-	log_trace(pokedex_cliente_log, "\t***** COMIENZO UN GETATTR. FD %d. *****", clientSocket);
+	log_info(pokedex_cliente_log, "\t***** COMIENZO UN GETATTR. FD %d. *****", clientSocket);
 
 	int res = 0;
 	memset(stbuf, 0, sizeof(struct stat));
-
-	// TODO: Quitar esto para prd...
-	if (strstr(path, ".Trash") != NULL ||
-			strstr(path, ".Trash-1000") != NULL ||
-				strstr(path, "xdg-volume-info") != NULL	||
-					strstr(path, "autorun.inf") != NULL 	)
-		return -ENOENT;
 
 	if (strcmp(path, "/" )== 0)
 	{
@@ -149,7 +141,7 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 		myFree(resultFin, "osada_getattr resultFin", pokedex_cliente_log);
 	}
 
-	log_trace(pokedex_cliente_log, "\t***** FINALIZO GETATTR. FD %d. *****", clientSocket);
+	log_info(pokedex_cliente_log, "\t***** FINALIZO GETATTR. FD %d. *****", clientSocket);
 
 	return res;
 
@@ -158,7 +150,7 @@ static int osada_getattr(const char *path, struct stat *stbuf) {
 static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
 	// Enviar la señal READDIR
 
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un READDIR *****");
+	log_info(pokedex_cliente_log, "\t***** Comienzo un READDIR. FD %d. *****", clientSocket);
 
 	int res = enviarInt(clientSocket, READDIR);
 
@@ -182,7 +174,7 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 		{
 			tamanioName = recibirInt(clientSocket, result, pokedex_cliente_log);
 
-			name = myMalloc_char(tamanioName+1, "osada_readdir - name", pokedex_cliente_log);
+			name = myMalloc_char(tamanioName+2, "osada_readdir - name", pokedex_cliente_log);
 			//recibirMensaje(clientSocket, name, tamanioName, pokedex_cliente_log);
 			recibirBytes(clientSocket, (void *)name, tamanioName+1, pokedex_cliente_log);
 
@@ -218,7 +210,7 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 	myFree(resultFin, "osada_readdir resultFin", pokedex_cliente_log);
 
 
-	log_trace(pokedex_cliente_log, "\t***** FINALIZO un READDIR *****");
+	log_info(pokedex_cliente_log, "\t***** FINALIZO un READDIR. FD %d. *****", clientSocket);
 	//filler(buf, "archivo.txt", NULL, 0);
 
 
@@ -228,7 +220,7 @@ static int osada_readdir(const char *path, void *buf, fuse_fill_dir_t filler, of
 static int osada_read(const char *path, char *buf, size_t size, off_t offset,struct fuse_file_info *fi)
 {
 
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un READ. Archivo: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** COMIENZO un READ. Archivo: %s. FD %d *****", path, clientSocket);
 
 	// Envio el pedido de READ
 	enviarInt(clientSocket, READ);
@@ -269,14 +261,14 @@ static int osada_read(const char *path, char *buf, size_t size, off_t offset,str
 
 	myFree(resultFin, "osada_read resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un READ. Archivo: %s. Bytes: %d *****", path, cantidadBytes);
+	log_info(pokedex_cliente_log, "\t***** FINALIZO un READ. Archivo: %s. Bytes: %d Cliente %d *****", path, cantidadBytes, clientSocket);
 
 	return cantidadBytes;
 }
 
 static int osada_write (const char * path, const char * buf, size_t size, off_t offset, struct fuse_file_info * fi)
 {
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un WRITE. Archivo: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** COMIENZO UN WRITE. Archivo: %s Cliente %d *****", path, clientSocket);
 
 	// Envio el pedido de WRITE
 	enviarInt(clientSocket, WRITE);
@@ -317,14 +309,14 @@ static int osada_write (const char * path, const char * buf, size_t size, off_t 
 
 	myFree(resultFin, "osada_write resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un WRITE. Archivo: %s. Bytes: %d *****", path, cantidadBytes);
+	log_info(pokedex_cliente_log, "\t***** FINALIZO UN WRITE. Archivo: %s. Bytes: %d Cliente %d *****", path, cantidadBytes, clientSocket);
 
 	return cantidadBytes;
 }
 
 static int osada_create (const char * path, mode_t mode, struct fuse_file_info * fi)
 {
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un CREATE. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** COMIENZO un CREATE. Path: %s Cliente %d *****", path, clientSocket);
 
 	int resultado = CrearArchivoDirectorio(path, CREATE, CREATE_FILE);
 
@@ -342,14 +334,14 @@ static int osada_create (const char * path, mode_t mode, struct fuse_file_info *
 
 	myFree(resultFin, "osada_create resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\tFINALIZO un CREATE. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t**** FINALIZO un CREATE. Path: %s *****", path);
 
 	return resultado;
 }
 
 static int osada_mkdir (const char * path, mode_t mode)
 {
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un MKDIR. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** Comienzo un MKDIR. Path: %s *****", path);
 
 	int resultado = CrearArchivoDirectorio(path, MKDIR, MKDIR_DIRECTORIO);
 
@@ -367,14 +359,14 @@ static int osada_mkdir (const char * path, mode_t mode)
 
 	myFree(resultFin, "osada_mkdir resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\tFINALIZO un MKDIR. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t**** FINALIZO un MKDIR. Path: %s Cliente %d *****", path, clientSocket);
 
 	return resultado;
 }
 
 static int osada_truncate(const char * path , off_t length)
 {
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un TRUNCATE. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** Comienzo un TRUNCATE. Path: %s *****", path);
 
 	// Envio el pedido de UNLINK
 	enviarInt(clientSocket, TRUNCATE);
@@ -402,14 +394,14 @@ static int osada_truncate(const char * path , off_t length)
 
 	myFree(resultFin, "osada_truncate resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un TRUNCATE. Archivo: %s. *****", path);
+	log_info(pokedex_cliente_log, "\t***** Finalizo un TRUNCATE. Archivo: %s. Cliente %d *****", path, clientSocket);
 
 	return 0;
 }
 
 static int osada_unlink(const char* path){
 
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un UNLINK. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** Comienzo un UNLINK. Path: %s Cliente %d *****", path, clientSocket);
 	// Envio el pedido de UNLINK
 	enviarInt(clientSocket, UNLINK);
 
@@ -440,7 +432,7 @@ static int osada_unlink(const char* path){
 
 	myFree(resultFin, "osada_unlink resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un UNLINK. Archivo: %s. Status: %d *****", path, status);
+	log_info(pokedex_cliente_log, "\t***** Finalizo un UNLINK. Archivo: %s. Status: %d Cliente %d *****", path, status, clientSocket);
 
 	return status;
 
@@ -449,7 +441,7 @@ static int osada_unlink(const char* path){
 static int osada_rmdir(const char* path)
 {
 
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un RMDIR. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** Comienzo un RMDIR. Path: %s Cliente %d *****", path, clientSocket);
 	// Envio el pedido de RMDIR
 	enviarInt(clientSocket, RMDIR);
 
@@ -477,7 +469,7 @@ static int osada_rmdir(const char* path)
 	myFree(resultFin, "osada_rmdir resultFin", pokedex_cliente_log);
 	myFree(resultado, "osada_rename resultado", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un RMDIR. Archivo: %s. *****", path);
+	log_info(pokedex_cliente_log, "\t***** Finalizo un RMDIR. Archivo: %s. Cliente %d *****", path, clientSocket);
 
 	return status;
 
@@ -486,7 +478,7 @@ static int osada_rmdir(const char* path)
 static int osada_utimens (const char * path, const struct timespec tiempo[2])
 {
 
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un UTIMENS. Path: %s *****", path);
+	log_info(pokedex_cliente_log, "\t***** Comienzo un UTIMENS. Path: %s Cliente %d *****", path, clientSocket);
 	// Envio el pedido de RMDIR
 	enviarInt(clientSocket, UTIME);
 
@@ -513,7 +505,7 @@ static int osada_utimens (const char * path, const struct timespec tiempo[2])
 
 	myFree(resultFin, "osada_utimens resultFin", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un UTIMENS. Archivo: %s. *****", path);
+	log_info(pokedex_cliente_log, "\t***** Finalizo un UTIMENS. Archivo: %s. Cliente %d *****", path, clientSocket);
 
 	return 0;
 
@@ -522,7 +514,7 @@ static int osada_utimens (const char * path, const struct timespec tiempo[2])
 static int osada_rename(const char* oldPath, const char* newPath)
 {
 
-	log_trace(pokedex_cliente_log, "\t***** Comienzo un Rename. oldPath: %s *****", oldPath);
+	log_info(pokedex_cliente_log, "\t***** Comienzo un Rename. oldPath: %s Cliente %d *****", oldPath, clientSocket);
 	// Envio el pedido de RMDIR
 	enviarInt(clientSocket, RENAME);
 
@@ -556,7 +548,7 @@ static int osada_rename(const char* oldPath, const char* newPath)
 	myFree(resultFin, "osada_rename resultFin", pokedex_cliente_log);
 	myFree(resultado, "osada_rename resultado", pokedex_cliente_log);
 
-	log_trace(pokedex_cliente_log, "\t***** Finalizo un read un RENAME. Archivo: %s. *****", newPath);
+	log_info(pokedex_cliente_log, "\t***** Finalizo un RENAME. Archivo: %s. Cliente %d *****", newPath, clientSocket);
 
 	return status;
 
