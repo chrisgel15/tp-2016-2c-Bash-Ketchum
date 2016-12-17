@@ -1,0 +1,54 @@
+[INFO] 00:51:54:451 createSocket.c/(2797:2797): Socket abierto: 5 
+[INFO] 00:51:54:453 createSocket.c/(2797:2797): Socket reutilizado. Fin createSocket.c 
+[TRACE] 00:51:54:455 createSocket.c/(2797:2797): Intentando alocar 8 bytes para la variable createSocket - returnValue
+[TRACE] 00:51:54:456 createSocket.c/(2797:2797): Pude alocar correctamente 8 bytes en la direccion: 9e01a98
+[INFO] 00:51:54:459 doBind.c/(2797:2797): Comienzo el bind. Socket: 5
+[INFO] 00:51:54:463 doBind.c/(2797:2797): Finalizado el bind
+[TRACE] 00:51:54:465 doBind.c/(2797:2797): Liberando la variable sockAddrInfo en la direccion 9e01a98
+[INFO] 00:51:54:470 doListen.c/(2797:2797): Comienzo el listen. Socket: 5
+[INFO] 00:51:54:477 doListen.c/(2797:2797): Finalizado el listen
+[INFO] 01:19:39:916 createSocket.c/(3030:3030): Socket abierto: 5 
+[INFO] 01:19:39:928 createSocket.c/(3030:3030): Socket reutilizado. Fin createSocket.c 
+[TRACE] 01:19:39:933 createSocket.c/(3030:3030): Intentando alocar 8 bytes para la variable createSocket - returnValue
+[TRACE] 01:19:39:934 createSocket.c/(3030:3030): Pude alocar correctamente 8 bytes en la direccion: 854ea98
+[INFO] 01:19:39:935 doBind.c/(3030:3030): Comienzo el bind. Socket: 5
+[INFO] 01:19:39:936 doBind.c/(3030:3030): Finalizado el bind
+[TRACE] 01:19:39:936 doBind.c/(3030:3030): Liberando la variable sockAddrInfo en la direccion 854ea98
+[INFO] 01:19:39:938 doListen.c/(3030:3030): Comienzo el listen. Socket: 5
+[INFO] 01:19:39:944 doListen.c/(3030:3030): Finalizado el listen
+[INFO] 03:29:53:793 createSocket.c/(4715:4715): Socket abierto: 5 
+[INFO] 03:29:53:796 createSocket.c/(4715:4715): Socket reutilizado. Fin createSocket.c 
+[TRACE] 03:29:53:797 createSocket.c/(4715:4715): Intentando alocar 8 bytes para la variable createSocket - returnValue
+[TRACE] 03:29:53:799 createSocket.c/(4715:4715): Pude alocar correctamente 8 bytes en la direccion: 8acca98
+[INFO] 03:29:53:801 doBind.c/(4715:4715): Comienzo el bind. Socket: 5
+[INFO] 03:29:53:803 doBind.c/(4715:4715): Finalizado el bind
+[TRACE] 03:29:53:804 doBind.c/(4715:4715): Liberando la variable sockAddrInfo en la direccion 8acca98
+[INFO] 03:29:53:805 doListen.c/(4715:4715): Comienzo el listen. Socket: 5
+[INFO] 03:29:53:809 doListen.c/(4715:4715): Finalizado el listen
+[INFO] 03:46:54:616 createSocket.c/(4774:4774): Socket abierto: 5 
+[INFO] 03:46:54:636 createSocket.c/(4774:4774): Socket reutilizado. Fin createSocket.c 
+[TRACE] 03:46:54:642 createSocket.c/(4774:4774): Intentando alocar 8 bytes para la variable createSocket - returnValue
+[TRACE] 03:46:54:643 createSocket.c/(4774:4774): Pude alocar correctamente 8 bytes en la direccion: 95e0a98
+[INFO] 03:46:54:644 doBind.c/(4774:4774): Comienzo el bind. Socket: 5
+[INFO] 03:46:54:652 doBind.c/(4774:4774): Finalizado el bind
+[TRACE] 03:46:54:657 doBind.c/(4774:4774): Liberando la variable sockAddrInfo en la direccion 95e0a98
+[INFO] 03:46:54:658 doListen.c/(4774:4774): Comienzo el listen. Socket: 5
+[INFO] 03:46:54:658 doListen.c/(4774:4774): Finalizado el listen
+[INFO] 03:51:59:559 createSocket.c/(4843:4843): Socket abierto: 5 
+[INFO] 03:51:59:564 createSocket.c/(4843:4843): Socket reutilizado. Fin createSocket.c 
+[TRACE] 03:51:59:566 createSocket.c/(4843:4843): Intentando alocar 8 bytes para la variable createSocket - returnValue
+[TRACE] 03:51:59:566 createSocket.c/(4843:4843): Pude alocar correctamente 8 bytes en la direccion: 9350a98
+[INFO] 03:51:59:568 doBind.c/(4843:4843): Comienzo el bind. Socket: 5
+[INFO] 03:51:59:569 doBind.c/(4843:4843): Finalizado el bind
+[TRACE] 03:51:59:572 doBind.c/(4843:4843): Liberando la variable sockAddrInfo en la direccion 9350a98
+[INFO] 03:51:59:574 doListen.c/(4843:4843): Comienzo el listen. Socket: 5
+[INFO] 03:51:59:576 doListen.c/(4843:4843): Finalizado el listen
+[INFO] 04:13:05:228 createSocket.c/(5203:5203): Socket abierto: 5 
+[INFO] 04:13:05:277 createSocket.c/(5203:5203): Socket reutilizado. Fin createSocket.c 
+[TRACE] 04:13:05:277 createSocket.c/(5203:5203): Intentando alocar 8 bytes para la variable createSocket - returnValue
+[TRACE] 04:13:05:277 createSocket.c/(5203:5203): Pude alocar correctamente 8 bytes en la direccion: 985ba98
+[INFO] 04:13:05:277 doBind.c/(5203:5203): Comienzo el bind. Socket: 5
+[INFO] 04:13:05:278 doBind.c/(5203:5203): Finalizado el bind
+[TRACE] 04:13:05:278 doBind.c/(5203:5203): Liberando la variable sockAddrInfo en la direccion 985ba98
+[INFO] 04:13:05:278 doListen.c/(5203:5203): Comienzo el listen. Socket: 5
+[INFO] 04:13:05:288 doListen.c/(5203:5203): Finalizado el listen
