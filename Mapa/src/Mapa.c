@@ -190,13 +190,15 @@ void system_call_manager(){
 void system_call_catch(int signal){
 
 	if (signal == SIGUSR2){
+		free(metadata);
 		metadata = get_mapa_metadata(ruta_pokedex, nombre_mapa);
 		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
 		set_algoritmoActual();
 		set_quantum();
 		set_retardo();
 		set_interbloqueo();
-		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d - Interbloqueo: %d - Retardo: %d." , algoritmo, mapa_quantum, get_mapa_tiempo_deadlock(metadata), get_mapa_retardo(metadata));
+		log_info(mapa_log, "Nuevas variables de Conf: Algoritmo: %s - Quantum: %d - Interbloqueo: %d - Retardo: %d." , algoritmo, mapa_quantum, get_mapa_tiempo_deadlock(metadata), get_mapa_retardo(metadata));
+
 	}
 	//Ctrl + C
 	if(signal == SIGINT){
@@ -206,6 +208,7 @@ void system_call_catch(int signal){
 		free(nombre_mapa);
 		free(ruta_pokedex);
 		free(pokenest_dir);
+		free(metadata);
 		liberar_pokenest(lista_pokenests);
 		finalizar_mapa();
 		list_destroy(items);
@@ -678,13 +681,14 @@ void atender_Viaje_Entrenador(t_entrenador* entrenador, bool es_algoritmo_rr){
 	bool desconectado = FALSE; //Falg utilizado para saber si el Entrenador se Desconecto
 	int *instruccion;
 	bool conocio_ubicacion = false;
+	int quantum = mapa_quantum;
 
-	while ((!es_algoritmo_rr || turnos < mapa_quantum) && !bloqueado && !finalizo && !desconectado && !conocio_ubicacion){
+	while ((!es_algoritmo_rr || turnos < quantum) && !bloqueado && !finalizo && !desconectado && !conocio_ubicacion){
 		t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
 		//sem_wait(&sem_mensajes);
 		sem_wait(&mensajes_entrenador->semaforo);
 
-		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, turnos);
+		log_info(mapa_log, "Al Entrenador %s le toca el turno %d", entrenador->nombre, (turnos + 1));
 
 		//t_mensajes *mensajes_entrenador = obtener_mensajes_de_entrenador(mensajes_entrenadores, entrenador->fd);
 		instruccion = (int*) obtener_mensaje(mensajes_entrenador);
