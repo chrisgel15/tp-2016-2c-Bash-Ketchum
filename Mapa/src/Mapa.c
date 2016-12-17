@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
 	//pthread_t interbloqueo;
 	pthread_create(&p_interbloqueo, NULL, (void *) chequear_interbloqueados, NULL);
 
-	//Hilo Interbloqueo
+	//Hilo de Manejo de Señales
 	pthread_t p_calls_manager;
 	pthread_create(&p_calls_manager, NULL, (void *) system_call_manager, NULL);
 
@@ -153,12 +153,51 @@ int main(int argc, char **argv) {
 						&(fd_sets_entrenadores->writeFileDescriptorSet),
 						NULL, NULL) == -1){
 			log_error(mapa_log,"Se ha producido un error al intentar atender las peticiones de los Entrenadores.");
-			exit(1);
+			//exit(1);
 		}
 		fd_sets_entrenadores = checkReads(fd_sets_entrenadores, atender_entrenador, despedir_entrenador, mapa_log);
 	}
 	free(pokenest_dir);
 	return EXIT_SUCCESS;
+}
+
+/********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
+void system_call_manager(){
+	//Manejo de System Calls
+	signal(SIGUSR2, system_call_catch);
+	signal(SIGINT, system_call_catch);
+	signal(SIGPIPE, system_call_catch);
+}
+
+void system_call_catch(int signal){
+
+	if (signal == SIGUSR2){
+		metadata = get_mapa_metadata(ruta_pokedex, nombre_mapa);
+		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
+		set_algoritmoActual();
+		set_quantum();
+		set_retardo();
+		set_interbloqueo();
+		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d" , algoritmo, mapa_quantum/*, interbloqueo, retardo*/);
+	}
+	//Ctrl + C
+	if(signal ==  SIGINT){
+		liberar_mensajes(mensajes_entrenadores, mapa_log);
+		free(log_nombre);
+		free(algoritmo);
+		free(nombre_mapa);
+		free(ruta_pokedex);
+		free(pokenest_dir);
+		liberar_pokenest(lista_pokenests);
+		finalizar_mapa();
+		list_destroy(items);
+		log_destroy(mapa_log);
+		exit(1);
+	}
+
+	if(signal == SIGPIPE){
+		log_error(mapa_log, "Se envio un mensaje a un Entrenador que se ha desconectado.");
+	}
 }
 
 /********* FUNCIONES PARA EL MANEJO DE ESTRUCTURAS DE ESTADOS *********/
@@ -580,44 +619,7 @@ void solicitar_atrapar_pokemon(t_entrenador *entrenador, t_mensajes *mensajes){
 	log_info(mapa_log, "El Entrenador %s solicito atrapar a un Pokemon.", entrenador->nombre);
 }
 
-/********* FUNCION ENCARGADA DEL MANEJO DE LAS SYSTEM CALLS*********/
-void system_call_manager(){
-	//Manejo de System Calls
-	signal(SIGUSR2, system_call_catch);
-	signal(SIGINT, system_call_catch);
-	signal(SIGPIPE, system_call_catch);
-}
 
-void system_call_catch(int signal){
-
-	if (signal == SIGUSR2){
-		metadata = get_mapa_metadata(ruta_pokedex, nombre_mapa);
-		log_info(mapa_log, "Se ha enviado la señal SIGUSR2. Se actualizarán las variables de Configuración.");
-		set_algoritmoActual();
-		set_quantum();
-		set_retardo();
-		set_interbloqueo();
-		log_info(mapa_log, "Nuenas variables de Conf: Algoritmo: %s - Quantum: %d - Retardo de Interbloqueo: %d. - Retardo de Quantum: %d." , algoritmo, mapa_quantum, interbloqueo, retardo);
-	}
-	//Ctrl + C
-	if(signal ==  SIGINT){
-		liberar_mensajes(mensajes_entrenadores, mapa_log);
-		free(log_nombre);
-		free(algoritmo);
-		free(nombre_mapa);
-		free(ruta_pokedex);
-		free(pokenest_dir);
-		liberar_pokenest(lista_pokenests);
-		finalizar_mapa();
-		list_destroy(items);
-		log_destroy(mapa_log);
-		exit(1);
-	}
-
-	if(signal == SIGPIPE){
-		log_error(mapa_log, "Se envio un mensaje a un Entrenador que se ha desconectado.");
-	}
-}
 
 /********* FUNCIONES ENCARGADAS DE LA PLANIFICACION DE LOS ENTRENADORES *********/
 void administrar_turnos() {
@@ -762,14 +764,14 @@ void set_algoritmoActual(){
 	algoritmo = get_mapa_algoritmo(metadata);
 }
 void set_quantum(){
-	mapa_quantum = get_mapa_quantum(metadata) * 1000;
+	mapa_quantum = get_mapa_quantum(metadata);
 }
 
 void set_retardo(){
 	retardo = get_mapa_retardo(metadata) * 1000;
 }
 void set_interbloqueo(){
-	interbloqueo = get_mapa_tiempo_deadlock(metadata);
+	interbloqueo = get_mapa_tiempo_deadlock(metadata) * 1000;
 }
 
 void administrar_bloqueados(char *pokenest_id){
@@ -991,11 +993,14 @@ void chequear_interbloqueados(){
 
 			log_info(mapa_log, "Se busca los Entrenadores que no fueron marcados.");
 
+			char *entrenadores_interbloqueados_string = string_new();
 			//Libero la lista de Chequeo de Interbloqueo
 			for(i = 0; i < cant_entrenadores; i++){
 				t_entrenador_interbloqueado *entrenador = (t_entrenador_interbloqueado *) list_remove(lista_interbloqueo, 0);
 
 				if(entrenador->marcado == 0){
+					string_append(&entrenadores_interbloqueados_string, entrenador->entrenador->nombre);
+					string_append(&entrenadores_interbloqueados_string, " ");
 					list_add(entrenadores_interbloqueados, entrenador->entrenador);
 				}
 
@@ -1003,9 +1008,13 @@ void chequear_interbloqueados(){
 				char *char_solicitud = string_new();
 				for(j = 0; j < cant_pokenets; j++){
 					string_append(&char_asignacion, " ");
-					string_append(&char_asignacion, string_itoa(entrenador->asignacion[j]));
+					char *entr_asignacion = string_itoa(entrenador->asignacion[j]);
+					string_append(&char_asignacion, entr_asignacion);
+					free(entr_asignacion);
 					string_append(&char_solicitud, " ");
-					string_append(&char_solicitud, string_itoa(entrenador->solicitud[j]));
+					char *entr_solicitud = string_itoa(entrenador->solicitud[j]);
+					string_append(&char_solicitud, entr_solicitud);
+					free(entr_solicitud);
 				}
 				log_info(mapa_log, "Recursos de %s - Asignacion: %s. Solicitud: %s", entrenador->entrenador->nombre, char_asignacion, char_solicitud);
 				free(char_asignacion);
@@ -1021,6 +1030,7 @@ void chequear_interbloqueados(){
 			log_info(mapa_log, "Se va a verificar la cantidad de Entrenadores Intebloqueados.");
 			if(list_size(entrenadores_interbloqueados) > 1){
 				ordenar_entrenadores_interbloqueados(entrenadores_interbloqueados);
+				log_info(mapa_log, "Entrenadores Interbloqueados: %s", entrenadores_interbloqueados_string);
 
 				//Verifico si el Mapa se encuentra en modo batalla
 				if(modo_batalla){
@@ -1033,7 +1043,7 @@ void chequear_interbloqueados(){
 			} else {
 				log_info(mapa_log, "No se registran Entrenadores Interbloqueados.");
 			}
-
+			free(entrenadores_interbloqueados_string);
 		} else {
 			log_info(mapa_log, "No se registran Entrenadores Bloqueados.");
 		}
