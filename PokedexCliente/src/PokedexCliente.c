@@ -53,7 +53,7 @@ int main(int argc, char *argv[]) {
 	// de realizar el montaje, comuniscarse con el kernel, delegar todo
 	// en varios threads
 	//char * mount_point = argv[2];
-	system("umount /home/utnso/osada_mount");
+	//system("umount /home/utnso/osada_mount");
 
 	return fuse_main(args.argc, args.argv, &osada_oper, NULL);
 
