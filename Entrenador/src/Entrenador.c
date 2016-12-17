@@ -186,9 +186,9 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 		char* mensaje2 = malloc(sizeof(char) * (tamanio_mensaje + 1));
 		recibirMensaje(socket_mapa, mensaje2, tamanio_mensaje, entrenador_log);
 		list_add(pokemons, mensaje2);
-		pthread_mutex_lock(&mutex_archivo);
+		//pthread_mutex_lock(&mutex_archivo);
 		copiar_archivo(mensaje2, dirBill);
-		pthread_mutex_unlock(&mutex_archivo);
+		//pthread_mutex_unlock(&mutex_archivo);
 
 		log_info(entrenador_log, "Copio archivo %s a directorio bill ",
 				mensaje2);
@@ -277,10 +277,10 @@ void terminarObjetivo(){
 	ruta_medalla = malloc(sizeof(char) * (tamanio_texto + 1));
 	recibirMensaje(socket_mapa, ruta_medalla, tamanio_texto, entrenador_log);
 
-	pthread_mutex_lock(&mutex_archivo);
+	//pthread_mutex_lock(&mutex_archivo);
 	copiar_archivo(ruta_medalla, dirMedalla);
 	log_info (entrenador_log, "Se copio %s al directorio medallas ", ruta_medalla);
-	pthread_mutex_unlock(&mutex_archivo);
+	//pthread_mutex_unlock(&mutex_archivo);
 	free(result);
 	free(ruta_medalla);
 
@@ -547,9 +547,9 @@ void borrar_medallas(void){
 	DIR* dir_medalla = opendir(dirMedalla);
 	char *contenido = string_new();
 	string_append(&contenido,".jpg");
-	pthread_mutex_lock(&mutex_archivo);
+	//pthread_mutex_lock(&mutex_archivo);
 	borrar(dir_medalla,contenido,dirMedalla);
-	pthread_mutex_unlock(&mutex_archivo);
+	//pthread_mutex_unlock(&mutex_archivo);
 	closedir(dir_medalla);
 	free(contenido);
 

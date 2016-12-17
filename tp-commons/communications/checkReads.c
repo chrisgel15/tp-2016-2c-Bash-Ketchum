@@ -13,6 +13,7 @@ ltn_fd_sets * checkReads(ltn_fd_sets * fdSets, void (*funcProcessInstructionCode
 	int nuevaConexion;
 	int bytesRecibidos;
 	int * result = malloc(sizeof(int));
+	//int * result;
 
 	//Run through the existing connections looking for data to read
 	for (i = 0; i <= (fdSets->maxFileDescriptorNumber); i++) {
@@ -32,6 +33,7 @@ ltn_fd_sets * checkReads(ltn_fd_sets * fdSets, void (*funcProcessInstructionCode
 				}
 			} else {
 				// handle data from a client
+				//result = malloc(sizeof(int));
 				bytesRecibidos = recibirInt(i, result, myLog);
 				if (*result <= 0) {
 					// got error or connection closed by client
@@ -51,9 +53,8 @@ ltn_fd_sets * checkReads(ltn_fd_sets * fdSets, void (*funcProcessInstructionCode
 					// we got some data from a client
 				}
 			}
-			//free(result);// END handle data from client
+			free(result);// END handle data from client
 		} // END got new incoming connection
 	} // END looping through file descriptors
-	free(result);// END handle data from client
 	return fdSets;
 }
