@@ -70,3 +70,21 @@ int llego_a_pokenest(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest){
 
 	return 0;
 }
+
+int llego_a_pokenest_x(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest){
+	if(posicion->x == pokenest->x){ //&& (posicion->y == pokenest->y)){
+		return 1;
+	}
+
+	return 0;
+}
+
+int llego_a_pokenest_y(t_posicion_mapa *posicion,  t_posicion_pokenest *pokenest){
+	if(posicion->y == pokenest->y){ //&& (posicion->y == pokenest->y)){
+		return 1;
+	}
+
+	return 0;
+}
+
+
