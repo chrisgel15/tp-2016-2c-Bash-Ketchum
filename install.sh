@@ -16,9 +16,9 @@ sudo make install
 
 cd /home/utnso
 git clone https://github.com/sisoputnfrba/so-nivel-gui-library
-cd /so-nivel-gui-library/nivel-gui
+cd so-nivel-gui-library
 
-sudo make
+sudo make install
 
 #Preparo archivo del disco
 
