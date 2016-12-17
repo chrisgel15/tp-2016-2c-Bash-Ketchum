@@ -51,9 +51,9 @@ ltn_fd_sets * checkReads(ltn_fd_sets * fdSets, void (*funcProcessInstructionCode
 					// we got some data from a client
 				}
 			}
-			free(result);// END handle data from client
+			//free(result);// END handle data from client
 		} // END got new incoming connection
 	} // END looping through file descriptors
-
+	free(result);// END handle data from client
 	return fdSets;
 }
