@@ -546,25 +546,58 @@ void ProcesarTruncate(int fd)
 	if (*directoryId < 0)
 		*result = -ENOENT;
 
-	sComenzarEscrituraArchivo(*directoryId);
-
 	osada_file * indice_tabla_archivos = tabla_archivos;
 	indice_tabla_archivos+=*directoryId;
 
-	cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+	int archivoTam = TamanioEnBloques(indice_tabla_archivos->file_size);
+	int nuevoTam = TamanioEnBloques(lengthRecibida);
+	int res = FIN_TRUNCATE;
 
-	DeleteBlocks(cantBloques,*directoryId);
+	if(nuevoTam == 0){
+		sComenzarEscrituraArchivo(*directoryId);
+		cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
 
-	indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
-	indice_tabla_archivos->file_size = 0;
+		DeleteBlocks(cantBloques,*directoryId);
 
-	sFinalizarEscrituraArchivo(*directoryId);
+		indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
+		indice_tabla_archivos->file_size = 0;
+		sFinalizarEscrituraArchivo(*directoryId);
+
+	} else if(nuevoTam < archivoTam && nuevoTam > 0){
+		sComenzarEscrituraArchivo(*directoryId);
+		cantBloques = TamanioEnBloques(indice_tabla_archivos->file_size);
+
+		DeleteBlocks(cantBloques,*directoryId);
+
+		indice_tabla_archivos->first_block = SIN_BLOQUES_ASIGNADOS;
+		indice_tabla_archivos->file_size = 0;
+		sFinalizarEscrituraArchivo(*directoryId);
+
+		if(CantidadBloquesLibres(nuevoTam) == nuevoTam){
+			LectoEscrituraFromOffset((off_t)indice_tabla_archivos->file_size, nuevoTam*OSADA_BLOCK_SIZE, *directoryId, "\0", ESCRITURA);
+		}
+		else
+			res = -ENOSPC;
+	} else if (nuevoTam > archivoTam){
+		// Comparo cantidad de bloques necesarios vs. Cantidad de bloques asignados
+		int cantBloquesAgregar = 0;
+		cantBloquesAgregar = nuevoTam - archivoTam;
+
+		// Buscar si tengo esa cantidad de bloques disponibles
+		if (CantidadBloquesLibres(cantBloquesAgregar) == cantBloquesAgregar)
+		{
+			// Agrego los bloques
+			LectoEscrituraFromOffset((off_t)indice_tabla_archivos->file_size, cantBloquesAgregar*OSADA_BLOCK_SIZE, *directoryId, "\0", ESCRITURA);
+		}
+		else
+			res = -ENOSPC;
+	}
 
 	myFree(result, "ProcesarTruncate - result", osada_log);
 	myFree(path, "ProcesarTruncate - path", osada_log);
 	myFree(directoryId, "ProcesarTruncate - directoryId", osada_log);
 
-	enviarInt(fd, FIN_TRUNCATE);
+	enviarInt(fd, res);
 
 }
 
