@@ -14,6 +14,12 @@ cd so-commons-library
 
 sudo make install
 
+cd /home/utnso
+git clone https://github.com/sisoputnfrba/so-nivel-gui-library
+cd so-nivel-gui-library
+
+sudo make install
+
 #Preparo archivo del disco
 
 cd /home/utnso
