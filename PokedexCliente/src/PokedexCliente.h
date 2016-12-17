@@ -71,6 +71,7 @@ static struct fuse_operations osada_oper = {
 t_log * pokedex_cliente_log;
 t_config* pokedex_cliente_config;
 
+char * logLevel;
 char * puertoServer;
 char * ipServer;
 ltn_sock_addinfo *ltn_pokedex_cliente;

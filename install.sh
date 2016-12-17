@@ -2,6 +2,7 @@
 sudo apt-get update
 sudo apt-get install openssl
 sudo apt-get install libssl-dev
+sudo apt-get install libncurses5-dev
 
 # Instalacion de las commons
 
@@ -78,6 +79,22 @@ cd /home/utnso/tp-2016-2c-Bash-Ketchum/PokedexServidor/Debug
 make all
 
 echo "Instalada la PokedexServidor"
+
+cd /home/utnso
+
+mkdir mnt
+
+cd mnt
+
+mkdir pokedex
+
+echo "Creada la ruta /home/utnso/mnt/pokedex"
+
+cp /home/utnso/tp-2016-2c-Bash-Ketchum/prueba* /home/utnso/osadaDisks
+
+echo "Movidos los discos a la carpeta osadaDisks"
+
+
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/utnso/tp-2016-2c-Bash-Ketchum/tp-commons/Debug
 
