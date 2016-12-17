@@ -226,7 +226,7 @@ void capturar_pokemon(char *nombre_pokemon, t_list* pokemons,
 			log_info(entrenador_log,
 					"Se borraron los pokemons para finalizar el programa ");
 			free(result);
-			exit(1);
+			//exit(1);
 		}
 		free(result);
 		break;
@@ -244,9 +244,11 @@ int avanzar_hacia_pokenest(){
 	//Me muevo en X
 	movimiento_x = moverse_en_mapa_eje_x(posicion_mapa, posicion_pokenest);
 	enviarInt(socket_mapa, posicion_mapa->x);
+	enviarInt(socket_mapa, posicion_mapa->y);
 
 	//Me muevo en Y
 	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
+	enviarInt(socket_mapa, posicion_mapa->x);
 	enviarInt(socket_mapa, posicion_mapa->y);
 	return llego_a_pokenest(posicion_mapa, posicion_pokenest);
 	//Valida si el entrenador no se tiene que mover más, si es asi se devuelve 1, de lo contrario 0
@@ -255,6 +257,30 @@ int avanzar_hacia_pokenest(){
 	} else {
 		return 0;
 	}*/
+}
+
+int avanzar_hacia_pokenest_x() {
+	int movimiento_x;
+	enviarInt(socket_mapa, AVANZAR_HACIA_POKENEST);
+	//Me muevo en X
+	movimiento_x = moverse_en_mapa_eje_x(posicion_mapa, posicion_pokenest);
+	if(movimiento_x == 0)
+		moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
+	enviarInt(socket_mapa, posicion_mapa->x);
+	enviarInt(socket_mapa, posicion_mapa->y);
+	//return llego_a_pokenest_x(posicion_mapa, posicion_pokenest);
+}
+
+int avanzar_hacia_pokenest_y() {
+	int movimiento_y;
+	enviarInt(socket_mapa, AVANZAR_HACIA_POKENEST);
+	//Me muevo en Y
+	movimiento_y = moverse_en_mapa_eje_y(posicion_mapa, posicion_pokenest);
+	if(movimiento_y == 0)
+		moverse_en_mapa_eje_x(posicion_mapa, posicion_pokenest);
+	enviarInt(socket_mapa, posicion_mapa->x);
+	enviarInt(socket_mapa, posicion_mapa->y);
+	//return llego_a_pokenest_y(posicion_mapa, posicion_pokenest);
 }
 
 
@@ -306,6 +332,8 @@ void imprimirEstadisticaDelViaje(void) {
 
 void recorrer_hojaDeViaje(int posHojaDeViaje) {
 
+	bool movi_x = false;
+	bool movi_y = true;
 	int posObjetivoPorMapa = 0; //Indice para recorrer los Objetivos por Mapa
 	int estado = CONECTARSE_MAPA;
 	char **objetivosPorMapa;
@@ -354,11 +382,29 @@ void recorrer_hojaDeViaje(int posHojaDeViaje) {
 						"Solicito avanzar a la pokenest de: %s",
 						objetivosPorMapa[posObjetivoPorMapa]);
 
-				if (avanzar_hacia_pokenest() == 1) {
+//				if (avanzar_hacia_pokenest() == 1) {
+//					estado = ATRAPAR_POKEMON;
+//				} else {
+//					estado = AVANZAR_HACIA_POKENEST;
+//				}
+				if(posicion_mapa->x == posicion_pokenest->x
+						&& posicion_mapa->y == posicion_pokenest->y){
 					estado = ATRAPAR_POKEMON;
-				} else {
-					estado = AVANZAR_HACIA_POKENEST;
+				}else{
+					if(!movi_x){
+						avanzar_hacia_pokenest_x();
+						movi_x = true;
+						movi_y = false;
+						estado = AVANZAR_HACIA_POKENEST;
+					}
+					if(!movi_y){
+						avanzar_hacia_pokenest_y();
+						movi_x = false;
+						movi_y = true;
+						estado = AVANZAR_HACIA_POKENEST;
+					}
 				}
+
 				break;
 			case ATRAPAR_POKEMON:
 				inicio_bloqueado = time(NULL);
@@ -534,7 +580,7 @@ void reiniciar_Hoja_De_Viaje(int posHojaDeViaje){
 		borrar_pokemon();
 		log_info(entrenador_log, "Se borraron los pokemons para finalizar el programa ");
 		liberar_recursos();
-		exit(1);
+		//exit(1);
 		break;
 	default:
 		break;
